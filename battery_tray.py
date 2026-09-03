@@ -112,13 +112,34 @@ def update_loop(icon):
         time.sleep(UPDATE_INTERVAL_SECONDS)
 
 
-def main():
-    percent, plugged = read_battery()
-    icon = pystray.Icon("battery-taskbar", make_icon_image(percent, plugged), _status_text())
-    icon.menu = build_menu(icon)
+def _log(msg):
+    print(msg, flush=True)
 
-    thread = threading.Thread(target=update_loop, args=(icon,), daemon=True)
-    icon.run(setup=lambda i: thread.start())
+
+def main():
+    _log(f"pystray backend: {pystray.Icon.__module__}")
+
+    percent, plugged = read_battery()
+    _log(f"battery read: percent={percent} plugged={plugged}")
+
+    image = make_icon_image(percent, plugged)
+    _log(f"icon image built: size={image.size} mode={image.mode}")
+
+    icon = pystray.Icon("battery-taskbar", image, _status_text())
+    icon.menu = build_menu(icon)
+    _log("pystray.Icon object created")
+
+    def _setup(i):
+        _log("setup() invoked, marking icon visible")
+        i.visible = True
+        _log(f"icon.visible = {i.visible}")
+        thread = threading.Thread(target=update_loop, args=(i,), daemon=True)
+        thread.start()
+        _log("update thread started")
+
+    _log("calling icon.run() - entering message loop")
+    icon.run(setup=_setup)
+    _log("icon.run() returned - icon stopped")
 
 
 def _report_fatal_error(exc):
