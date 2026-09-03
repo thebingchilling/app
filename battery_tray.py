@@ -18,7 +18,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 LOG_PATH = Path(os.environ.get("LOCALAPPDATA", ".")) / "BatteryTaskbar" / "error.log"
 
-UPDATE_INTERVAL_SECONDS = 30
+UPDATE_INTERVAL_SECONDS = 5
 ICON_SIZE = 64
 
 _FONT_CANDIDATES = ("seguisb.ttf", "arialbd.ttf", "DejaVuSans-Bold.ttf", "DejaVuSans.ttf")
@@ -100,6 +100,7 @@ def update_loop(icon):
     while True:
         try:
             percent, plugged = read_battery()
+            _log(f"update: percent={percent} plugged={plugged}")
             icon.icon = make_icon_image(percent, plugged)
             icon.title = _status_text()
         except Exception:
