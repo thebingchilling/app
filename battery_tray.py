@@ -61,7 +61,7 @@ def make_icon_image(percent, plugged):
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
-    text = f"{percent}%" if percent is not None else "--"
+    text = f"{percent}" if percent is not None else "--"
     font, bbox = _fit_font(draw, text, size, int(size * 0.96))
 
     w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
