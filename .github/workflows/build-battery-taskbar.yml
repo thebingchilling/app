@@ -18,9 +18,14 @@ jobs:
         run: pip install -r requirements.txt pyinstaller
 
       - name: Build exe
-        run: pyinstaller --onefile --noconsole --name BatteryTaskbar battery_tray.py
+        run: pyinstaller --onefile --noconsole --hidden-import pystray._win32 --name BatteryTaskbar battery_tray.py
+
+      - name: Build debug exe (with console, for diagnosing startup issues)
+        run: pyinstaller --onefile --hidden-import pystray._win32 --name BatteryTaskbarDebug battery_tray.py
 
       - uses: actions/upload-artifact@v4
         with:
           name: BatteryTaskbar-windows-exe
-          path: dist/BatteryTaskbar.exe
+          path: |
+            dist/BatteryTaskbar.exe
+            dist/BatteryTaskbarDebug.exe

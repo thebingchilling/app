@@ -4,12 +4,19 @@ Draws the current battery percentage directly onto the tray icon, as large
 as it can legibly go, and refreshes it periodically.
 """
 
+import ctypes
+import os
+import sys
 import threading
 import time
+import traceback
+from pathlib import Path
 
 import psutil
 import pystray
 from PIL import Image, ImageDraw, ImageFont
+
+LOG_PATH = Path(os.environ.get("LOCALAPPDATA", ".")) / "BatteryTaskbar" / "error.log"
 
 UPDATE_INTERVAL_SECONDS = 30
 ICON_SIZE = 64
@@ -91,9 +98,17 @@ def build_menu(icon):
 
 def update_loop(icon):
     while True:
-        percent, plugged = read_battery()
-        icon.icon = make_icon_image(percent, plugged)
-        icon.title = _status_text()
+        try:
+            percent, plugged = read_battery()
+            icon.icon = make_icon_image(percent, plugged)
+            icon.title = _status_text()
+        except Exception:
+            try:
+                LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+                with open(LOG_PATH, "a", encoding="utf-8") as f:
+                    f.write(traceback.format_exc())
+            except OSError:
+                pass
         time.sleep(UPDATE_INTERVAL_SECONDS)
 
 
@@ -106,5 +121,25 @@ def main():
     icon.run(setup=lambda i: thread.start())
 
 
+def _report_fatal_error(exc):
+    try:
+        LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(LOG_PATH, "w", encoding="utf-8") as f:
+            f.write("".join(traceback.format_exception(type(exc), exc, exc.__traceback__)))
+    except OSError:
+        pass
+    if sys.platform == "win32":
+        ctypes.windll.user32.MessageBoxW(
+            0,
+            f"BatteryTaskbar failed to start:\n\n{exc}\n\nDetails written to:\n{LOG_PATH}",
+            "BatteryTaskbar - Error",
+            0x10,
+        )
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as exc:  # surfaced via a message box since this is a --noconsole build
+        _report_fatal_error(exc)
+        raise
