@@ -1,0 +1,26 @@
+name: Build Battery Taskbar EXE
+
+on:
+  push:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Build exe
+        run: pyinstaller --onefile --noconsole --name BatteryTaskbar battery_tray.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BatteryTaskbar-windows-exe
+          path: dist/BatteryTaskbar.exe
