@@ -7,6 +7,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: battery-taskbar
     steps:
       - uses: actions/checkout@v4
 
@@ -27,5 +30,5 @@ jobs:
         with:
           name: BatteryTaskbar-windows-exe
           path: |
-            dist/BatteryTaskbar.exe
-            dist/BatteryTaskbarDebug.exe
+            battery-taskbar/dist/BatteryTaskbar.exe
+            battery-taskbar/dist/BatteryTaskbarDebug.exe

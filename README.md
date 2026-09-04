@@ -1,23 +1,8 @@
-# Battery Taskbar
+# app
 
-Shows the current battery percentage drawn directly onto the Windows tray
-icon, sized as large as it can legibly go. Green while charging, white on
-battery, amber under 35%, red under 15%. Right-click for status/quit.
+A collection of small standalone apps, each in its own folder.
 
-## Get the .exe
+## Apps
 
-A ready-built `BatteryTaskbar.exe` is produced automatically by the
-`Build Battery Taskbar EXE` GitHub Actions workflow on every push — download
-it from that workflow run's **Artifacts** section.
-
-## Build it yourself
-
-```
-pip install -r requirements.txt pyinstaller
-pyinstaller --onefile --noconsole --name BatteryTaskbar battery_tray.py
-```
-
-The executable is written to `dist/BatteryTaskbar.exe`. Run it directly, or
-drop a shortcut to it in `shell:startup` to launch on sign-in.
-
-Windows-only (uses `psutil.sensors_battery()`).
+- [`battery-taskbar/`](battery-taskbar/) — Windows tray icon showing battery
+  percentage.
