@@ -10,6 +10,7 @@ import sys
 import threading
 import time
 import traceback
+from ctypes import wintypes
 from pathlib import Path
 
 import psutil
@@ -18,8 +19,32 @@ from PIL import Image, ImageDraw, ImageFont
 
 LOG_PATH = Path(os.environ.get("LOCALAPPDATA", ".")) / "BatteryTaskbar" / "error.log"
 
-UPDATE_INTERVAL_SECONDS = 5
+# Fallback poll interval. Real-time updates come from WM_POWERBROADCAST
+# (see _start_power_event_watcher) firing the moment Windows reports a
+# power/battery status change, so this is just a safety net.
+UPDATE_INTERVAL_SECONDS = 60
 ICON_SIZE = 64
+
+WM_POWERBROADCAST = 0x0218
+PBT_APMPOWERSTATUSCHANGE = 0x000A
+WNDPROC = ctypes.WINFUNCTYPE(ctypes.c_long, wintypes.HWND, ctypes.c_uint, wintypes.WPARAM, wintypes.LPARAM)
+
+
+class _WNDCLASSEXW(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", ctypes.c_uint),
+        ("style", ctypes.c_uint),
+        ("lpfnWndProc", WNDPROC),
+        ("cbClsExtra", ctypes.c_int),
+        ("cbWndExtra", ctypes.c_int),
+        ("hInstance", wintypes.HINSTANCE),
+        ("hIcon", wintypes.HICON),
+        ("hCursor", wintypes.HANDLE),
+        ("hbrBackground", wintypes.HBRUSH),
+        ("lpszMenuName", wintypes.LPCWSTR),
+        ("lpszClassName", wintypes.LPCWSTR),
+        ("hIconSm", wintypes.HICON),
+    ]
 
 _FONT_CANDIDATES = ("seguisb.ttf", "arialbd.ttf", "DejaVuSans-Bold.ttf", "DejaVuSans.ttf")
 _OUTLINE_OFFSETS = ((-2, 0), (2, 0), (0, -2), (0, 2), (-1, -1), (1, 1), (-1, 1), (1, -1))
@@ -96,13 +121,68 @@ def build_menu(icon):
     )
 
 
+def _log(msg):
+    print(msg, flush=True)
+
+
+def refresh_icon(icon):
+    try:
+        percent, plugged = read_battery()
+        _log(f"refresh: percent={percent} plugged={plugged}")
+        icon.icon = make_icon_image(percent, plugged)
+        icon.title = _status_text()
+    except Exception:
+        try:
+            LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with open(LOG_PATH, "a", encoding="utf-8") as f:
+                f.write(traceback.format_exc())
+        except OSError:
+            pass
+
+
 def update_loop(icon):
     while True:
+        time.sleep(UPDATE_INTERVAL_SECONDS)
+        refresh_icon(icon)
+
+
+def _start_power_event_watcher(icon):
+    """Runs a hidden window on its own thread that reacts instantly to
+    WM_POWERBROADCAST (Windows fires this the moment AC/battery status
+    changes), instead of waiting on the poll interval."""
+
+    def wndproc(hwnd, msg, wparam, lparam):
+        if msg == WM_POWERBROADCAST and wparam == PBT_APMPOWERSTATUSCHANGE:
+            _log("WM_POWERBROADCAST received - refreshing immediately")
+            refresh_icon(icon)
+        return ctypes.windll.user32.DefWindowProcW(hwnd, msg, wparam, lparam)
+
+    def run():
         try:
-            percent, plugged = read_battery()
-            _log(f"update: percent={percent} plugged={plugged}")
-            icon.icon = make_icon_image(percent, plugged)
-            icon.title = _status_text()
+            wndproc_ref = WNDPROC(wndproc)  # must stay alive for the window's lifetime
+            wc = _WNDCLASSEXW()
+            wc.cbSize = ctypes.sizeof(_WNDCLASSEXW)
+            wc.lpfnWndProc = wndproc_ref
+            wc.hInstance = ctypes.windll.kernel32.GetModuleHandleW(None)
+            wc.lpszClassName = "BatteryTaskbarPowerWatcher"
+
+            if not ctypes.windll.user32.RegisterClassExW(ctypes.byref(wc)):
+                _log(f"RegisterClassExW failed: {ctypes.GetLastError()}")
+                return
+
+            hwnd = ctypes.windll.user32.CreateWindowExW(
+                0, wc.lpszClassName, "BatteryTaskbarPowerWatcher", 0,
+                0, 0, 0, 0, None, None, wc.hInstance, None,
+            )
+            if not hwnd:
+                _log(f"CreateWindowExW failed: {ctypes.GetLastError()}")
+                return
+
+            _log("power event watcher window created, pumping messages")
+            msg = wintypes.MSG()
+            while ctypes.windll.user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
+                ctypes.windll.user32.TranslateMessage(ctypes.byref(msg))
+                ctypes.windll.user32.DispatchMessageW(ctypes.byref(msg))
         except Exception:
             try:
                 LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -110,11 +190,8 @@ def update_loop(icon):
                     f.write(traceback.format_exc())
             except OSError:
                 pass
-        time.sleep(UPDATE_INTERVAL_SECONDS)
 
-
-def _log(msg):
-    print(msg, flush=True)
+    threading.Thread(target=run, daemon=True).start()
 
 
 def main():
@@ -134,9 +211,10 @@ def main():
         _log("setup() invoked, marking icon visible")
         i.visible = True
         _log(f"icon.visible = {i.visible}")
-        thread = threading.Thread(target=update_loop, args=(i,), daemon=True)
-        thread.start()
-        _log("update thread started")
+        threading.Thread(target=update_loop, args=(i,), daemon=True).start()
+        _log("fallback poll thread started")
+        if sys.platform == "win32":
+            _start_power_event_watcher(i)
 
     _log("calling icon.run() - entering message loop")
     icon.run(setup=_setup)
