@@ -69,28 +69,16 @@ def _fit_font(draw, text, max_size, box):
     return font, draw.textbbox((0, 0), text, font=font)
 
 
-def _text_color(percent):
+def _text_color(percent, plugged):
     if percent is None:
         return (200, 200, 200, 255)
-    if percent <= 15:
+    if plugged:
+        return (60, 220, 100, 255)
+    if percent <= 10:
         return (235, 70, 70, 255)
-    if percent <= 35:
+    if percent <= 20:
         return (245, 175, 45, 255)
     return (255, 255, 255, 255)
-
-
-def _draw_charging_dot(draw, size):
-    radius = max(4, round(size * 0.16))
-    margin = max(2, round(size * 0.05))
-    cx = size - margin - radius
-    cy = size - margin - radius
-    outline_width = max(1, size // 32)
-    draw.ellipse(
-        (cx - radius, cy - radius, cx + radius, cy + radius),
-        fill=(60, 220, 100, 255),
-        outline=(0, 0, 0, 255),
-        width=outline_width,
-    )
 
 
 def make_icon_image(percent, plugged):
@@ -107,10 +95,7 @@ def make_icon_image(percent, plugged):
 
     for dx, dy in _OUTLINE_OFFSETS:
         draw.text((x + dx, y + dy), text, font=font, fill=(0, 0, 0, 255))
-    draw.text((x, y), text, font=font, fill=_text_color(percent))
-
-    if plugged:
-        _draw_charging_dot(draw, size)
+    draw.text((x, y), text, font=font, fill=_text_color(percent, plugged))
 
     return img
 
