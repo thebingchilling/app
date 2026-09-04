@@ -21,8 +21,10 @@ LOG_PATH = Path(os.environ.get("LOCALAPPDATA", ".")) / "BatteryTaskbar" / "error
 
 # Fallback poll interval. Real-time updates come from WM_POWERBROADCAST
 # (see _start_power_event_watcher) firing the moment Windows reports a
-# power/battery status change, so this is just a safety net.
-UPDATE_INTERVAL_SECONDS = 60
+# power/battery status change, but that event doesn't fire reliably on
+# every machine, so keep this short enough that plug/unplug still shows
+# up quickly even when it doesn't.
+UPDATE_INTERVAL_SECONDS = 3
 ICON_SIZE = 64
 
 WM_POWERBROADCAST = 0x0218
