@@ -2,4 +2,3 @@ build/
 dist/
 *.spec
 __pycache__/
-yt-dlp-batch-downloader/downloads/
