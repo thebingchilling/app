@@ -21,7 +21,6 @@ class MainActivity : AppCompatActivity() {
         webView = findViewById(R.id.webView)
         progressBar = findViewById(R.id.progressBar)
 
-        val adFilter = (application as App).adFilter
         val pwaHost = getString(R.string.pwa_host)
 
         with(webView.settings) {
@@ -31,10 +30,13 @@ class MainActivity : AppCompatActivity() {
             setSupportZoom(true)
             builtInZoomControls = true
             displayZoomControls = false
+            // Belt-and-suspenders against window.open()-style popups; this is
+            // also the default, and we never implement onCreateWindow below.
+            javaScriptCanOpenWindowsAutomatically = false
+            setSupportMultipleWindows(false)
         }
 
-        adFilter.setupWebView(webView)
-        webView.webViewClient = PwaWebViewClient(this, adFilter, pwaHost)
+        webView.webViewClient = PwaWebViewClient(this, pwaHost)
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 if (newProgress >= 100) {

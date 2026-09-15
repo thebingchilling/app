@@ -35,8 +35,4 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.webkit:webkit:1.11.0")
-
-    // Ad-blocking engine (EasyList/AdGuard filter syntax) driving the WebView.
-    implementation("com.github.Edsuns.AdblockAndroid:ad-filter:1.0")
 }

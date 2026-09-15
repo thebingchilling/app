@@ -2,16 +2,19 @@
 
 An Android app that wraps [Bingqilin](https://thebingchilling.github.io/)
 (from `thebingchilling/thebingchilling.github.io`) — a movies/TV/live-TV &
-radio PWA — in a chrome-less WebView, with ads/trackers blocked using
-[Edsuns/AdblockAndroid](https://github.com/Edsuns/AdblockAndroid), loaded
-with AdGuard's own filter subscriptions:
+radio PWA — in a chrome-less WebView.
 
-- AdGuard Base filter
-- AdGuard Mobile Ads filter
-- AdGuard Tracking Protection filter
-
-These are downloaded automatically on first launch (see `App.kt`) — no
-settings screen, no filter picker, nothing for the end user to configure.
+There is no third-party ad-blocking library and no runtime filter-list
+download. What the site actually needed blocked was the video player's
+popup/popunder ads, so that's what's vendored here as plain Kotlin in
+`PwaWebViewClient.kt` and `KnownAdHosts.kt` — no JitPack/jcenter dependency,
+nothing fetched at build or run time. See "How the popup blocking works"
+below. (An earlier version of this app used
+[Edsuns/AdblockAndroid](https://github.com/Edsuns/AdblockAndroid) +
+AdGuard's filter lists for general ad/tracker blocking; that pulled in a
+JitPack dependency with a native-code sub-module and some now-dead jcenter
+transitive dependencies, which was more machinery than the actual
+popup-blocking problem needed.)
 
 ## Pointing it at a different site
 
@@ -34,17 +37,23 @@ Also update `applicationId`/`namespace` in `app/build.gradle.kts`,
 (currently Bingqilin's own PWA icons, copied from its manifest) before
 reusing this for another site.
 
-## How the ad blocking works
+## How the popup blocking works
 
-- `App.kt` creates the `AdFilter` engine and, on first run only
-  (`!adFilter.hasInstallation`), registers + enables + downloads the three
-  AdGuard subscriptions above.
-- `PwaWebViewClient.shouldInterceptRequest` runs every sub-resource request
-  through `adFilter.shouldIntercept(...)` and returns a blocked/empty
-  response when a filter rule matches. Main-frame navigations are never
-  blocked by design (the library's own rule).
-- `onPageStarted` calls `adFilter.performScript(...)`, which injects the
-  element-hiding / cosmetic-filter CSS+JS for the page.
+- `window.open()` / `target="_blank"` popups are blocked by never enabling
+  `setSupportMultipleWindows` / `javaScriptCanOpenWindowsAutomatically` and
+  never implementing `WebChromeClient.onCreateWindow` — WebView's default
+  behavior for both is to do nothing.
+- The remaining pattern on these sites is a script-triggered top-level
+  navigation (a "popunder"): the player loads and, without any tap, sends
+  the WebView to an ad domain. `PwaWebViewClient.shouldOverrideUrlLoading`
+  drops any off-site navigation that doesn't carry
+  `WebResourceRequest.hasGesture()`.
+- Some sites also lay an invisible ad-network click-catcher over the real
+  play button, which *does* produce a genuine gesture. `KnownAdHosts.kt` is
+  a small vendored list of popup ad-network domains (propellerads,
+  exoclick, popads, etc.) that get dropped even with a gesture.
+- A genuine off-site link the user taps (anything else) opens in the system
+  browser instead of hijacking this app.
 
 ## Building
 
@@ -63,10 +72,8 @@ SDK installed.
 
 ## Notes / things to tune per-site
 
-- If your PWA relies on a Service Worker for offline caching, requests it
-  makes are *not* routed through `shouldInterceptRequest` by default on
-  older WebView versions — only tested on recent WebView (Chromium)
-  releases where SW fetches do pass through the same interception path.
+- `KnownAdHosts.kt` is a short, hand-picked list — if a new popup network
+  shows up in the player, add its domain there.
 - `minSdk` is 26 (Android 8.0), so only the adaptive-icon mipmap set is
   needed (no legacy pre-API-26 fallback icons).
 - The launcher icon files under `res/mipmap-*` are Bingqilin's own
