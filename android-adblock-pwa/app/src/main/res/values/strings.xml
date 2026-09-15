@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Adblock PWA</string>
+
+    <!-- The one and only site this app is allowed to show. Links to other
+         domains are opened in the system browser instead of inside the app. -->
+    <string name="pwa_url" translatable="false">https://example.com/</string>
+    <string name="pwa_host" translatable="false">example.com</string>
+</resources>
