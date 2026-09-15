@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity() {
             setSupportMultipleWindows(false)
         }
 
-        webView.webViewClient = PwaWebViewClient(this, pwaHost)
+        webView.webViewClient = PwaWebViewClient(pwaHost)
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 if (newProgress >= 100) {
