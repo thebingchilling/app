@@ -52,8 +52,14 @@ class FullscreenWebChromeClient(
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
         )
         (activity.window.decorView as FrameLayout).addView(fullscreenContainer)
-        normalContent.visibility = View.GONE
+        // Toggle the window's inset-fitting before touching normalContent's
+        // visibility: it's the WebView underneath, and if it's made visible
+        // again while the window is still mid-transition, Chromium can latch
+        // onto a stale env(safe-area-inset-*) value and not reflow until
+        // something else forces a layout pass (looks like the page's own
+        // top bar getting pushed down after exiting fullscreen).
         setSystemBarsHidden(true)
+        normalContent.visibility = View.GONE
         onFullscreenChanged(true)
     }
 
@@ -62,8 +68,8 @@ class FullscreenWebChromeClient(
 
         (activity.window.decorView as FrameLayout).removeView(fullscreenContainer)
         fullscreenContainer.removeAllViews()
-        normalContent.visibility = View.VISIBLE
         setSystemBarsHidden(false)
+        normalContent.visibility = View.VISIBLE
 
         customViewCallback?.onCustomViewHidden()
         customView = null
