@@ -2,28 +2,35 @@ package com.bingqilin.app
 
 import android.app.Activity
 import android.graphics.Color
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.widget.FrameLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsAnimationCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 /**
  * WebView has no built-in support for the HTML5 Fullscreen API (what the
  * player's own fullscreen button calls) - without these two callbacks
  * implemented, a page's `element.requestFullscreen()` silently does
- * nothing. This adds the fullscreen video/element as an overlay covering
- * the app's whole content area (on top of [normalContent]).
+ * nothing. This adds the fullscreen video/element as a full-window overlay
+ * on top of everything (including [normalContent]) and hides the system
+ * bars for the duration, for a genuinely immersive fullscreen.
  *
- * This deliberately does NOT try to also hide the system status/nav bars
- * or make the window edge-to-edge for the duration: doing that means
- * toggling the window's inset-fitting, which makes the WebView's own
- * env(safe-area-inset-*) values change (and animate, since hiding/showing
- * system bars is itself an animated transition) - the site's sticky top
- * bar reacts to that via its own padding, which read as it visibly
- * jumping/getting pushed down around the fullscreen transition. The video
- * still fills the whole normal content area either way; only the thin
- * system bar strip stays visible, which is a fine trade for not having
- * insets fluctuate under the WebView at all.
+ * Hiding/showing the system bars changes the WebView's own
+ * env(safe-area-inset-*) values, and showing them back is an animated
+ * reveal, not instant. If [normalContent] (the WebView) is made visible
+ * again before that reveal finishes, Chromium can render a frame with a
+ * mid-transition inset value, which the site's sticky top bar reacts to
+ * via its own padding - visible as it getting pushed down right after
+ * exiting fullscreen. So on exit, revealing [normalContent] is deferred
+ * until the reveal animation actually ends (with a timeout fallback for
+ * any device/API level where no animation callback fires at all).
  */
 class FullscreenWebChromeClient(
     private val activity: Activity,
@@ -33,6 +40,8 @@ class FullscreenWebChromeClient(
 
     private var customView: View? = null
     private var customViewCallback: CustomViewCallback? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var pendingReveal: Runnable? = null
 
     private val fullscreenContainer: FrameLayout by lazy {
         FrameLayout(activity).apply {
@@ -51,6 +60,7 @@ class FullscreenWebChromeClient(
             callback.onCustomViewHidden()
             return
         }
+        cancelPendingReveal()
         customView = view
         customViewCallback = callback
 
@@ -59,7 +69,10 @@ class FullscreenWebChromeClient(
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
         )
         (activity.window.decorView as FrameLayout).addView(fullscreenContainer)
+        // Hide normalContent before touching system bars: it's the WebView,
+        // and it's not visible to react to anything while the bars hide.
         normalContent.visibility = View.GONE
+        hideSystemBars()
         onFullscreenChanged(true)
     }
 
@@ -68,7 +81,7 @@ class FullscreenWebChromeClient(
 
         (activity.window.decorView as FrameLayout).removeView(fullscreenContainer)
         fullscreenContainer.removeAllViews()
-        normalContent.visibility = View.VISIBLE
+        showSystemBarsThenReveal()
 
         customViewCallback?.onCustomViewHidden()
         customView = null
@@ -79,5 +92,59 @@ class FullscreenWebChromeClient(
     /** Called when the user presses back while fullscreen, instead of navigating WebView history. */
     fun exitFullscreen() {
         onHideCustomView()
+    }
+
+    private fun hideSystemBars() {
+        val window = activity.window
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+    }
+
+    private fun showSystemBarsThenReveal() {
+        val window = activity.window
+        val decor = window.decorView
+
+        cancelPendingReveal()
+        val reveal = Runnable {
+            ViewCompat.setWindowInsetsAnimationCallback(decor, null)
+            WindowCompat.setDecorFitsSystemWindows(window, true)
+            normalContent.visibility = View.VISIBLE
+            pendingReveal = null
+        }
+        pendingReveal = reveal
+        // Fallback in case no insets animation ever fires (older API levels,
+        // or a device that just snaps bars in without one) - never leave
+        // the WebView hidden indefinitely.
+        mainHandler.postDelayed(reveal, REVEAL_FALLBACK_MS)
+
+        ViewCompat.setWindowInsetsAnimationCallback(
+            decor,
+            object : WindowInsetsAnimationCompat.Callback(WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_STOP) {
+                override fun onProgress(
+                    insets: WindowInsetsCompat,
+                    runningAnimations: MutableList<WindowInsetsAnimationCompat>,
+                ) = insets
+
+                override fun onEnd(animation: WindowInsetsAnimationCompat) {
+                    if (animation.typeMask and WindowInsetsCompat.Type.systemBars() != 0) {
+                        mainHandler.removeCallbacks(reveal)
+                        reveal.run()
+                    }
+                }
+            },
+        )
+        WindowInsetsControllerCompat(window, decor).show(WindowInsetsCompat.Type.systemBars())
+    }
+
+    private fun cancelPendingReveal() {
+        pendingReveal?.let { mainHandler.removeCallbacks(it) }
+        pendingReveal = null
+        ViewCompat.setWindowInsetsAnimationCallback(activity.window.decorView, null)
+    }
+
+    private companion object {
+        const val REVEAL_FALLBACK_MS = 400L
     }
 }
