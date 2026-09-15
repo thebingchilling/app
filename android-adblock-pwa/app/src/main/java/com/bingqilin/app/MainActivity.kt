@@ -2,6 +2,7 @@ package com.bingqilin.app
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.webkit.CookieManager
 import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
@@ -36,6 +37,13 @@ class MainActivity : AppCompatActivity() {
             // also the default, and we never implement onCreateWindow below.
             javaScriptCanOpenWindowsAutomatically = false
             setSupportMultipleWindows(false)
+        }
+        // The video player lives in a cross-origin iframe; WebView blocks
+        // third-party cookies by default, which can break an embed's own
+        // session/token handling.
+        CookieManager.getInstance().apply {
+            setAcceptCookie(true)
+            setAcceptThirdPartyCookies(webView, true)
         }
 
         val backCallback = object : OnBackPressedCallback(false) {

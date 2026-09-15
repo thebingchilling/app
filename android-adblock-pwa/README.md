@@ -44,12 +44,20 @@ reusing this for another site.
   `setSupportMultipleWindows` / `javaScriptCanOpenWindowsAutomatically` and
   never implementing `WebChromeClient.onCreateWindow` — WebView's default
   behavior for both is to do nothing.
-- Every other navigation goes through `PwaWebViewClient.shouldOverrideUrlLoading`,
-  which checks the target host against `pwa_host` and its subdomains. A
-  match loads in the WebView (`return false`); anything else is dropped
-  (`return true`, and nothing further happens) — no distinction between a
-  popunder redirect and a link the user actually tapped, since neither has
-  anywhere to go.
+- Every other **main-frame** navigation goes through
+  `PwaWebViewClient.shouldOverrideUrlLoading`, which checks the target host
+  against `pwa_host` and its subdomains. A match loads in the WebView
+  (`return false`); anything else is dropped (`return true`, and nothing
+  further happens) — no distinction between a popunder redirect and a link
+  the user actually tapped, since neither has anywhere to go.
+- Sub-frame navigations (`!request.isForMainFrame`) are always let through
+  regardless of host. The video player is a cross-origin iframe
+  (`#playerFrame` on the movies/TV page loads from a separate embed/CDN
+  domain) - locking those down the same way as top-level navigation would
+  break the player itself, not just off-site link-outs. `CookieManager`
+  also has third-party cookies explicitly enabled for the same reason:
+  WebView blocks them by default, which can break an embed that relies on
+  its own session/token cookies.
 
 ## UI behavior
 

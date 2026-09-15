@@ -5,10 +5,15 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 
 /**
- * Locks navigation to a single site: requests to [allowedHost] (or its
- * subdomains) load in the WebView, everything else - popups, popunders,
- * and genuine outbound links alike - is dropped silently. No domain list
- * to maintain: anything off-site simply never leaves the app.
+ * Locks top-level navigation to a single site: requests to [allowedHost]
+ * (or its subdomains) load in the WebView, everything else - popups,
+ * popunders, and genuine outbound links alike - is dropped silently. No
+ * domain list to maintain: anything off-site simply never leaves the app.
+ *
+ * This only applies to the main frame. The site embeds its video player in
+ * a cross-origin iframe (a different domain serves the actual player/
+ * stream), so sub-frame navigations are always allowed through - blocking
+ * those would break the player itself, not just off-site link-outs.
  */
 class PwaWebViewClient(
     private val allowedHost: String,
@@ -19,6 +24,9 @@ class PwaWebViewClient(
         view: WebView,
         request: WebResourceRequest,
     ): Boolean {
+        if (!request.isForMainFrame) {
+            return false
+        }
         val host = request.url.host
         return host == null || !isOnSite(host)
     }
