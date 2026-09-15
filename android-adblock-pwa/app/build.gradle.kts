@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.adblockpwa"
+    namespace = "com.bingqilin.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.adblockpwa"
+        applicationId = "com.bingqilin.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

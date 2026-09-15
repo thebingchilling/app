@@ -1,4 +1,4 @@
-package com.example.adblockpwa
+package com.bingqilin.app
 
 import android.content.ActivityNotFoundException
 import android.content.Context

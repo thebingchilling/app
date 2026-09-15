@@ -1,4 +1,4 @@
-package com.example.adblockpwa
+package com.bingqilin.app
 
 import android.app.Application
 import io.github.edsuns.adfilter.AdFilter

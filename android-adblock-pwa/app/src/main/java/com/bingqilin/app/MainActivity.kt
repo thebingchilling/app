@@ -1,4 +1,4 @@
-package com.example.adblockpwa
+package com.bingqilin.app
 
 import android.annotation.SuppressLint
 import android.os.Bundle
