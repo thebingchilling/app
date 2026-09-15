@@ -87,9 +87,15 @@ reusing this for another site.
   HTML5 Fullscreen API the player's fullscreen button calls -
   `element.requestFullscreen()` silently no-ops without a `WebChromeClient`
   implementing `onShowCustomView`/`onHideCustomView`. `FullscreenWebChromeClient`
-  adds the fullscreen view as a full-window overlay above everything
-  (including the `SwipeRefreshLayout`) and hides the system bars for the
-  duration via `WindowInsetsControllerCompat`.
+  adds the fullscreen view as an overlay covering the app's content area,
+  above the `SwipeRefreshLayout`. It deliberately does *not* also hide the
+  system status/nav bars or make the window edge-to-edge: doing that makes
+  the WebView's own `env(safe-area-inset-*)` values change (and animate,
+  since hiding/showing system bars is itself an animated transition), which
+  the site's sticky top bar reacts to via its own padding - visible as it
+  jumping/getting pushed down around the fullscreen transition. The video
+  still fills the whole normal content area either way; only the thin
+  system bar strip stays visible.
 - No progress bar — the pull-to-refresh spinner is the only loading
   indicator, shown only when the user asked for a reload.
 - **Splash screen**: uses `androidx.core:core-splashscreen` so it follows
