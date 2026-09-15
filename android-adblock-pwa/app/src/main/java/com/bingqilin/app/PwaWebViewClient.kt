@@ -33,19 +33,28 @@ class PwaWebViewClient(
         host.equals(allowedHost, ignoreCase = true) || host.endsWith(".$allowedHost", ignoreCase = true)
 
     private companion object {
-        // Reports the real scroll position of the page's actual scrolling
-        // element (see ScrollTopBridge) - the WebView's own document never
-        // scrolls on this site, so its native scroll position is useless.
+        // Reports the real scroll position of whatever the page's actual
+        // scrolling element is (see ScrollTopBridge) - the WebView's own
+        // document never scrolls on this site, so its native scroll
+        // position is useless. `scroll` doesn't bubble, but a capturing
+        // listener on window still sees it fire on any descendant, which
+        // is what lets this work without hardcoding a container per page
+        // (the movies/TV page scrolls a nested `.view` panel, not the
+        // `.app-main` wrapper the Tools page scrolls directly).
         const val SCROLL_TRACKER_JS = """
             (function() {
-              var el = document.querySelector('main.app-main')
-                || document.querySelector('main')
-                || document.scrollingElement
-                || document.documentElement;
-              if (!el || !window.BQNative) return;
-              function report() { window.BQNative.onScrollTopChanged(el.scrollTop <= 0); }
-              el.addEventListener('scroll', report, { passive: true });
-              report();
+              if (!window.BQNative) return;
+              function scrollTopOf(target) {
+                if (target === document || target === window) {
+                  var el = document.scrollingElement || document.documentElement;
+                  return el.scrollTop;
+                }
+                return target.scrollTop;
+              }
+              window.addEventListener('scroll', function(e) {
+                window.BQNative.onScrollTopChanged(scrollTopOf(e.target) <= 0);
+              }, { capture: true, passive: true });
+              window.BQNative.onScrollTopChanged(true);
             })();
         """
     }

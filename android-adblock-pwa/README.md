@@ -55,21 +55,33 @@ reusing this for another site.
 
 - **Pull-to-refresh**: the WebView sits in a `SwipeRefreshLayout`; pulling
   down reloads the current page. The spinner stops on `onPageFinished`.
-  Bingqilin's pages scroll an inner `.app-main` container rather than the
-  WebView's own document, so `WebView.canScrollVertically()` - what
-  `SwipeRefreshLayout` checks by default to decide if it may intercept a
-  drag - always reads "at the top" and would otherwise hijack every upward
-  swipe on the page, not just ones starting at the real top.
-  `PwaWebViewClient` injects a small script on every page load that
-  reports the actual scroll container's position through `ScrollTopBridge`
-  (`window.BQNative`), and `swipeRefresh.isEnabled` is only kept `true`
-  while that container is genuinely scrolled to its top.
+  Bingqilin's pages scroll a nested container rather than the WebView's own
+  document - and which container varies by page (the Tools page scrolls
+  `.app-main` directly, the movies/TV page scrolls a `.view` panel nested
+  inside it) - so `WebView.canScrollVertically()`, what `SwipeRefreshLayout`
+  checks by default to decide if it may intercept a drag, always reads "at
+  the top" regardless of where the page actually is, and would otherwise
+  hijack upward swipes anywhere on the page. `PwaWebViewClient` injects a
+  script on every page load that adds a capturing `scroll` listener on
+  `window` - `scroll` doesn't bubble, but a capturing listener still sees
+  it fire on whichever descendant actually scrolled, so this needs no
+  per-page container selector - and reports that element's position through
+  `ScrollTopBridge` (`window.BQNative`). `swipeRefresh.isEnabled` is only
+  kept `true` while the last-scrolled element is genuinely at its top.
 - **Back**: a real `OnBackPressedCallback` (not a `KeyEvent` override, which
-  doesn't reliably fire for gesture-nav swipe-back on modern Android) goes
-  back through the WebView's own history, and is only enabled when
+  doesn't reliably fire for gesture-nav swipe-back on modern Android) exits
+  fullscreen first if the player is fullscreen, otherwise goes back through
+  the WebView's own history, and is only enabled when fullscreen or
   `webView.canGoBack()` — otherwise back falls through to closing the app.
   `enableOnBackInvokedCallback="true"` in the manifest gets the predictive
   back animation on Android 13+.
+- **Player fullscreen**: plain `WebView` has no built-in support for the
+  HTML5 Fullscreen API the player's fullscreen button calls -
+  `element.requestFullscreen()` silently no-ops without a `WebChromeClient`
+  implementing `onShowCustomView`/`onHideCustomView`. `FullscreenWebChromeClient`
+  adds the fullscreen view as a full-window overlay above everything
+  (including the `SwipeRefreshLayout`) and hides the system bars for the
+  duration via `WindowInsetsControllerCompat`.
 - No progress bar — the pull-to-refresh spinner is the only loading
   indicator, shown only when the user asked for a reload.
 - **Splash screen**: uses `androidx.core:core-splashscreen` so it follows

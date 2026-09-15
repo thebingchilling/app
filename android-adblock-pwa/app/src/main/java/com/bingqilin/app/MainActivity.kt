@@ -12,6 +12,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private lateinit var swipeRefresh: SwipeRefreshLayout
+    private lateinit var fullscreenClient: FullscreenWebChromeClient
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,10 +40,19 @@ class MainActivity : AppCompatActivity() {
 
         val backCallback = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
-                webView.goBack()
+                if (fullscreenClient.isFullscreen) {
+                    fullscreenClient.exitFullscreen()
+                } else {
+                    webView.goBack()
+                }
             }
         }
         onBackPressedDispatcher.addCallback(this, backCallback)
+
+        fullscreenClient = FullscreenWebChromeClient(this, swipeRefresh) { isFullscreen ->
+            backCallback.isEnabled = isFullscreen || webView.canGoBack()
+        }
+        webView.webChromeClient = fullscreenClient
 
         webView.webViewClient = PwaWebViewClient(pwaHost) {
             swipeRefresh.isRefreshing = false
