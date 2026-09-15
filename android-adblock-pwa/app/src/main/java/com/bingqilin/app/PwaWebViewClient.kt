@@ -12,6 +12,7 @@ import android.webkit.WebViewClient
  */
 class PwaWebViewClient(
     private val allowedHost: String,
+    private val onPageFinished: () -> Unit,
 ) : WebViewClient() {
 
     override fun shouldOverrideUrlLoading(
@@ -20,6 +21,11 @@ class PwaWebViewClient(
     ): Boolean {
         val host = request.url.host
         return host == null || !isOnSite(host)
+    }
+
+    override fun onPageFinished(view: WebView, url: String?) {
+        super.onPageFinished(view, url)
+        onPageFinished.invoke()
     }
 
     private fun isOnSite(host: String): Boolean =

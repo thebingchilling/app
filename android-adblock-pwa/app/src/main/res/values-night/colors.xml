@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches Bingqilin's own dark-theme --md-surface (see shared/chrome.css /
+         tools/index.html), so the native shell and the site agree in dark mode. -->
+    <color name="background">#17120d</color>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icons render on a 108x108dp canvas, but launchers only
+     guarantee the inner ~66dp is visible after masking. The source PNG
+     (Bingqilin's W3C "maskable" icon) is full-bleed to its own edges, so
+     without this inset it gets zoomed in / cropped once Android masks it. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@mipmap/ic_launcher_foreground"
+    android:insetLeft="16.7%"
+    android:insetTop="16.7%"
+    android:insetRight="16.7%"
+    android:insetBottom="16.7%" />

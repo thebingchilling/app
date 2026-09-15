@@ -8,4 +8,16 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
+
+    <!-- Only used momentarily as MainActivity's manifest theme so the
+         AndroidX SplashScreen compat library can install it before
+         super.onCreate(); it switches to postSplashScreenTheme itself once
+         the splash is dismissed. @color/background is day/night-qualified
+         (see values-night/colors.xml), so the splash follows the system
+         theme the same way the rest of the app does. -->
+    <style name="Theme.AdblockPwa.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.AdblockPwa.NoActionBar</item>
+    </style>
 </resources>

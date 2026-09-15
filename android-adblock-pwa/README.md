@@ -51,6 +51,27 @@ reusing this for another site.
   popunder redirect and a link the user actually tapped, since neither has
   anywhere to go.
 
+## UI behavior
+
+- **Pull-to-refresh**: the WebView sits in a `SwipeRefreshLayout`; pulling
+  down reloads the current page. The spinner stops on `onPageFinished`.
+- **Back**: a real `OnBackPressedCallback` (not a `KeyEvent` override, which
+  doesn't reliably fire for gesture-nav swipe-back on modern Android) goes
+  back through the WebView's own history, and is only enabled when
+  `webView.canGoBack()` — otherwise back falls through to closing the app.
+  `enableOnBackInvokedCallback="true"` in the manifest gets the predictive
+  back animation on Android 13+.
+- No progress bar — the pull-to-refresh spinner is the only loading
+  indicator, shown only when the user asked for a reload.
+- **Splash screen**: uses `androidx.core:core-splashscreen` so it follows
+  the system light/dark theme like the rest of the app. `MainActivity`'s
+  manifest theme is `Theme.AdblockPwa.Splash` (background = `@color/background`,
+  icon = `@mipmap/ic_launcher`), which `installSplashScreen()` swaps for
+  `Theme.AdblockPwa.NoActionBar` once the activity is ready.
+  `values-night/colors.xml` gives `background` a dark value that matches
+  Bingqilin's own dark-theme surface color, so light/dark mode looks
+  consistent between the splash, the native chrome, and the site itself.
+
 ## Building
 
 Requires the Android SDK (command-line tools + platform 34). With that on
@@ -76,3 +97,8 @@ SDK installed.
 - The launcher icon files under `res/mipmap-*` are Bingqilin's own
   `icon-192.png` / `icon-maskable-192.png` from its PWA manifest, and the
   adaptive-icon background color matches its `theme_color` (`#f7ebdd`).
+  The maskable PNG is full-bleed to its own edges (per the W3C maskable-icon
+  spec), but Android's adaptive-icon mask only guarantees the inner ~66dp of
+  the 108dp canvas survives, so `drawable/ic_launcher_foreground_inset.xml`
+  insets it by 16.7% on each side before it's used as the foreground layer —
+  without that inset it renders zoomed-in/cropped on most launchers.

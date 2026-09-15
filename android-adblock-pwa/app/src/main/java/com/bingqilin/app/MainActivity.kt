@@ -2,24 +2,25 @@ package com.bingqilin.app
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.view.KeyEvent
-import android.webkit.WebChromeClient
 import android.webkit.WebView
-import android.widget.ProgressBar
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.installSplashScreen
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
-    private lateinit var progressBar: ProgressBar
+    private lateinit var swipeRefresh: SwipeRefreshLayout
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        swipeRefresh = findViewById(R.id.swipeRefresh)
         webView = findViewById(R.id.webView)
-        progressBar = findViewById(R.id.progressBar)
 
         val pwaHost = getString(R.string.pwa_host)
 
@@ -36,17 +37,20 @@ class MainActivity : AppCompatActivity() {
             setSupportMultipleWindows(false)
         }
 
-        webView.webViewClient = PwaWebViewClient(pwaHost)
-        webView.webChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView, newProgress: Int) {
-                if (newProgress >= 100) {
-                    progressBar.visibility = ProgressBar.GONE
-                } else {
-                    progressBar.visibility = ProgressBar.VISIBLE
-                    progressBar.progress = newProgress
-                }
+        val backCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                webView.goBack()
             }
         }
+        onBackPressedDispatcher.addCallback(this, backCallback)
+
+        webView.webViewClient = PwaWebViewClient(pwaHost) {
+            swipeRefresh.isRefreshing = false
+            backCallback.isEnabled = webView.canGoBack()
+        }
+
+        swipeRefresh.setColorSchemeResources(R.color.refresh_tint)
+        swipeRefresh.setOnRefreshListener { webView.reload() }
 
         if (savedInstanceState == null) {
             webView.loadUrl(getString(R.string.pwa_url))
@@ -61,13 +65,5 @@ class MainActivity : AppCompatActivity() {
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         webView.restoreState(savedInstanceState)
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK && webView.canGoBack()) {
-            webView.goBack()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
     }
 }
