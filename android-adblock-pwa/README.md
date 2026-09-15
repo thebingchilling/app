@@ -55,6 +55,15 @@ reusing this for another site.
 
 - **Pull-to-refresh**: the WebView sits in a `SwipeRefreshLayout`; pulling
   down reloads the current page. The spinner stops on `onPageFinished`.
+  Bingqilin's pages scroll an inner `.app-main` container rather than the
+  WebView's own document, so `WebView.canScrollVertically()` - what
+  `SwipeRefreshLayout` checks by default to decide if it may intercept a
+  drag - always reads "at the top" and would otherwise hijack every upward
+  swipe on the page, not just ones starting at the real top.
+  `PwaWebViewClient` injects a small script on every page load that
+  reports the actual scroll container's position through `ScrollTopBridge`
+  (`window.BQNative`), and `swipeRefresh.isEnabled` is only kept `true`
+  while that container is genuinely scrolled to its top.
 - **Back**: a real `OnBackPressedCallback` (not a `KeyEvent` override, which
   doesn't reliably fire for gesture-nav swipe-back on modern Android) goes
   back through the WebView's own history, and is only enabled when

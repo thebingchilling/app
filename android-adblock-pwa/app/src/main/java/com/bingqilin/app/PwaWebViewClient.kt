@@ -25,9 +25,28 @@ class PwaWebViewClient(
 
     override fun onPageFinished(view: WebView, url: String?) {
         super.onPageFinished(view, url)
+        view.evaluateJavascript(SCROLL_TRACKER_JS, null)
         onPageFinished.invoke()
     }
 
     private fun isOnSite(host: String): Boolean =
         host.equals(allowedHost, ignoreCase = true) || host.endsWith(".$allowedHost", ignoreCase = true)
+
+    private companion object {
+        // Reports the real scroll position of the page's actual scrolling
+        // element (see ScrollTopBridge) - the WebView's own document never
+        // scrolls on this site, so its native scroll position is useless.
+        const val SCROLL_TRACKER_JS = """
+            (function() {
+              var el = document.querySelector('main.app-main')
+                || document.querySelector('main')
+                || document.scrollingElement
+                || document.documentElement;
+              if (!el || !window.BQNative) return;
+              function report() { window.BQNative.onScrollTopChanged(el.scrollTop <= 0); }
+              el.addEventListener('scroll', report, { passive: true });
+              report();
+            })();
+        """
+    }
 }

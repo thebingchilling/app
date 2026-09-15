@@ -48,6 +48,10 @@ class MainActivity : AppCompatActivity() {
             swipeRefresh.isRefreshing = false
             backCallback.isEnabled = webView.canGoBack()
         }
+        webView.addJavascriptInterface(
+            ScrollTopBridge { atTop -> swipeRefresh.isEnabled = atTop },
+            "BQNative",
+        )
 
         swipeRefresh.setColorSchemeResources(R.color.refresh_tint)
         swipeRefresh.setOnRefreshListener { webView.reload() }
