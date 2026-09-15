@@ -6,24 +6,17 @@ import android.webkit.CookieManager
 import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
-    private lateinit var swipeRefresh: SwipeRefreshLayout
-    private lateinit var fullscreenClient: FullscreenWebChromeClient
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        swipeRefresh = findViewById(R.id.swipeRefresh)
         webView = findViewById(R.id.webView)
-
         val pwaHost = getString(R.string.pwa_host)
 
         with(webView.settings) {
@@ -33,46 +26,34 @@ class MainActivity : AppCompatActivity() {
             setSupportZoom(true)
             builtInZoomControls = true
             displayZoomControls = false
-            // Belt-and-suspenders against window.open()-style popups; this is
-            // also the default, and we never implement onCreateWindow below.
+            // Blocks window.open()/target="_blank" popups; this is also the
+            // default, and we never implement WebChromeClient.onCreateWindow.
             javaScriptCanOpenWindowsAutomatically = false
             setSupportMultipleWindows(false)
         }
-        // The video player lives in a cross-origin iframe; WebView blocks
-        // third-party cookies by default, which can break an embed's own
-        // session/token handling.
+        // The site embeds cross-origin content that depends on its own
+        // session/token cookies; WebView blocks third-party cookies by
+        // default.
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
             setAcceptThirdPartyCookies(webView, true)
         }
 
-        val backCallback = object : OnBackPressedCallback(false) {
-            override fun handleOnBackPressed() {
-                if (fullscreenClient.isFullscreen) {
-                    fullscreenClient.exitFullscreen()
-                } else {
-                    webView.goBack()
+        webView.webViewClient = PwaWebViewClient(pwaHost)
+
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (webView.canGoBack()) {
+                        webView.goBack()
+                    } else {
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                    }
                 }
-            }
-        }
-        onBackPressedDispatcher.addCallback(this, backCallback)
-
-        fullscreenClient = FullscreenWebChromeClient(this, swipeRefresh) { isFullscreen ->
-            backCallback.isEnabled = isFullscreen || webView.canGoBack()
-        }
-        webView.webChromeClient = fullscreenClient
-
-        webView.webViewClient = PwaWebViewClient(pwaHost) {
-            swipeRefresh.isRefreshing = false
-            backCallback.isEnabled = webView.canGoBack()
-        }
-        webView.addJavascriptInterface(
-            ScrollTopBridge { atTop -> swipeRefresh.isEnabled = atTop },
-            "BQNative",
+            },
         )
-
-        swipeRefresh.setColorSchemeResources(R.color.refresh_tint)
-        swipeRefresh.setOnRefreshListener { webView.reload() }
 
         if (savedInstanceState == null) {
             webView.loadUrl(getString(R.string.pwa_url))
