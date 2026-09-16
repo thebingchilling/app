@@ -1,6 +1,6 @@
 # app
 
-> **Code agents (e.g. Claude Code): read this README in full before making
+> **Code agents (e.g. Claude Code): read this file in full before making
 > any changes to this repository.**
 
 A collection of small standalone apps, each in its own folder.
