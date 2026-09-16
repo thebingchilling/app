@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Drive Access</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>Drive Access</h1>
+    <p class="subtitle">Upload and download files in your Google Drive from anywhere.</p>
+
+    <section id="login-panel" class="panel">
+      <div id="login-error" class="error"></div>
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
+      <button id="login-btn">Log in</button>
+    </section>
+
+    <section id="app-panel" class="panel hidden">
+      <div class="top-bar">
+        <strong>Files</strong>
+        <button class="secondary" id="logout-btn">Log out</button>
+      </div>
+
+      <div id="connect-banner" class="banner hidden">
+        Google Drive isn't connected yet.
+        <a id="connect-link" href="#" target="_blank" rel="noopener">Connect it</a>,
+        then refresh this page.
+      </div>
+
+      <div id="upload-row">
+        <input type="text" id="file-input-label" style="display:none" />
+        <input type="file" id="file-input" />
+        <button id="upload-btn">Upload</button>
+      </div>
+      <div id="upload-error" class="error"></div>
+
+      <div id="file-list" style="margin-top: 16px;"></div>
+      <button class="secondary hidden" id="load-more-btn">Load more</button>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
