@@ -9,9 +9,6 @@ A collection of small standalone apps, each in its own folder.
 
 - [`battery-taskbar/`](battery-taskbar/) — Windows tray icon showing battery
   percentage.
-- [`drive-access/`](drive-access/) — password-gated website (Cloudflare
-  Worker backend + static frontend) for uploading/downloading files in a
-  Google Drive account from anywhere.
 
 ## Purpose
 

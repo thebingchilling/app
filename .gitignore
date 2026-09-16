@@ -2,5 +2,3 @@ build/
 dist/
 *.spec
 __pycache__/
-node_modules/
-.wrangler/
