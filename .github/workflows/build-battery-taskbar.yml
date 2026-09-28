@@ -1,7 +1,6 @@
 name: Build Battery Taskbar EXE
 
 on:
-  push:
   workflow_dispatch: {}
 
 jobs:
