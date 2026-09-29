@@ -24,6 +24,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
+        // D8/R8 new enough to read Kotlin 2.4 metadata (AGP 8.9's bundled one warns)
+        classpath 'com.android.tools:r8:9.4.27'
         classpath 'com.android.tools.build:gradle:8.9.1'
         classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.20'
         classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$navVersion"
