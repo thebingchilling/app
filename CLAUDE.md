@@ -9,6 +9,8 @@ A collection of small standalone apps, each in its own folder.
 
 - [`battery-taskbar/`](battery-taskbar/) — Windows tray icon showing battery
   percentage.
+- [`tidewall/`](tidewall/) — Material 3 Android VPN client: mihomo (Clash)
+  proxy engine, Direct WireGuard/AmneziaWG and Direct OpenVPN (OpenVPN 3).
 
 ## Purpose
 

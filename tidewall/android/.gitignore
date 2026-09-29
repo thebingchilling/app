@@ -1,0 +1,12 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.cxx/
+.kotlin/
+/openvpn/deps/
+/app/libs/libcore.aar
+/app/libs/libcore-sources.jar
+*.keystore
+*.jks

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A shield with a wave: the tide held by a wall. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#E6FFFB"
+        android:pathData="M54,26 L78,35 L78,52 C78,67 67.5,78.5 54,83 C40.5,78.5 30,67 30,52 L30,35 Z" />
+    <path
+        android:fillColor="#00555E"
+        android:pathData="M36,56 C40,51 44,51 48,56 C52,61 56,61 60,56 C64,51 68,51 72,56 L72,60 C68,55 64,55 60,60 C56,65 52,65 48,60 C44,55 40,55 36,60 Z" />
+    <path
+        android:fillColor="#00555E"
+        android:pathData="M38,46 C42,41 46,41 50,46 C54,51 58,51 62,46 C66,41 70,41 72,44 L72,48 C69,45 66,45 62,50 C58,55 54,55 50,50 C46,45 42,45 38,50 Z" />
+</vector>
