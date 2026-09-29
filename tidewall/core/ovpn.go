@@ -10,12 +10,15 @@ import (
 
 // OvpnInfo summarises a .ovpn file for the import screen.
 type ovpnInfo struct {
-	Name          string   `json:"name"`
-	Server        string   `json:"server"`
-	Port          int      `json:"port"`
-	Proto         string   `json:"proto"`
-	NeedsPassword bool     `json:"needsPassword"`
-	Unsupported   []string `json:"unsupported"` // directives Proxy mode ignores
+	Name          string `json:"name"`
+	Server        string `json:"server"`
+	Port          int    `json:"port"`
+	Proto         string `json:"proto"`
+	NeedsPassword bool   `json:"needsPassword"`
+	// Username/Password come from an inline <auth-user-pass> block, if any.
+	Username    string   `json:"username,omitempty"`
+	Password    string   `json:"password,omitempty"`
+	Unsupported []string `json:"unsupported"` // directives Proxy mode ignores
 }
 
 type ovpnFile struct {
@@ -117,6 +120,35 @@ func splitOvpnArgs(line string) []string {
 	return out
 }
 
+// inlineCredentials returns the username and password of an inline
+// <auth-user-pass> block (first line user, second line password).
+func (f *ovpnFile) inlineCredentials() (string, string, bool) {
+	b, ok := f.blocks["auth-user-pass"]
+	if !ok {
+		return "", "", false
+	}
+	lines := strings.Split(strings.TrimSpace(b), "\n")
+	user := strings.TrimSpace(lines[0])
+	if user == "" {
+		return "", "", false
+	}
+	pass := ""
+	if len(lines) > 1 {
+		pass = strings.TrimSpace(lines[1])
+	}
+	return user, pass, true
+}
+
+// needsPassword reports whether the server asks for a login the file does
+// not contain. auth-user-pass pointing at a file counts: the phone cannot
+// read it.
+func (f *ovpnFile) needsPassword() bool {
+	if _, _, ok := f.inlineCredentials(); ok {
+		return false
+	}
+	return f.has("auth-user-pass")
+}
+
 func (f *ovpnFile) arg(name string, i int) string {
 	a := f.directives[name]
 	if i < len(a) {
@@ -168,12 +200,9 @@ func InspectOvpn(text string) (string, error) {
 		Server:        host,
 		Port:          port,
 		Proto:         proto,
-		NeedsPassword: f.has("auth-user-pass") && len(f.directives["auth-user-pass"]) == 0,
+		NeedsPassword: f.needsPassword(),
 	}
-	if f.has("auth-user-pass") && len(f.directives["auth-user-pass"]) > 0 {
-		// auth-user-pass pointing at a file cannot be read on the phone.
-		info.NeedsPassword = true
-	}
+	info.Username, info.Password, _ = f.inlineCredentials()
 	for _, d := range f.order {
 		if !ovpnKnown[d] {
 			info.Unsupported = append(info.Unsupported, d)
@@ -271,7 +300,10 @@ func ovpnToProxy(text, name, username, password string) (map[string]any, error) 
 	if v, err := strconv.Atoi(f.arg("tun-mtu", 0)); err == nil {
 		p["mtu"] = v
 	}
-	if f.has("auth-user-pass") {
+	if u, pw, ok := f.inlineCredentials(); ok && username == "" {
+		username, password = u, pw
+	}
+	if f.has("auth-user-pass") || username != "" {
 		if username == "" {
 			return nil, fmt.Errorf("this server needs a username and password")
 		}

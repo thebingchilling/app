@@ -10,40 +10,45 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ContentPaste
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.DriveFileRenameOutline
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.FileOpen
-import androidx.compose.material.icons.rounded.Key
-import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.QrCodeScanner
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.Source
-import androidx.compose.material.icons.rounded.SwapHoriz
-import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.SyncAlt
+import androidx.compose.material.icons.filled.UploadFile
+import androidx.compose.material.icons.filled.VpnKey
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -59,9 +64,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -69,9 +77,12 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import dev.tidewall.data.Profile
 import dev.tidewall.data.ProfileKind
+import dev.tidewall.ui.LoginRequest
 import dev.tidewall.ui.MainViewModel
-import dev.tidewall.ui.common.Badge
-import dev.tidewall.ui.common.EmptyState
+import dev.tidewall.ui.common.Corner
+import dev.tidewall.ui.common.FlCard
+import dev.tidewall.ui.common.GridSpacing
+import dev.tidewall.ui.common.NullStatus
 import dev.tidewall.ui.common.formatBytes
 import dev.tidewall.ui.common.formatDate
 import dev.tidewall.ui.common.formatRelative
@@ -81,7 +92,7 @@ import dev.tidewall.ui.theme.MonoStyle
 @Composable
 fun ProfilesScreen(vm: MainViewModel, openEditor: (Profile) -> Unit, openShadowsocks: () -> Unit) {
     val profiles by vm.profiles.collectAsStateWithLifecycle()
-    val settings by vm.settings.collectAsStateWithLifecycle()
+    val selected by vm.selected.collectAsStateWithLifecycle()
     val state by vm.vpn.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -103,33 +114,36 @@ fun ProfilesScreen(vm: MainViewModel, openEditor: (Profile) -> Unit, openShadows
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Profiles") })
+            TopAppBar(
+                title = { Text("Profiles") },
+                actions = {
+                    if (profiles.any { it.url != null }) {
+                        IconButton(onClick = vm::updateAll) { Icon(Icons.Filled.Sync, "Update") }
+                    }
+                },
+            )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { sheet = true },
-                icon = { Icon(Icons.Rounded.Add, null) },
-                text = { Text("Add") },
+                icon = { Icon(Icons.Filled.Add, null) },
+                text = { Text("Add profile") },
             )
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             if (profiles.isEmpty()) {
-                EmptyState(
-                    Icons.Rounded.Source,
-                    "No profiles",
-                    "Add a subscription URL, paste share links, scan a QR code, or import a .yaml, .ovpn or WireGuard .conf file.",
-                )
+                NullStatus("No profiles yet, please add one first", Icons.Filled.Folder)
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(GridSpacing),
                 ) {
                     items(profiles, key = { it.id }) { p ->
                         ProfileCard(
                             p,
-                            selected = p.id == settings.selectedProfileId,
+                            selected = p.id == selected?.id,
                             active = state.active && state.profileId == p.id,
                             onSelect = { vm.selectProfile(p) },
                             onUpdate = { vm.updateProfile(p) },
@@ -137,8 +151,9 @@ fun ProfilesScreen(vm: MainViewModel, openEditor: (Profile) -> Unit, openShadows
                             onRename = { renaming = p },
                             onDelete = { deleting = p },
                             onConvert = { vm.convertToProxy(p) },
-                            onCredentials = { vm.editCredentials(p) },
+                            onLogin = { vm.editLogin(p) },
                             onInterval = { interval = p },
+                            onCopyLink = { p.url?.let { copyText(context, it) }; vm.toast("Copied") },
                         )
                     }
                 }
@@ -149,20 +164,20 @@ fun ProfilesScreen(vm: MainViewModel, openEditor: (Profile) -> Unit, openShadows
     if (sheet) {
         ModalBottomSheet(onDismissRequest = { sheet = false }) {
             Text("Add profile", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
-            SheetItem(Icons.Rounded.Link, "Subscription URL", "Clash/mihomo or base64 link list, updates automatically") {
-                sheet = false; urlDialog = true
-            }
-            SheetItem(Icons.Rounded.ContentPaste, "Paste", "Share links (vless://, vmess://, ss://, trojan://…), YAML, .ovpn or .conf text") {
-                sheet = false; pasteDialog = clipboardText(context)
-            }
-            SheetItem(Icons.Rounded.QrCodeScanner, "Scan QR code", "A share link or subscription URL") {
+            SheetItem(Icons.Filled.QrCode, "QR code", "Scan a QR code to obtain a profile") {
                 sheet = false
                 scan.launch(ScanOptions().setPrompt("Scan a share link or config QR code").setBeepEnabled(false).setOrientationLocked(false))
             }
-            SheetItem(Icons.Rounded.FileOpen, "Import file", ".yaml, .ovpn (OpenVPN) or .conf (WireGuard / AmneziaWG)") {
+            SheetItem(Icons.Filled.UploadFile, "File", "Upload a profile file directly (.yaml, .ovpn, WireGuard .conf)") {
                 sheet = false; openFile.launch(arrayOf("*/*"))
             }
-            SheetItem(Icons.Rounded.VpnKey, "Shadowsocks server", "Enter server details by hand (all ciphers, including rc4-md5)") {
+            SheetItem(Icons.Filled.CloudDownload, "URL", "Obtain a profile from a URL") {
+                sheet = false; urlDialog = true
+            }
+            SheetItem(Icons.Filled.ContentPaste, "Paste", "Share links (vless://, vmess://, ss://, trojan://…), YAML, .ovpn or .conf text") {
+                sheet = false; pasteDialog = clipboardText(context)
+            }
+            SheetItem(Icons.Filled.VpnKey, "Shadowsocks server", "Enter server details by hand (all ciphers, including rc4-md5)") {
                 sheet = false; openShadowsocks()
             }
             Box(Modifier.padding(bottom = 24.dp))
@@ -174,7 +189,7 @@ fun ProfilesScreen(vm: MainViewModel, openEditor: (Profile) -> Unit, openShadows
         var name by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { urlDialog = false },
-            title = { Text("Add subscription") },
+            title = { Text("Import from URL") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(url, { url = it }, label = { Text("URL") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri), modifier = Modifier.fillMaxWidth())
@@ -226,8 +241,8 @@ fun ProfilesScreen(vm: MainViewModel, openEditor: (Profile) -> Unit, openShadows
     deleting?.let { p ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("Delete ${p.name}?") },
-            text = { Text("The profile and its file are removed from this phone.") },
+            title = { Text("Tip") },
+            text = { Text("Are you sure you want to delete ${p.name}?") },
             confirmButton = { TextButton(onClick = { deleting = null; vm.deleteProfile(p) }) { Text("Delete") } },
             dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } },
         )
@@ -253,6 +268,10 @@ fun ProfilesScreen(vm: MainViewModel, openEditor: (Profile) -> Unit, openShadows
     }
 }
 
+private fun copyText(context: Context, text: String) {
+    context.getSystemService(ClipboardManager::class.java).setPrimaryClip(android.content.ClipData.newPlainText("url", text))
+}
+
 private fun clipboardText(context: Context): String {
     val cm = context.getSystemService(ClipboardManager::class.java)
     return runCatching { cm.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString() }.getOrNull().orEmpty()
@@ -263,11 +282,13 @@ private fun SheetItem(icon: androidx.compose.ui.graphics.vector.ImageVector, tit
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = { Text(subtitle) },
-        leadingContent = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
+        leadingContent = { Icon(icon, null) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 8.dp),
     )
 }
 
+/** FlClash ProfileItem: an outlined card, tinted when selected, with a ⋮ menu. */
 @Composable
 private fun ProfileCard(
     p: Profile,
@@ -279,101 +300,132 @@ private fun ProfileCard(
     onRename: () -> Unit,
     onDelete: () -> Unit,
     onConvert: () -> Unit,
-    onCredentials: () -> Unit,
+    onLogin: () -> Unit,
     onInterval: () -> Unit,
+    onCopyLink: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
-    Card(
-        onClick = onSelect,
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 12.dp), verticalAlignment = Alignment.Top) {
-            RadioButton(selected = selected, onClick = onSelect)
-            Column(Modifier.weight(1f).padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(p.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Badge(p.badge)
-                    if (active) Badge("Active", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary)
-                    Text(p.kind.engine, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val lighter = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+    FlCard(Modifier.fillMaxWidth(), selected = selected, radius = Corner.xl, onClick = onSelect) {
+        Row(Modifier.padding(start = 16.dp, end = 6.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f).padding(top = 2.dp)) {
+                Text(p.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    listOf(if (active) "Active" else null, p.badge, p.summary.ifBlank { null }).filterNotNull().joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (p.missingLogin) {
+                    Text("Login needed", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
-                if (p.summary.isNotBlank()) {
-                    Text(p.summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                p.subscription?.let { s ->
-                    if (s.total > 0) {
-                        val used = s.upload + s.download
-                        LinearProgressIndicator(
-                            progress = { (used.toFloat() / s.total).coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().padding(end = 12.dp, top = 2.dp),
-                        )
+                p.subscription?.takeIf { it.total > 0 }?.let { s ->
+                    val used = s.upload + s.download
+                    Spacer(Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "${formatBytes(used)} of ${formatBytes(s.total)}" + if (s.expire > 0) " · expires ${formatDate(s.expire * 1000)}" else "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            "${formatBytes(used)} / ${formatBytes(s.total)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1,
                         )
+                        Text(if (s.expire > 0) formatDate(s.expire * 1000) else "Never expires", style = MaterialTheme.typography.bodySmall, color = lighter)
                     }
-                }
-                if (p.url != null) {
-                    Text(
-                        "Updated ${formatRelative(p.updatedAt)}" + if (p.updateIntervalHours == 0) " · auto-update off" else "",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Spacer(Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = { (used.toFloat() / s.total).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(4.dp),
+                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        drawStopIndicator = {},
+                        gapSize = 0.dp,
                     )
                 }
+                Spacer(Modifier.height(6.dp))
+                Text(formatRelative(p.updatedAt).replaceFirstChar(Char::uppercase), style = MaterialTheme.typography.bodySmall, color = lighter)
             }
             Box {
-                IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, "More") }
+                IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, "More") }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(text = { Text("Edit") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = { menu = false; onRename() })
+                    DropdownMenuItem(text = { Text("Preview") }, leadingIcon = { Icon(Icons.Outlined.Visibility, null) }, onClick = { menu = false; onEdit() })
                     if (p.url != null) {
-                        DropdownMenuItem(text = { Text("Update now") }, leadingIcon = { Icon(Icons.Rounded.Refresh, null) }, onClick = { menu = false; onUpdate() })
-                        DropdownMenuItem(text = { Text("Auto-update…") }, leadingIcon = { Icon(Icons.Rounded.Schedule, null) }, onClick = { menu = false; onInterval() })
+                        DropdownMenuItem(text = { Text("Sync") }, leadingIcon = { Icon(Icons.Filled.SyncAlt, null) }, onClick = { menu = false; onUpdate() })
                     }
-                    DropdownMenuItem(text = { Text("Edit") }, leadingIcon = { Icon(Icons.Rounded.Edit, null) }, onClick = { menu = false; onEdit() })
+                    HorizontalDivider()
                     if (p.kind == ProfileKind.OPENVPN) {
-                        DropdownMenuItem(text = { Text("Login…") }, leadingIcon = { Icon(Icons.Rounded.Key, null) }, onClick = { menu = false; onCredentials() })
+                        DropdownMenuItem(text = { Text("Login") }, leadingIcon = { Icon(Icons.Outlined.Key, null) }, onClick = { menu = false; onLogin() })
+                    }
+                    if (p.url != null) {
+                        DropdownMenuItem(text = { Text("Auto update") }, leadingIcon = { Icon(Icons.Outlined.Schedule, null) }, onClick = { menu = false; onInterval() })
+                        DropdownMenuItem(text = { Text("Copy link") }, leadingIcon = { Icon(Icons.Filled.ContentCopy, null) }, onClick = { menu = false; onCopyLink() })
                     }
                     if (p.kind != ProfileKind.CLASH) {
                         DropdownMenuItem(
-                            text = { Text("Copy as Proxy-mode profile") },
-                            leadingIcon = { Icon(Icons.Rounded.SwapHoriz, null) },
+                            text = { Text("Copy as proxy profile") },
+                            leadingIcon = { Icon(Icons.Filled.SwapHoriz, null) },
                             onClick = { menu = false; onConvert() },
                         )
                     }
-                    DropdownMenuItem(text = { Text("Rename") }, leadingIcon = { Icon(Icons.Rounded.DriveFileRenameOutline, null) }, onClick = { menu = false; onRename() })
-                    DropdownMenuItem(text = { Text("Delete") }, leadingIcon = { Icon(Icons.Rounded.Delete, null) }, onClick = { menu = false; onDelete() })
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                        leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                        onClick = { menu = false; onDelete() },
+                    )
                 }
             }
         }
     }
 }
 
-/** Username/password prompt for OpenVPN servers that use auth-user-pass. */
+/**
+ * Username/password prompt for OpenVPN servers that use auth-user-pass. Shown
+ * after importing such a profile, when connecting without a saved login, and
+ * when the server rejects the login.
+ */
 @Composable
-fun CredentialsDialog(title: String, initialUser: String, onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
-    var user by remember { mutableStateOf(initialUser) }
-    var pass by remember { mutableStateOf("") }
+fun LoginDialog(req: LoginRequest, onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
+    var user by remember(req) { mutableStateOf(req.profile.username.orEmpty()) }
+    var pass by remember(req) { mutableStateOf(req.profile.password.orEmpty()) }
+    var show by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Rounded.Key, null) },
-        title = { Text(title) },
+        icon = { Icon(Icons.Outlined.Key, null) },
+        title = { Text("OpenVPN login") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("This OpenVPN server asks for a username and password. They are stored in Tidewall's private storage on this phone.", style = MaterialTheme.typography.bodyMedium)
+                if (req.reason != null) {
+                    Text(req.reason, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                }
+                Text(
+                    "${req.profile.name} asks for a username and password (auth-user-pass). Use the OpenVPN credentials " +
+                        "from your VPN provider — many providers issue separate \"OpenVPN\" or \"service\" credentials " +
+                        "that differ from your website login. They are stored only on this phone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
                 OutlinedTextField(user, { user = it }, label = { Text("Username") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(
                     pass, { pass = it },
                     label = { Text("Password") },
                     singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (show) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        IconButton(onClick = { show = !show }) {
+                            Icon(if (show) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility, if (show) "Hide password" else "Show password")
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         },
-        confirmButton = { TextButton(enabled = user.isNotBlank(), onClick = { onConfirm(user, pass) }) { Text("Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = {
+            TextButton(enabled = user.isNotBlank(), onClick = { onConfirm(user, pass) }) {
+                Text(if (req.connectAfter) "Save and connect" else "Save")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(if (req.connectAfter) "Cancel" else "Later") } },
     )
 }

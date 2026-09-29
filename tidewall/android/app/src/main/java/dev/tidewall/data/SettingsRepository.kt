@@ -21,6 +21,9 @@ import kotlinx.serialization.json.put
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 enum class PerAppMode { OFF, INCLUDE, EXCLUDE }
+/** How the Proxies tab orders a group's members (FlClash's sort options). */
+enum class ProxiesSort(val label: String) { DEFAULT("Default"), DELAY("Delay"), NAME("Name") }
+
 enum class RoutingMode(val id: String, val label: String) {
     RULE("rule", "Rule"), GLOBAL("global", "Global"), DIRECT("direct", "Direct");
 
@@ -33,7 +36,8 @@ data class AppSettings(
     val selectedProfileId: String? = null,
     val mode: RoutingMode = RoutingMode.RULE,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val dynamicColor: Boolean = true,
+    val dynamicColor: Boolean = false,
+    val proxiesSort: ProxiesSort = ProxiesSort.DEFAULT,
     // VPN
     val ipv6: Boolean = false,
     val bypassLan: Boolean = true,
@@ -56,8 +60,8 @@ data class AppSettings(
     val connectOnMobile: Boolean = true,
     val disconnectOnTrusted: Boolean = true,
 ) {
-    /** JSON options passed to the Go engine's StartProxy. */
-    fun engineOptionsJson(): String = Json.encodeToString(
+    /** JSON options passed to the Go engine; [selected] restores the profile's proxy choices. */
+    fun engineOptionsJson(selected: Map<String, String> = emptyMap()): String = Json.encodeToString(
         kotlinx.serialization.json.JsonObject.serializer(),
         buildJsonObject {
             put("mode", mode.id)
@@ -67,6 +71,7 @@ data class AppSettings(
             put("logLevel", logLevel)
             put("overrideDns", overrideDns)
             put("sniffing", sniffing)
+            put("selected", buildJsonObject { selected.forEach { (g, p) -> put(g, p) } })
         },
     )
 }
@@ -81,6 +86,7 @@ class SettingsRepository(context: Context, scope: CoroutineScope) {
         val mode = stringPreferencesKey("mode")
         val theme = stringPreferencesKey("theme")
         val dynamic = booleanPreferencesKey("dynamic_color")
+        val proxiesSort = stringPreferencesKey("proxies_sort")
         val ipv6 = booleanPreferencesKey("ipv6")
         val bypassLan = booleanPreferencesKey("bypass_lan")
         val mtu = intPreferencesKey("mtu")
@@ -107,6 +113,7 @@ class SettingsRepository(context: Context, scope: CoroutineScope) {
             mode = RoutingMode.of(this[K.mode]),
             themeMode = this[K.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: d.themeMode,
             dynamicColor = this[K.dynamic] ?: d.dynamicColor,
+            proxiesSort = this[K.proxiesSort]?.let { runCatching { ProxiesSort.valueOf(it) }.getOrNull() } ?: d.proxiesSort,
             ipv6 = this[K.ipv6] ?: d.ipv6,
             bypassLan = this[K.bypassLan] ?: d.bypassLan,
             mtu = this[K.mtu] ?: d.mtu,
@@ -140,6 +147,7 @@ class SettingsRepository(context: Context, scope: CoroutineScope) {
             prefs[K.mode] = s.mode.id
             prefs[K.theme] = s.themeMode.name
             prefs[K.dynamic] = s.dynamicColor
+            prefs[K.proxiesSort] = s.proxiesSort.name
             prefs[K.ipv6] = s.ipv6
             prefs[K.bypassLan] = s.bypassLan
             prefs[K.mtu] = s.mtu

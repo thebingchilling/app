@@ -5,15 +5,12 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Hub
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material.icons.outlined.Source
-import androidx.compose.material.icons.rounded.Hub
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Shield
-import androidx.compose.material.icons.rounded.Source
+import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.filled.Construction
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.SpaceDashboard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
@@ -40,10 +37,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import dev.tidewall.data.ProfileKind
 import dev.tidewall.ui.connections.ConnectionsScreen
-import dev.tidewall.ui.home.HomeScreen
+import dev.tidewall.ui.dashboard.DashboardScreen
 import dev.tidewall.ui.logs.LogsScreen
-import dev.tidewall.ui.profiles.CredentialsDialog
+import dev.tidewall.ui.profiles.LoginDialog
 import dev.tidewall.ui.profiles.ProfileEditorScreen
 import dev.tidewall.ui.profiles.ProfilesScreen
 import dev.tidewall.ui.profiles.ShadowsocksEditorScreen
@@ -52,12 +50,17 @@ import dev.tidewall.ui.settings.AppPickerScreen
 import dev.tidewall.ui.settings.AutoConnectScreen
 import dev.tidewall.ui.settings.SettingsScreen
 import dev.tidewall.ui.theme.TidewallTheme
+import dev.tidewall.ui.tools.AboutScreen
+import dev.tidewall.ui.tools.ApplicationScreen
+import dev.tidewall.ui.tools.ThemeScreen
+import dev.tidewall.ui.tools.ToolsScreen
 
-private enum class Tab(val route: String, val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {
-    HOME("home", "Home", Icons.Outlined.Shield, Icons.Rounded.Shield),
-    PROXIES("proxies", "Proxies", Icons.Outlined.Hub, Icons.Rounded.Hub),
-    PROFILES("profiles", "Profiles", Icons.Outlined.Source, Icons.Rounded.Source),
-    SETTINGS("settings", "Settings", Icons.Outlined.Settings, Icons.Rounded.Settings),
+/** FlClash's mobile navigation: Dashboard, Proxies (proxy profiles only), Profiles, Tools. */
+private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
+    DASHBOARD("dashboard", "Dashboard", Icons.Filled.SpaceDashboard),
+    PROXIES("proxies", "Proxies", Icons.AutoMirrored.Filled.Article),
+    PROFILES("profiles", "Profiles", Icons.Filled.Folder),
+    TOOLS("tools", "Tools", Icons.Filled.Construction),
 }
 
 /** Snackbar host shared by every screen. */
@@ -71,33 +74,37 @@ fun TidewallUi(vm: MainViewModel, onConnect: () -> Unit) {
         val snackbar = remember { SnackbarHostState() }
         LaunchedEffect(Unit) { vm.messages.collect { snackbar.showSnackbar(it) } }
 
+        val selected by vm.selected.collectAsStateWithLifecycle()
+        val tabs = Tab.entries.filter { it != Tab.PROXIES || selected?.kind == ProfileKind.CLASH }
         val backStack by nav.currentBackStackEntryAsState()
         val route = backStack?.destination?.route
-        val tab = Tab.entries.firstOrNull { it.route == route }
+        val tab = tabs.firstOrNull { it.route == route }
         val wide = LocalConfiguration.current.screenWidthDp >= 600
 
-        val credentials by vm.credentials.collectAsStateWithLifecycle()
-        credentials?.let { req ->
-            CredentialsDialog(
-                title = req.existing?.let { "Login for ${it.name}" } ?: "Login for ${req.name}",
-                initialUser = req.existing?.username.orEmpty(),
-                onDismiss = vm::dismissCredentials,
-                onConfirm = vm::provideCredentials,
-            )
+        // The Proxies tab disappears for WireGuard/OpenVPN profiles.
+        LaunchedEffect(route, tabs.size) {
+            if (route == Tab.PROXIES.route && Tab.PROXIES !in tabs) nav.navigateTab(Tab.DASHBOARD.route)
+        }
+
+        val login by vm.login.collectAsStateWithLifecycle()
+        login?.let { req ->
+            LoginDialog(req, onDismiss = vm::dismissLogin, onConfirm = vm::provideLogin)
         }
 
         CompositionLocalProvider(LocalSnackbar provides snackbar) {
             Scaffold(
                 snackbarHost = { SnackbarHost(snackbar) },
+                containerColor = MaterialTheme.colorScheme.surface,
                 bottomBar = {
                     if (!wide && tab != null) {
-                        NavigationBar {
-                            Tab.entries.forEach { t ->
+                        NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+                            tabs.forEach { t ->
                                 NavigationBarItem(
                                     selected = t == tab,
                                     onClick = { nav.navigateTab(t.route) },
-                                    icon = { Icon(if (t == tab) t.selectedIcon else t.icon, null) },
+                                    icon = { Icon(t.icon, null) },
                                     label = { Text(t.label) },
+                                    alwaysShowLabel = true,
                                 )
                             }
                         }
@@ -106,12 +113,12 @@ fun TidewallUi(vm: MainViewModel, onConnect: () -> Unit) {
             ) { padding ->
                 Row(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                     if (wide && tab != null) {
-                        NavigationRail {
-                            Tab.entries.forEach { t ->
+                        NavigationRail(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+                            tabs.forEach { t ->
                                 NavigationRailItem(
                                     selected = t == tab,
                                     onClick = { nav.navigateTab(t.route) },
-                                    icon = { Icon(if (t == tab) t.selectedIcon else t.icon, null) },
+                                    icon = { Icon(t.icon, null) },
                                     label = { Text(t.label) },
                                 )
                             }
@@ -133,18 +140,11 @@ private fun NavHostController.navigateTab(route: String) = navigate(route) {
 @Composable
 private fun AppNavHost(nav: NavHostController, vm: MainViewModel, onConnect: () -> Unit) {
     val back: () -> Unit = { nav.popBackStack() }
-    NavHost(nav, startDestination = Tab.HOME.route) {
-        composable(Tab.HOME.route) {
-            HomeScreen(
-                vm,
-                onConnect = onConnect,
-                openProfiles = { nav.navigateTab(Tab.PROFILES.route) },
-                openProxies = { nav.navigateTab(Tab.PROXIES.route) },
-                openConnections = { nav.navigate("connections") },
-                openLogs = { nav.navigate("logs") },
-            )
+    NavHost(nav, startDestination = Tab.DASHBOARD.route) {
+        composable(Tab.DASHBOARD.route) {
+            DashboardScreen(vm, onConnect = onConnect, openProfiles = { nav.navigateTab(Tab.PROFILES.route) })
         }
-        composable(Tab.PROXIES.route) { ProxiesScreen(vm, openHome = { nav.navigateTab(Tab.HOME.route) }) }
+        composable(Tab.PROXIES.route) { ProxiesScreen(vm) }
         composable(Tab.PROFILES.route) {
             ProfilesScreen(
                 vm,
@@ -152,18 +152,20 @@ private fun AppNavHost(nav: NavHostController, vm: MainViewModel, onConnect: () 
                 openShadowsocks = { nav.navigate("ss") },
             )
         }
-        composable(Tab.SETTINGS.route) {
-            SettingsScreen(
+        composable(Tab.TOOLS.route) {
+            ToolsScreen(
                 vm,
-                openApps = { nav.navigate("apps") },
-                openAutoConnect = { nav.navigate("autoconnect") },
-                openLogs = { nav.navigate("logs") },
+                open = { nav.navigate(it) },
             )
         }
         composable("connections") { ConnectionsScreen(onBack = back) }
         composable("logs") { LogsScreen(onBack = back) }
         composable("apps") { AppPickerScreen(vm, onBack = back) }
         composable("autoconnect") { AutoConnectScreen(vm, onBack = back) }
+        composable("config") { SettingsScreen(vm, onBack = back) }
+        composable("theme") { ThemeScreen(vm, onBack = back) }
+        composable("application") { ApplicationScreen(vm, onBack = back, openAutoConnect = { nav.navigate("autoconnect") }) }
+        composable("about") { AboutScreen(vm, onBack = back) }
         composable("ss") { ShadowsocksEditorScreen(vm, onBack = back) }
         composable("edit/{id}", arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
             ProfileEditorScreen(vm, entry.arguments?.getString("id").orEmpty(), onBack = back)

@@ -55,4 +55,25 @@ class RoutesTest {
         assertFalse(r.contains(IpPrefix.parse("0.0.0.0/0")))
         assertEquals(listOf(IpPrefix.parse("0.0.0.0/0")), Routes.fromAllowedIps(listOf("0.0.0.0/0"), false))
     }
+
+    // A WireGuard provider DNS on a private address must stay in the tunnel with Bypass LAN on.
+    @Test fun providerDnsStaysInTunnel() {
+        val allowed = listOf("0.0.0.0/0", "::/0")
+        val routes = Routes.fromAllowedIps(allowed, bypassLan = true) +
+            Routes.tunnelInternalRoutes(listOf("10.2.0.1", "fd00::1"), listOf("10.2.0.2/32", "10.8.0.5/24"), allowed)
+        assertTrue(covered(routes, "10.2.0.1"))
+        assertTrue(covered(routes, "fd00::1"))
+        assertTrue("interface subnet", covered(routes, "10.8.0.1"))
+        assertFalse("rest of the LAN still bypasses", covered(routes, "192.168.1.1"))
+        assertFalse("rest of the LAN still bypasses", covered(routes, "10.9.0.1"))
+        Routes.tunnelInternalRoutes(listOf("10.2.0.1"), listOf("10.8.0.5/24"), allowed).forEach {
+            assertEquals("host bits must be clear for VpnService", it.network(), it)
+        }
+    }
+
+    // Split tunnels: a DNS server outside AllowedIPs is not pulled into the tunnel.
+    @Test fun dnsOutsideAllowedIpsIsLeftAlone() {
+        val extra = Routes.tunnelInternalRoutes(listOf("1.1.1.1", "10.0.0.1"), emptyList(), listOf("10.0.0.0/24"))
+        assertEquals(listOf(IpPrefix.parse("10.0.0.1/32")), extra)
+    }
 }

@@ -195,7 +195,7 @@ class TidewallVpnService : VpnService() {
             Routes.defaultRoutes6(settings.bypassLan).forEach { b.addRoute(it.address, it.length) }
         }
         val pfd = b.establish() ?: throw IllegalStateException("VPN permission was revoked")
-        Libcore.startProxy(pfd.detachFd().toLong(), yaml, settings.engineOptionsJson())
+        Libcore.startProxy(pfd.detachFd().toLong(), yaml, settings.engineOptionsJson(profile.selected))
     }
 
     private fun startWireGuard(conf: String, settings: AppSettings, profile: Profile) {
@@ -209,13 +209,16 @@ class TidewallVpnService : VpnService() {
         info.addresses.orEmpty().forEach { val p = IpPrefix.parse(it); b.addAddress(p.address, p.length) }
         info.dns.orEmpty().forEach { b.addDnsServer(it) }
         info.search.orEmpty().forEach { b.addSearchDomain(it) }
-        Routes.fromAllowedIps(info.routes.orEmpty(), settings.bypassLan).forEach { b.addRoute(it.address, it.length) }
+        val routes = Routes.fromAllowedIps(info.routes.orEmpty(), settings.bypassLan) +
+            Routes.tunnelInternalRoutes(info.dns.orEmpty(), info.addresses.orEmpty(), info.routes.orEmpty())
+        routes.distinct().forEach { b.addRoute(it.address, it.length) }
         val pfd = b.establish() ?: throw IllegalStateException("VPN permission was revoked")
         val json = JsonObject(resolved.mapValues { JsonPrimitive(it.value) }).toString()
         Libcore.startWireGuard(pfd.detachFd().toLong(), conf, json)
     }
 
     private fun startOpenVpn(profile: Profile, text: String, settings: AppSettings) {
+        if (profile.missingLogin) throw IllegalArgumentException(LOGIN_NEEDED)
         dev.tidewall.ovpn3.OpenVpn3.load()
         val session = OpenVpnSession(this, profile, text, settings, object : OpenVpnSession.Listener {
             override fun onConnected(info: String) = markConnected(info)
@@ -241,11 +244,15 @@ class TidewallVpnService : VpnService() {
     private fun startStats(profile: Profile) {
         statsJob?.cancel()
         lastTotals = 0L to 0L
+        val started = System.currentTimeMillis()
         statsJob = scope.launch {
             while (isActive) {
                 val t = when (engine) {
                     ProfileKind.CLASH -> Libcore.getTraffic().let { Traffic(it.up, it.down, it.upTotal, it.downTotal) }
-                    ProfileKind.WIREGUARD -> Libcore.wireGuardStats().split(',').let { totalsToTraffic(it[1].toLong(), it[0].toLong()) }
+                    ProfileKind.WIREGUARD -> Libcore.wireGuardStats().split(',').let {
+                        checkHandshake(it[2].toLong(), started)
+                        totalsToTraffic(it[1].toLong(), it[0].toLong())
+                    }
                     ProfileKind.OPENVPN -> openVpn?.totals()?.let { (rx, tx) -> totalsToTraffic(tx, rx) } ?: Traffic()
                     null -> Traffic()
                 }
@@ -255,6 +262,25 @@ class TidewallVpnService : VpnService() {
                 }
                 delay(1000)
             }
+        }
+    }
+
+    /**
+     * WireGuard has no connection step: the tunnel is "up" as soon as the
+     * interface exists, whether or not the server answers. Surface a missing
+     * handshake so a wrong key, endpoint or blocked UDP port is visible.
+     */
+    private fun checkHandshake(lastHandshakeSec: Long, started: Long) {
+        val now = System.currentTimeMillis()
+        val detail = when {
+            lastHandshakeSec > 0 && now / 1000 - lastHandshakeSec < 180 -> null
+            now - started < HANDSHAKE_GRACE_MS -> null
+            lastHandshakeSec == 0L -> NO_HANDSHAKE
+            else -> "No WireGuard handshake for ${(now / 1000 - lastHandshakeSec) / 60} min — the server stopped answering."
+        }
+        if (VpnStateHolder.state.value.detail != detail && VpnStateHolder.state.value.status == VpnStatus.CONNECTED) {
+            if (detail != null) LogBuffer.add("warning", "Tidewall: $detail")
+            VpnStateHolder.set { it.copy(detail = detail) }
         }
     }
 
@@ -294,7 +320,8 @@ class TidewallVpnService : VpnService() {
 
     private fun fail(message: String) {
         unwatchUnderlyingNetwork()
-        VpnStateHolder.set { VpnState(error = message) }
+        // Keep which profile failed, so the UI can offer a fix (e.g. the OpenVPN login).
+        VpnStateHolder.set { VpnState(error = message, profileId = it.profileId, profileName = it.profileName, kind = it.kind) }
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -346,6 +373,10 @@ class TidewallVpnService : VpnService() {
         const val ACTION_STOP = "dev.tidewall.STOP"
         const val EXTRA_PROFILE_ID = "profile_id"
         private const val NOTIFICATION_ID = 1
+        private const val HANDSHAKE_GRACE_MS = 12_000L
+        const val LOGIN_NEEDED = "This OpenVPN server needs a username and password"
+        const val NO_HANDSHAKE =
+            "No handshake from the WireGuard server yet. Check the server address, keys and that its UDP port is reachable."
 
         @Volatile
         var instance: TidewallVpnService? = null

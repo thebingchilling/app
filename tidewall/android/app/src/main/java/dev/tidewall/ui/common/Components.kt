@@ -71,18 +71,17 @@ fun Badge(text: String, container: Color = MaterialTheme.colorScheme.secondaryCo
     }
 }
 
-/** Latency label colored by quality. 0 = untested, negative = failed. */
+/** Latency label colored like FlClash: green under 600 ms, amber above, red on timeout. 0 = untested. */
 @Composable
 fun DelayText(delay: Int, modifier: Modifier = Modifier) {
     val c = LocalStatusColors.current
     val (text, color) = when {
         delay == 0 -> "—" to MaterialTheme.colorScheme.onSurfaceVariant
-        delay < 0 -> "timeout" to c.poor
-        delay < 300 -> "$delay ms" to c.good
-        delay < 800 -> "$delay ms" to c.fair
-        else -> "$delay ms" to c.poor
+        delay < 0 -> "Timeout" to c.poor
+        delay < 600 -> "$delay ms" to c.good
+        else -> "$delay ms" to c.fair
     }
-    Text(text, color = color, style = MaterialTheme.typography.labelMedium, modifier = modifier)
+    Text(text, color = color, style = MaterialTheme.typography.labelSmall, maxLines = 1, modifier = modifier)
 }
 
 @Composable

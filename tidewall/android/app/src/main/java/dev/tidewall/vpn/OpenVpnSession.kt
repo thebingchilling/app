@@ -31,6 +31,8 @@ class OpenVpnSession(
 ) : ClientAPI_OpenVPNClient() {
 
     companion object {
+        const val AUTH_FAILED = "The OpenVPN server rejected the username or password"
+
         init {
             // Must run before the ClientAPI_OpenVPNClient constructor calls into native code.
             OpenVpn3.load()
@@ -67,7 +69,7 @@ class OpenVpnSession(
         if (eval.externalPki) throw IllegalArgumentException("Profiles using an Android keystore certificate are not supported yet")
         if (!eval.autologin) {
             val user = profile.username
-            if (user.isNullOrBlank()) throw IllegalArgumentException("This server needs a username and password (edit the profile)")
+            if (user.isNullOrBlank()) throw IllegalArgumentException(TidewallVpnService.LOGIN_NEEDED)
             val creds = ClientAPI_ProvideCreds().apply {
                 username = user
                 password = profile.password.orEmpty()
@@ -179,6 +181,7 @@ class OpenVpnSession(
         when {
             name == "CONNECTED" -> listener.onConnected(info)
             name == "RECONNECTING" -> listener.onReconnecting()
+            name == "AUTH_FAILED" -> listener.onFatal(AUTH_FAILED + if (info.isNotBlank()) " ($info)" else "")
             ev.fatal -> listener.onFatal("$name${if (info.isNotBlank()) ": $info" else ""}")
         }
     }

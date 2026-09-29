@@ -1,6 +1,8 @@
 package libcore
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/metacubex/mihomo/adapter/outboundgroup"
 	"github.com/metacubex/mihomo/component/process"
 	"github.com/metacubex/mihomo/component/resolver"
 	"github.com/metacubex/mihomo/config"
@@ -42,11 +45,26 @@ type proxyOptions struct {
 	LogLevel    string `json:"logLevel"`    // debug, info, warning, error, silent
 	OverrideDNS bool   `json:"overrideDns"` // replace the profile's DNS with Tidewall's defaults
 	Sniffing    bool   `json:"sniffing"`    // enable the TLS/HTTP domain sniffer
+	// Selected maps selector group -> proxy name, restored after the profile
+	// is applied (Tidewall remembers choices per profile).
+	Selected map[string]string `json:"selected"`
+}
+
+func parseOptions(optionsJSON string) (proxyOptions, error) {
+	var opts proxyOptions
+	if optionsJSON != "" {
+		if err := json.Unmarshal([]byte(optionsJSON), &opts); err != nil {
+			return opts, fmt.Errorf("bad options: %w", err)
+		}
+	}
+	return opts, nil
 }
 
 var (
 	proxyMu      sync.Mutex
-	proxyRunning bool
+	proxyRunning bool // TUN attached: the VPN is using the engine
+	proxyLoaded  bool // a profile is applied (with or without TUN)
+	loadedKey    string
 )
 
 // defaultDNS is used when a profile has no DNS section, or the user asks to
@@ -174,11 +192,9 @@ func StartProxy(fd int, profileYAML string, optionsJSON string) (err error) {
 			_ = unix.Close(fd)
 		}
 	}()
-	var opts proxyOptions
-	if optionsJSON != "" {
-		if err := json.Unmarshal([]byte(optionsJSON), &opts); err != nil {
-			return fmt.Errorf("bad options: %w", err)
-		}
+	opts, err := parseOptions(optionsJSON)
+	if err != nil {
+		return err
 	}
 	raw, err := buildRawConfig([]byte(profileYAML), fd, opts)
 	if err != nil {
@@ -191,7 +207,10 @@ func StartProxy(fd int, profileYAML string, optionsJSON string) (err error) {
 
 	proxyMu.Lock()
 	defer proxyMu.Unlock()
+	noteProfile(profileYAML)
 	executor.ApplyConfig(cfg, true)
+	applySelections(opts.Selected)
+	proxyLoaded = true
 	if !listener.GetTunConf().Enable {
 		cleanupProxy()
 		return errors.New("TUN listener failed to start, see logs")
@@ -211,11 +230,9 @@ func ReloadProfile(profileYAML string, optionsJSON string) error {
 	if !proxyRunning {
 		return errors.New("engine is not running")
 	}
-	var opts proxyOptions
-	if optionsJSON != "" {
-		if err := json.Unmarshal([]byte(optionsJSON), &opts); err != nil {
-			return fmt.Errorf("bad options: %w", err)
-		}
+	opts, err := parseOptions(optionsJSON)
+	if err != nil {
+		return err
 	}
 	raw, err := buildRawConfig([]byte(profileYAML), listener.GetTunConf().FileDescriptor, opts)
 	if err != nil {
@@ -225,8 +242,70 @@ func ReloadProfile(profileYAML string, optionsJSON string) error {
 	if err != nil {
 		return err
 	}
+	noteProfile(profileYAML)
 	executor.ApplyConfig(cfg, false)
+	applySelections(opts.Selected)
 	return nil
+}
+
+// LoadProfile applies a profile without a TUN, so its proxy groups can be
+// browsed, selected and latency-tested before connecting. Nothing listens
+// and no traffic is routed until StartProxy attaches the VPN. Fails while
+// the engine is running (use ReloadProfile then).
+func LoadProfile(profileYAML string, optionsJSON string) error {
+	opts, err := parseOptions(optionsJSON)
+	if err != nil {
+		return err
+	}
+	raw, err := buildRawConfig([]byte(profileYAML), 0, opts)
+	if err != nil {
+		return err
+	}
+	cfg, err := config.ParseRawConfig(raw)
+	if err != nil {
+		return err
+	}
+	proxyMu.Lock()
+	defer proxyMu.Unlock()
+	if proxyRunning {
+		return errors.New("engine is running")
+	}
+	noteProfile(profileYAML)
+	executor.ApplyConfig(cfg, true)
+	applySelections(opts.Selected)
+	proxyLoaded = true
+	return nil
+}
+
+// IsProfileLoaded reports whether a profile is applied, connected or not.
+func IsProfileLoaded() bool {
+	proxyMu.Lock()
+	defer proxyMu.Unlock()
+	return proxyLoaded
+}
+
+// noteProfile forgets cached latencies when a different profile is applied.
+func noteProfile(profileYAML string) {
+	sum := sha256.Sum256([]byte(profileYAML))
+	key := hex.EncodeToString(sum[:])
+	if key != loadedKey {
+		loadedKey = key
+		clearDelays()
+	}
+}
+
+// applySelections restores remembered selector choices; stale names are ignored.
+func applySelections(selected map[string]string) {
+	proxies := tunnel.Proxies()
+	for group, name := range selected {
+		p, ok := proxies[group]
+		if !ok {
+			continue
+		}
+		if sel, ok := p.Adapter().(outboundgroup.SelectAble); ok {
+			_ = sel.Set(name)
+		}
+	}
 }
 
 // StopProxy stops the engine, closing every connection and the TUN.

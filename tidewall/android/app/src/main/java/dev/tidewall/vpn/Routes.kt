@@ -8,6 +8,16 @@ data class IpPrefix(val address: InetAddress, val length: Int) {
     val bits: Int get() = address.address.size * 8
     override fun toString() = "${address.hostAddress}/$length"
 
+    /** This prefix with the host bits cleared (VpnService rejects routes that have them set). */
+    fun network(): IpPrefix {
+        val raw = address.address.copyOf()
+        for (i in raw.indices) {
+            val keep = (length - i * 8).coerceIn(0, 8)
+            raw[i] = (raw[i].toInt() and (0xFF shl (8 - keep))).toByte()
+        }
+        return IpPrefix(InetAddress.getByAddress(raw), length)
+    }
+
     companion object {
         fun parse(cidr: String): IpPrefix {
             val (a, l) = cidr.trim().split('/').let { it[0] to it.getOrNull(1) }
@@ -32,7 +42,7 @@ object Routes {
         return InetAddress.getByAddress(out)
     }
 
-    private fun contains(outer: IpPrefix, inner: IpPrefix): Boolean {
+    fun contains(outer: IpPrefix, inner: IpPrefix): Boolean {
         if (outer.bits != inner.bits || inner.length < outer.length) return false
         val shift = outer.bits - outer.length
         return toBig(outer.address).shiftRight(shift) == toBig(inner.address).shiftRight(shift)
@@ -71,7 +81,22 @@ object Routes {
         when {
             p.length == 0 && p.bits == 32 -> defaultRoutes4(bypassLan)
             p.length == 0 && p.bits == 128 -> defaultRoutes6(bypassLan)
-            else -> listOf(p)
+            else -> listOf(p.network())
         }
     }.distinct()
+
+    /**
+     * Routes that keep a tunnel's own DNS servers and interface subnets inside
+     * the tunnel. VPN providers put their DNS resolver on a private address
+     * (10.2.0.1, 10.64.0.1, 172.16.0.1, ...), which "Bypass LAN" would
+     * otherwise send to the phone's Wi-Fi, so every lookup fails even though
+     * the tunnel itself is up. Only destinations the tunnel carries
+     * ([allowed], its AllowedIPs) are added.
+     */
+    fun tunnelInternalRoutes(dns: List<String>, addresses: List<String>, allowed: List<String>): List<IpPrefix> {
+        val allowedPrefixes = allowed.mapNotNull { runCatching { IpPrefix.parse(it) }.getOrNull() }
+        val wanted = dns.mapNotNull { runCatching { IpPrefix.parse(it) }.getOrNull() } +
+            addresses.mapNotNull { runCatching { IpPrefix.parse(it).network() }.getOrNull() }.filter { it.length < it.bits }
+        return wanted.filter { w -> allowedPrefixes.any { contains(it, w) } }.distinct()
+    }
 }

@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import dev.tidewall.autoconnect.AutoConnectService
 import dev.tidewall.core.Engine
+import dev.tidewall.core.ProxyCore
 import dev.tidewall.data.ProfileRepository
 import dev.tidewall.data.SettingsRepository
 import dev.tidewall.work.SubscriptionWorker
@@ -22,12 +23,15 @@ class TidewallApp : Application() {
         private set
     lateinit var profiles: ProfileRepository
         private set
+    lateinit var core: ProxyCore
+        private set
 
     override fun onCreate() {
         super.onCreate()
         Engine.init(this)
         settings = SettingsRepository(this, scope)
         profiles = ProfileRepository(this)
+        core = ProxyCore(this).also { it.start(scope) }
         createChannels()
         SubscriptionWorker.schedule(this)
 

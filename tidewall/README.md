@@ -1,6 +1,8 @@
 # Tidewall
 
-A Material 3 VPN client for Android with three engines in one app:
+A Material 3 VPN client for Android with three engines in one app, using
+[FlClash](https://github.com/chen08209/FlClash)'s interface (rebuilt in
+Jetpack Compose: FlClash's layout, cards, colors and wording):
 
 | Engine | Runs | Protocols |
 |---|---|---|
@@ -8,13 +10,28 @@ A Material 3 VPN client for Android with three engines in one app:
 | **Direct WireGuard** — AmneziaWG userspace engine | WireGuard / AmneziaWG `.conf` files | WireGuard, AmneziaWG obfuscation (Jc/Jmin/Jmax, S1–S4, H1–H4, I1–I5) |
 | **Direct OpenVPN** — the official [OpenVPN 3 core](https://github.com/OpenVPN/openvpn3) 3.11.7 (mbed TLS) | `.ovpn` files | OpenVPN over UDP/TCP, tls-auth, tls-crypt, tls-crypt-v2, certificates and/or username/password |
 
-Android allows one VPN at a time, so exactly one engine runs. OpenVPN and
+Android allows one VPN at a time, so exactly one engine runs.
+
+OpenVPN servers that use `auth-user-pass` ask for a username and password once
+(after import, or on the first connect); an inline `<auth-user-pass>` block in
+the `.ovpn` is used as is. A rejected login brings the prompt back. Direct
+WireGuard keeps the tunnel's own DNS servers and subnets inside the tunnel
+even with *Bypass LAN* on (providers put their resolver on addresses such as
+`10.2.0.1`), and warns on the Dashboard when the server never answers the
+handshake. OpenVPN and
 WireGuard profiles can also be copied into Proxy mode (profile menu → *Copy as
 Proxy-mode profile*) to combine them with rules or chain them behind other
 proxies.
 
 ## Features
 
+- **FlClash interface:** Dashboard (network speed chart, outbound mode, network
+  detection, traffic usage, intranet IP, start button with run time), Proxies
+  (a tab per proxy group, proxy cards, delay test), Profiles and Tools, with
+  FlClash's default palette or your wallpaper colors.
+- **Proxies before connecting:** the selected proxy profile is kept loaded in
+  mihomo without a VPN, so groups can be browsed, chosen and latency-tested
+  before connecting. Choices are remembered per profile and used on connect.
 - **Profiles:** Clash subscription URLs (auto-update, traffic/expiry from
   `subscription-userinfo`), pasted YAML or share links, QR codes, `.yaml` /
   `.ovpn` / `.conf` files (also via "Open with" and `clash://install-config`
@@ -73,6 +90,7 @@ tidewall/
 ├─ core/                 Go engine: mihomo + AmneziaWG, exported with gomobile
 │  ├─ proxy.go           Proxy mode: profile overrides, TUN from the VpnService fd
 │  ├─ api.go             proxy groups, selection, latency, traffic, connections
+│  ├─ detect.go          exit IP / country lookup through the running engine
 │  ├─ wireguard.go       Direct WireGuard: .conf parser, UAPI, fd-backed TUN
 │  ├─ ovpn.go            .ovpn → mihomo openvpn outbound converter
 │  ├─ convert.go         share links → profile, add proxy, profile stats

@@ -42,6 +42,10 @@ data class Profile(
     /** OpenVPN credentials, for servers that use auth-user-pass. */
     val username: String? = null,
     val password: String? = null,
+    /** The OpenVPN server asks for a username and password (auth-user-pass). */
+    val needsLogin: Boolean = false,
+    /** Proxy selector choices (group -> proxy), restored whenever the profile is loaded. */
+    val selected: Map<String, String> = emptyMap(),
     /** Short summary shown under the name, e.g. "12 proxies" or the server. */
     val summary: String = "",
 ) {
@@ -51,6 +55,9 @@ data class Profile(
             ProfileKind.WIREGUARD -> if (amnezia) "AmneziaWG" else "WireGuard"
             ProfileKind.OPENVPN -> "OpenVPN"
         }
+
+    /** An OpenVPN profile that cannot connect until the user enters a login. */
+    val missingLogin: Boolean get() = kind == ProfileKind.OPENVPN && needsLogin && username.isNullOrBlank()
 
     val fileExtension: String
         get() = when (kind) {

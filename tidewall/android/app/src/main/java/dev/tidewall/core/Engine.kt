@@ -46,6 +46,9 @@ data class Connection(
 )
 
 @Serializable
+data class IpInfo(val ip: String = "", val country: String = "")
+
+@Serializable
 data class ProfileStats(val proxies: Int = 0, val groups: Int = 0, val providers: Int = 0, val rules: Int = 0)
 
 @Serializable
@@ -55,6 +58,8 @@ data class OvpnInfo(
     val port: Int = 0,
     val proto: String = "",
     val needsPassword: Boolean = false,
+    val username: String? = null,
+    val password: String? = null,
     val unsupported: List<String>? = null,
 )
 
@@ -110,7 +115,9 @@ object Engine {
     fun inspectOvpn(text: String): OvpnInfo = json.decodeFromString(Libcore.inspectOvpn(text))
     fun inspectWireGuard(text: String): WireGuardInfo = json.decodeFromString(Libcore.inspectWireGuard(text))
 
-    // Running proxy engine.
+    // Proxy engine: loaded (browse/select before connecting) or running.
+    fun loadProfile(yaml: String, optionsJson: String) = Libcore.loadProfile(yaml, optionsJson)
+    fun detectIp(timeoutMs: Long = 8000): IpInfo = json.decodeFromString(Libcore.detectIP(timeoutMs))
     fun proxies(): ProxiesState = json.decodeFromString(Libcore.proxiesJSON())
     fun selectProxy(group: String, name: String) = Libcore.selectProxy(group, name)
     fun testDelay(name: String, url: String, timeoutMs: Long = 5000): Int =

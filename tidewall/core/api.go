@@ -40,10 +40,31 @@ type proxiesState struct {
 	Groups []proxyGroup `json:"groups"`
 }
 
+// Latest test results by proxy name. Proxies are rebuilt whenever a profile
+// is applied (e.g. on connect), which drops their own delay history.
+var (
+	delayMu    sync.Mutex
+	delayCache = map[string]int{}
+)
+
+func rememberDelay(name string, d int) {
+	delayMu.Lock()
+	delayCache[name] = d
+	delayMu.Unlock()
+}
+
+func clearDelays() {
+	delayMu.Lock()
+	delayCache = map[string]int{}
+	delayMu.Unlock()
+}
+
 func lastDelay(p C.Proxy) int {
 	hist := p.DelayHistory()
 	if len(hist) == 0 {
-		return 0
+		delayMu.Lock()
+		defer delayMu.Unlock()
+		return delayCache[p.Name()]
 	}
 	d := int(hist[len(hist)-1].Delay)
 	if d == 0 {
@@ -123,6 +144,16 @@ func SelectProxy(group string, name string) error {
 		return err
 	}
 	cachefile.Cache().SetSelected(group, name)
+	// Switching server should not leave apps on the old one.
+	statistic.DefaultManager.Range(func(c statistic.Tracker) bool {
+		for _, chain := range c.Chains() {
+			if chain == group {
+				_ = c.Close()
+				break
+			}
+		}
+		return true
+	})
 	return nil
 }
 
@@ -159,10 +190,12 @@ func TestDelay(name string, url string, timeoutMs int) int {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutMs)*time.Millisecond)
 	defer cancel()
 	d, err := p.URLTest(ctx, testURL(url), utils.IntRanges[uint16]{})
+	v := int(d)
 	if err != nil || d == 0 {
-		return -1
+		v = -1
 	}
-	return int(d)
+	rememberDelay(name, v)
+	return v
 }
 
 // TestGroupDelay tests every member of a group concurrently and returns a JSON
@@ -197,6 +230,7 @@ func TestGroupDelay(group string, url string, timeoutMs int) (string, error) {
 			if err != nil || d == 0 {
 				v = -1
 			}
+			rememberDelay(m.Name(), v)
 			mu.Lock()
 			result[m.Name()] = v
 			mu.Unlock()

@@ -15,10 +15,6 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
 
-/** Thrown when an OpenVPN profile needs a username/password before it can be saved. */
-class NeedsCredentialsException(val text: String, val suggestedName: String) :
-    Exception("This OpenVPN server needs a username and password")
-
 /**
  * Stores profiles as files in app-private storage: an index.json with the
  * metadata and one content file per profile (.yaml, .conf or .ovpn).
@@ -71,7 +67,14 @@ class ProfileRepository(context: Context) {
     suspend fun setUpdateInterval(p: Profile, hours: Int) = upsert(p.copy(updateIntervalHours = hours), null)
 
     suspend fun setCredentials(p: Profile, user: String, pass: String) =
-        upsert(p.copy(username = user, password = pass), null)
+        upsert((get(p.id) ?: p).copy(username = user.trim(), password = pass), null)
+
+    /** Remembers the proxy chosen in a selector group of a proxy profile. */
+    suspend fun setSelected(id: String, group: String, proxy: String) {
+        val p = get(id) ?: return
+        if (p.selected[group] == proxy) return
+        upsert(p.copy(selected = p.selected + (group to proxy)), null)
+    }
 
     private fun newId() = UUID.randomUUID().toString().substring(0, 8)
 
@@ -86,15 +89,13 @@ class ProfileRepository(context: Context) {
 
     /**
      * Imports pasted text or a file. Detects Clash YAML, share links, .ovpn
-     * and WireGuard configs. Throws [NeedsCredentialsException] for OpenVPN
-     * profiles that need a login and none was given.
+     * and WireGuard configs. OpenVPN profiles that need a login are saved with
+     * [Profile.missingLogin] set; the UI then asks for it.
      */
     suspend fun importText(
         text: String,
         name: String? = null,
         fileName: String? = null,
-        username: String? = null,
-        password: String? = null,
     ): Profile = withContext(Dispatchers.IO) {
         val body = text.trimStart('﻿')
         val fallbackName = name?.takeIf { it.isNotBlank() } ?: ContentDetector.nameFromFile(fileName)
@@ -114,12 +115,12 @@ class ProfileRepository(context: Context) {
             }
             ContentType.OPENVPN -> {
                 val info = Engine.inspectOvpn(body)
-                val profileName = fallbackName ?: info.name
-                if (info.needsPassword && username.isNullOrBlank()) throw NeedsCredentialsException(body, profileName)
                 val p = Profile(
-                    newId(), profileName, ProfileKind.OPENVPN,
-                    username = username?.takeIf { info.needsPassword },
-                    password = password?.takeIf { info.needsPassword },
+                    newId(), fallbackName ?: info.name, ProfileKind.OPENVPN,
+                    // An inline <auth-user-pass> block carries the login itself.
+                    username = info.username,
+                    password = info.password,
+                    needsLogin = info.needsPassword,
                     summary = "${info.server}:${info.port} ${info.proto.uppercase()}",
                 )
                 upsert(p, body)
@@ -212,7 +213,13 @@ class ProfileRepository(context: Context) {
                 (it.endpoints?.firstOrNull() ?: "") + (it.addresses?.firstOrNull()?.let { a -> " · $a" } ?: "")
             }
         }
-        upsert(p.copy(updatedAt = System.currentTimeMillis(), summary = summary), text)
+        var updated = p.copy(updatedAt = System.currentTimeMillis(), summary = summary)
+        if (p.kind == ProfileKind.OPENVPN) {
+            val info = Engine.inspectOvpn(text)
+            updated = updated.copy(needsLogin = info.needsPassword)
+            if (info.username != null) updated = updated.copy(username = info.username, password = info.password)
+        }
+        upsert(updated, text)
     }
 
     /** Creates a Proxy-mode copy of an OpenVPN or WireGuard profile. */
