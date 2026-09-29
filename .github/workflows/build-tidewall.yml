@@ -28,12 +28,14 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      # The action's default package list includes the removed "tools" package,
+      # so name the packages explicitly.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-37.0 build-tools;37.0.0 ndk;28.2.13676358 cmake;3.31.6
 
-      - name: Install Android SDK packages and SWIG
-        run: |
-          sdkmanager "platforms;android-37.0" "build-tools;37.0.0" "ndk;${NDK_VERSION}" "cmake;3.31.6"
-          sudo apt-get update -q && sudo apt-get install -y -q swig
+      - name: Install SWIG
+        run: sudo apt-get update -q && sudo apt-get install -y -q swig
 
       - name: Go engine tests
         working-directory: tidewall/core
