@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="compose_cc">Kopi</string>
+    <string name="compose_compose_email">Forfatt e-post</string>
+    <string name="compose">Forfatt</string>
+    <string name="unable_to_fetch_session">Kunne ikke hente økt: %s</string>
+    <string name="no_network_connection">Ingen nettverkstilkobling</string>
+    <string name="unknown_host">Kunne ikke fortolke %s</string>
+    <string name="unable_to_verify_service_identity">Kunne ikke bekrefte identitet</string>
+    <string name="unable_to_establish_secure_connection">Kunne ikke etablere sikret tilkobling</string>
+    <string name="timeout_reached">Tidsavbrudd under forsøk på å koble til e-posttjeneste</string>
+    <string name="unable_to_connect">Kunne ikke koble til e-posttjeneste</string>
+    <string name="invalid_session_resource">Ingen gyldig e-posttjeneste på denne adressen</string>
+    <string name="endpoint_not_found">Ingen e-posttjeneste på denne adressen</string>
+    <string name="enter_a_valid_url">Skriv inn en gyldig tilkoblingsnettadresse</string>
+    <string name="enter_a_secure_url">Skriv inn en sikker nettadresse</string>
+    <string name="enter_your_connection_url">Skriv inn din tilkoblingsnettadresse</string>
+    <string name="sign_in_instruction">med din e-postkonto.</string>
+    <plurals name="n_deleted">
+        <item quantity="one">%d slettet</item>
+        <item quantity="other">%d slettet</item>
+    </plurals>
+    <plurals name="n_archived">
+        <item quantity="one">%d arkivert</item>
+        <item quantity="other">%d arkivert</item>
+    </plurals>
+    <plurals name="n_removed_from_x">
+        <item quantity="one">%d fjernet fra %s</item>
+        <item quantity="other">%d fjernet fra %s</item>
+    </plurals>
+    <string name="search_hint">Søk i e-post</string>
+    <string name="remove_label_x">Fjern etiketten %s</string>
+    <string name="draft">Kladd</string>
+    <string name="select_sender">Velg avsender.</string>
+    <string name="the_address_x_is_invalid">Noe er galt med adressen &lt;%s&gt;</string>
+    <string name="add_at_least_one_recipient">Legg til minst én mottager.</string>
+    <string name="ok">OK</string>
+    <string name="compose_from">Fra</string>
+    <string name="compose_subject">Emne</string>
+    <string name="compose_to">Til</string>
+    <string name="schedule_send">Planlegg forsendelse</string>
+    <string name="discard">Forkast</string>
+    <string name="send">Send</string>
+    <string name="attach_file">Legg ved fil</string>
+    <string name="information_required">Info kreves</string>
+    <string name="wrong_password">Feil passord. Prøv igjen.</string>
+    <string name="enter_a_password">Skriv inn et passord</string>
+    <string name="enter_your_password">Skriv inn passordet ditt</string>
+    <string name="welcome">Velkommen</string>
+    <string name="enter_a_valid_email_address">Skriv inn en gyldig e-postadresse</string>
+    <string name="enter_an_email_address">Skriv inn en e-postadresse</string>
+    <string name="next">Neste</string>
+    <string name="email_address">E-postadresse</string>
+    <string name="sign_in">Logg inn</string>
+    <string name="deleted">Slettet</string>
+    <string name="undo">Angre</string>
+    <string name="mark_not_important">Merker som uviktig</string>
+    <string name="remove_label">Fjern etikett</string>
+    <plurals name="n_moved_to_inbox">
+        <item quantity="one">%d flyttet til innboks</item>
+        <item quantity="other">%d flyttet til innboks</item>
+    </plurals>
+    <string name="move_to_inbox">Flytt til innboks</string>
+    <string name="to_x">til %s</string>
+    <string name="search">Søk</string>
+    <string name="remove_flag">Fjern flagg</string>
+    <string name="add_flag">Legg til flagg</string>
+    <string name="mark_important">Marker som viktig</string>
+    <string name="delete">Slett</string>
+    <string name="mark_read">Marker som lest</string>
+    <string name="mark_unread">Marker som ulest</string>
+    <string name="archive">Arkiv</string>
+    <string name="could_not_store_account_credentials">Kunne ikke lagre identitetsdetaljer for konto</string>
+    <string name="reserved_mailbox_name">Reservert navn. Prøv noe annet.</string>
+    <string name="no_name_specified">Inget navn angitt. Prøv igjen.</string>
+    <string name="assign_role_detailed_explanation">Ripple trenger en etikett (e-postboks) med rollen %1$s for å fungere riktig. Hvis du ikke ønsker å bruke etiketten ved navn %2$s til det formålet kan du klikke «Avbryt» og bruke din skrivebord- eller vevklient for å opprette en annen etikett med rollen %1$s.</string>
+    <string name="assign_role_question">Du har allerede en etikett ved navn %1$s. Ønsker du å tildele den rollen %2$s\?</string>
+    <string name="reassign_role_question">Du har allerede en etikett som heter %1$s med rollen %2$s. Ønsker du å omfordele den %3$s-rollen\?</string>
+    <string name="assign_role">Tildel rolle</string>
+    <string name="reassign_role">Omfordel rolle</string>
+    <string name="add_another_account">Legg til ny konto</string>
+    <string name="manage_accounts">Håndter kontoer</string>
+    <string name="create">Opprett</string>
+    <string name="new_label">Ny etikett</string>
+    <string name="enter_a_label_name">Skriv inn nytt etikettnavn</string>
+    <string name="apply_changes">Bruk</string>
+    <string name="label_as">Merk som</string>
+    <string name="change_labels">Endre etiketter</string>
+    <string name="cancel">Avbryt</string>
+    <string name="confirm">Bekreft</string>
+    <string name="remove_account_dialog_message">Fjerning av kontoen sletter alle dens meldinger og all annen tilknyttet data fra enheten.</string>
+    <string name="session_resource_help_dialog_message">Ripple bruker den relativt nye JMAP-protokollen til å synkronisere e-post, men det er ikke sikkert at din tilbyder støtter denne protokollen enda.
+\n
+\nKontakt din tilbyder og spør om JMAP og JMAP-tilkoblingsnettadresse.
+\n
+\nPå en tjener som er satt opp riktig vil Ripple oppdage tilkoblingsnettadressen automatisk.</string>
+    <string name="role_name_all">All e-post</string>
+    <string name="vacation_response">Feriesvar</string>
+    <string name="view_emails">Vis e-poster</string>
+    <string name="remove_account_dialog_title">Fjern konto\?</string>
+    <string name="end_to_end_encryption">Ende-til-ende -kryptering</string>
+    <string name="manage_labels">Håndter etiketter</string>
+    <string name="identities">Identiteter</string>
+    <string name="remove_account">Fjern konto</string>
+    <string name="account">Konto</string>
+    <string name="accounts">Kontoer</string>
+    <string name="notification_channel_name_email">E-post</string>
+    <plurals name="x_new_emails">
+        <item quantity="one">%d ny e-post</item>
+        <item quantity="other">%d nye e-poster</item>
+    </plurals>
+    <string name="session_resource_help_dialog_title">Hva er tilkoblingsnettadressen\?</string>
+    <string name="role_name_subscribed">Abonnert</string>
+    <string name="role_name_junk">Søppelpost</string>
+    <string name="role_name_trash">Papirkurv</string>
+    <string name="role_name_important">Viktig</string>
+    <string name="role_name_flagged">Stjernemerket</string>
+    <string name="role_name_drafts">Kladder</string>
+    <string name="role_name_archive">Arkiv</string>
+    <string name="role_name_sent">Sendt</string>
+    <string name="role_name_inbox">Innboks</string>
+    <string name="foreground_service">Forgrunnstjeneste</string>
+    <string name="foreground_service_notification_text">Ripple fortsetter å kjøre for å varsle deg om mottatt e-post</string>
+    <string name="no_application_to_open_x">Ingen programmer kunne vise %s. Prøv å laste ned vedlegget istedenfor.</string>
+    <string name="attachment_is_not_cached">Vedlegget er ikke hurtiglagret</string>
+    <plurals name="x_emails_in_trash">
+        <item quantity="one">Det er for tiden %d e-post i papirkurven.</item>
+        <item quantity="other">Det er for tiden %d e-poster i papirkurven.</item>
+    </plurals>
+    <string name="attachment_download_failed_status_code_x">Kunne ikke laste ned vedlegg. (HTTP-statuskode %d)</string>
+    <string name="combined_size_of_attachments_exceeds_the_limit_of_x">Kombinert størrelse for alle vedlegg overstiger grensen for %s</string>
+    <string name="empty">Tøm</string>
+    <plurals name="x_emails_will_permanently_deleted">
+        <item quantity="one">%d e-post vil bli slettet for godt.</item>
+        <item quantity="other">%d e-poster vil bli slettet for godt.</item>
+    </plurals>
+    <string name="empty_trash_dialog_title">Tøm papirkurven\?</string>
+    <string name="empty_trash">Tøm papirkurven</string>
+    <string name="upload_complete">Opplasting fullført</string>
+    <string name="the_file_exceeds_the_limit_of_x">Filen overstiger grensen for %s</string>
+    <string name="download_complete">Nedlasting fullført</string>
+    <string name="attachments">Vedlegg</string>
+    <string name="encryption_options">Krypteringsvalg</string>
+    <string name="transfer_secret_key">Overfør hemmelig nøkkel</string>
+    <string name="autocrypt_enable_description">Skru på støtte for ende-til-ende -kryptering. Din offentlige nøkkel vil bli lagt til som vedlegg i utgående e-poster. Dette lar kontaktene dine sende deg kryptert e-post.</string>
+    <string name="autocrypt_encryption_preference">Foretrukken kryptering</string>
+    <string name="send_as_cleartext">Send som klartekst</string>
+    <string name="encryption_provider_can_not_create_secret_key">Krypteringstilbyderen på denne enheten kunne ikke opprette din hemmelige nøkkel.</string>
+    <string name="encrypted_email">(kryptert e-post)</string>
+    <string name="no_body">(ingen brødtekst)</string>
+    <string name="no_subject">(uten emne)</string>
+    <string name="could_not_cache_attachment">Kunne ikke hurtiglagre vedlegg</string>
+    <string name="import_private_key_help_dialog_message">Ripple har oppdaget en Autocrypt-oppsettsmelding laget av en av de andre programmene du bruker. Ved å importere den hemmelige nøkkelen fra denne meldingen kan du begynne å bruke Autocrypt her i Ripple også.
+\n
+\nSkriv inn din oppsettskode.
+\n
+\nHvis du ikke husker den kan du hoppe over dette steget, og så vil Ripple generere en fersk hemmelig nøkkel på denne enheten.</string>
+    <string name="could_not_configure_autocrypt">Kunne ikke sette opp Autocrypt</string>
+    <string name="could_not_store_setup_message">Kunne ikke lagre oppsettsmelding</string>
+    <string name="autocrypt_export_explained_hint_done">Oppsettsmeldingen har blitt opprettet. Du kan nå starte importeringsprosessen på din andre enhet.</string>
+    <string name="skip">Hopp over</string>
+    <string name="wrong_setup_code">Feil oppsettskode. Prøv igjen.</string>
+    <string name="import_private_key_help_dialog_title">Oppdaget en Autocrypt-oppsettsmelding</string>
+    <string name="cleartext">Klartekst</string>
+    <string name="encrypted">Kryptert</string>
+    <string name="done">Ferdig</string>
+    <string name="autocrypt_no_preference_description">Ved behov. Du og dine kontakter vil kunne skru på kryptering som det høver seg for enkeltstående e-poster.</string>
+    <string name="autocrypt_mutual_description">Du ønsker å motta krypterte e-poster. Ende-til-ende -kryptering vil bli brukt som forvalg for alle kotantker som også ønsker å motta krypterte e-poster.</string>
+    <string name="encryption_is_not_available_for_those_recipients">Valget om å sende kryptert e-post er ikke tilgjengelig for disse mottagerne.</string>
+    <string name="autocrypt_export_explained_hint_one">For å overføre din hemmelige nøkkel til en annen enhet vil Ripple opprette en oppsettsmelding. Denne inneholder din hemmelige nøkkel, beskyttet av en oppsettskode.</string>
+    <string name="autocrypt_export_explained_hint_three">I neste steg vil Ripple opprette en sikker oppsettskode. Du vil måtte skrive ned koden og oppbevare den på et trygt sted.</string>
+    <string name="import_secret_key">Importer hemmelig nøkkel</string>
+    <string name="autocrypt_export_explained_hint_two">Oppsettsmeldingen er en vanlig e-post etikettmerket «Sendt». Andre programmer vil kunne plukke den opp derfra og importere din hemmelige nøkkel.</string>
+    <string name="autocrypt_export_explained_hint_four">Du må bruke denne oppsettskoden på din andre enhet for å importere din hemmelige nøkkel. Oppbevar denne oppsettskoden på et trygt sted.</string>
+    <string name="view_email">Vis e-post</string>
+    <string name="enter_your_setup_code">Skriv inn oppsettskoden din for å importere din hemmelige nøkkel, eller hopp over dette steget hvis du vil at Ripple skal generere en fersk oppsettsnøkkel på denne enheten.</string>
+    <string name="show_account_selector">Vis kontovelger</string>
+    <string name="hide_account_selector">Skjul kontovelger</string>
+    <string name="reply_all">Svar alle</string>
+    <string name="forward_email">Videresend e-post</string>
+    <string name="more_options">Flere alternativer</string>
+    <string name="edit_draft">Rediger kladd</string>
+    <string name="show_helper_dialog">Vis hjelpdialog</string>
+    <string name="download_attachment">Last ned vedlegg</string>
+    <plurals name="incorrect_secret_key">
+        <item quantity="one">Du har ikke rett hemmelig nøkkel for å dekryptere %d e-post.</item>
+        <item quantity="other">Du har ikke rett hemmelig nøkkel for å dekryptere %d e-poster.</item>
+    </plurals>
+    <plurals name="could_not_decrypt_x_emails">
+        <item quantity="one">Kunne ikke dekryptere %d e-post</item>
+        <item quantity="other">Kunne ikke dekryptere %d e-poster</item>
+    </plurals>
+    <plurals name="could_not_download_x_encrypted_emails">
+        <item quantity="one">Kunne ikke laste ned %d kryptert e-post</item>
+        <item quantity="other">Kunne ikke laste ned %d kryptert e-poster</item>
+    </plurals>
+    <string name="reply">Svar</string>
+    <string name="remove_attachment">Fjern vedlegg</string>
+    <string name="could_not_determine_metadata_of_attachment">Kunne ikke avgjøre type, størrelse, og navn på vedlegget du prøver å legge til.</string>
+    <string name="lttrs_lacks_permissions_to_add_attachment">Ripple mangler nødvendige tilganger for å legge til dette vedlegget.</string>
+    <string name="attachment_download_failed">Kunne ikke laste ned vedlegg</string>
+    <string name="email_not_cached">E-posten som inneholder vedlegget er ikke hurtiglagret.</string>
+    <string name="decrypt_email">Dekrypter e-post</string>
+</resources>

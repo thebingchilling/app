@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="attachment"
+            type="rs.ltt.android.mail.model.Attachment" />
+    </data>
+
+    <!-- TODO decide if colorPrimaryContainer is the correct tint and then change the text and icon colors accordingly -->
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/background_attachment"
+        android:backgroundTint="?colorTertiaryContainer"
+        android:elevation="2dp"
+        android:foreground="@drawable/foreground_attachment">
+
+        <LinearLayout
+            android:layout_width="@dimen/attachment_width"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/preview"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/attachment_preview_height"
+                android:scaleType="centerInside"
+                android:visibility="gone" />
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <ImageView
+                    android:id="@+id/icon_media_type"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:layout_margin="12dp"
+                    android:src="@{attachment.mediaType}"
+                    app:tint="?attr/colorOnTertiaryContainer"
+                    tools:src="@drawable/ic_archive_24dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_toStartOf="@+id/action"
+                    android:layout_toEndOf="@+id/icon_media_type"
+                    android:ellipsize="middle"
+                    android:maxLines="1"
+                    android:text="@{attachment.name}"
+                    android:textColor="?colorOnTertiaryContainer"
+                    android:textAppearance="?textAppearanceBodyMedium"
+                    tools:text="this_is_my_archive_test.zip" />
+
+                <ImageButton
+                    android:id="@+id/action"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_save_alt_24dp"
+                    app:tint="?attr/colorOnTertiaryContainer" />
+            </RelativeLayout>
+        </LinearLayout>
+    </FrameLayout>
+</layout>

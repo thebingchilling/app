@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <variable
+            name="suggestion"
+            type="rs.ltt.android.entity.SearchSuggestion" />
+    </data>
+
+    <RelativeLayout
+        android:id="@+id/wrapper"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="4dp"
+        android:background="?selectableItemBackground">
+
+        <ImageView
+            android:src="@{suggestion}"
+            android:id="@+id/icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            tools:src="@drawable/ic_manage_search_24dp" />
+
+        <TextView
+            android:id="@+id/search_suggestion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="16sp"
+            android:layout_toEndOf="@+id/icon"
+            android:maxLines="2"
+            android:text="@{suggestion}"
+            android:textAppearance="?textAppearanceBodyMedium"
+            tools:text="@string/search_for_x_in_email" />
+    </RelativeLayout>
+</layout>

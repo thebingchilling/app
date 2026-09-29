@@ -1,0 +1,19 @@
+<configuration>
+    <appender name="logcat" class="ch.qos.logback.classic.android.LogcatAppender">
+        <tagEncoder>
+            <pattern>lttrs</pattern>
+        </tagEncoder>
+        <encoder>
+            <pattern>%logger{12}: %msg</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Under normal operations we are not interested in HTTP logging as jmap-mua hides this away
+    and on it's own should have sufficient logging. Set this to 'DEBUG' to see full request and
+    response bodies. -->
+    <logger name="okhttp3.OkHttpClient" level="WARN"/>
+
+    <root level="DEBUG">
+        <appender-ref ref="logcat" />
+    </root>
+</configuration>

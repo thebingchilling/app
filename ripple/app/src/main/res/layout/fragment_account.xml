@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <import type="android.view.View" />
+
+        <variable
+            name="account"
+            type="rs.ltt.android.entity.AccountName" />
+
+        <variable
+            name="enabled"
+            type="boolean" />
+    </data>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/icon"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp"
+                android:src="@drawable/ic_account_box_24dp"
+                android:visibility="@{account == null ? View.INVISIBLE : View.VISIBLE}"
+                app:tint="@{account.name}" />
+
+            <TextView
+                android:id="@+id/name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/icon"
+                android:layout_centerHorizontal="true"
+                android:maxLines="1"
+                android:text="@{account.name}"
+                android:textAppearance="?textAppearanceTitleLarge"
+                tools:text="sam.miller@example.com" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/name"
+                android:layout_marginTop="48dp"
+                android:orientation="vertical">
+
+                <RelativeLayout
+                    android:id="@+id/identities"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?selectableItemBackground"
+                    android:clickable="@{enabled}">
+
+                    <ImageView
+                        android:id="@+id/identities_icon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="32dp"
+                        android:src="@drawable/ic_group_24dp"
+                        app:tint="?colorControlNormal" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_toEndOf="@+id/identities_icon"
+                        android:maxLines="1"
+                        android:text="@string/identities"
+                        android:textAppearance="?textAppearanceBodyLarge" />
+
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/labels"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?selectableItemBackground"
+                    android:clickable="@{enabled}">
+
+                    <ImageView
+                        android:id="@+id/labels_icon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="32dp"
+                        android:src="@drawable/ic_label_24dp"
+                        app:tint="?colorControlNormal" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_toEndOf="@+id/labels_icon"
+                        android:maxLines="1"
+                        android:text="@string/manage_labels"
+                        android:textAppearance="?textAppearanceBodyLarge" />
+
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/vacation_response"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?selectableItemBackground"
+                    android:clickable="@{enabled}">
+
+                    <ImageView
+                        android:id="@+id/vacation_response_icon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="32dp"
+                        android:src="@drawable/ic_event_24dp"
+                        app:tint="?colorControlNormal" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_toEndOf="@+id/vacation_response_icon"
+                        android:maxLines="1"
+                        android:text="@string/vacation_response"
+                        android:textAppearance="?textAppearanceBodyLarge" />
+
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/e2ee"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?selectableItemBackground"
+                    android:clickable="@{enabled}">
+
+                    <ImageView
+                        android:id="@+id/e2ee_icon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="32dp"
+                        android:src="@drawable/ic_notification_push"
+                        app:tint="?colorControlNormal" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_toEndOf="@+id/e2ee_icon"
+                        android:maxLines="1"
+                        android:text="@string/instant_delivery"
+                        android:textAppearance="?textAppearanceBodyLarge" />
+
+                </RelativeLayout>
+
+                <!-- TODO this will have a list of settings/actions like 'Manage labels',
+                 'Manage Identities', 'Vacation Responses' -->
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0.5dp"
+                    android:background="@drawable/background_divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/remove"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:enabled="@{enabled}"
+                        android:text="@string/remove_account" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </RelativeLayout>
+    </ScrollView>
+
+</layout>

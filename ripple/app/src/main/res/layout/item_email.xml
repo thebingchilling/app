@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright 2019 Daniel Gultsch
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+        <import type="android.view.View" />
+
+        <variable
+            name="email"
+            type="rs.ltt.android.entity.EmailWithBodies" />
+
+        <variable
+            name="expanded"
+            type="boolean" />
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?colorSurface"
+        android:orientation="vertical">
+
+        <RelativeLayout
+            android:id="@+id/header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?selectableItemBackground"
+            android:minHeight="88dp">
+
+            <ImageView
+                android:id="@+id/avatar"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="16dp"
+                app:from="@{email.getFirstFrom()}" />
+
+            <TextView
+                android:id="@+id/from"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/avatar"
+                android:maxLines="1"
+                android:text="@{email.firstFrom}"
+                android:textAppearance="?textAppearanceTitleMedium"
+                app:firstBaselineToTopHeight="28dp"
+                tools:text="Juliet Capulet" />
+
+            <TextView
+                android:id="@+id/preview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/from"
+                android:layout_alignParentEnd="true"
+                android:layout_marginEnd="16dp"
+                android:layout_toEndOf="@id/avatar"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:text="@{email.getPreview()}"
+                android:textAppearance="?textAppearanceBodyMedium"
+                android:visibility="@{expanded ? View.GONE : View.VISIBLE}"
+                app:firstBaselineToTopHeight="20sp"
+                tools:text="Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores" />
+
+            <TextView
+                android:id="@+id/to"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/from"
+                android:layout_toStartOf="@+id/reply_all"
+                android:layout_toEndOf="@id/avatar"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="?textAppearanceBodyMedium"
+                android:visibility="@{expanded ? View.VISIBLE : View.GONE}"
+                app:firstBaselineToTopHeight="20sp"
+                app:to="@{email.toAndCc}"
+                tools:text="to Romeo Montague" />
+
+
+            <TextView
+                android:id="@+id/date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBaseline="@id/from"
+                android:layout_alignParentEnd="true"
+                android:layout_marginStart="8sp"
+                android:layout_marginEnd="16dp"
+                android:layout_toEndOf="@id/from"
+                android:maxLines="1"
+                android:textAppearance="?textAppearanceBodySmall"
+                app:date="@{email.effectiveDate}"
+                tools:text="Mar 24" />
+
+            <ImageButton
+                android:id="@+id/reply_all"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_toStartOf="@+id/forward"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/reply_all"
+                android:padding="12dp"
+                android:src="@drawable/ic_reply_all_24dp"
+                android:visibility="@{(expanded &amp;&amp; !email.draft)? View.VISIBLE : View.GONE}" />
+
+            <ImageButton
+                android:id="@+id/forward"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_toStartOf="@+id/more_options"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/forward_email"
+                android:padding="12dp"
+                android:src="@drawable/ic_forward_24dp"
+                android:visibility="@{(expanded &amp;&amp; !email.draft) ? View.VISIBLE : View.GONE}" />
+
+            <ImageButton
+                android:id="@+id/more_options"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/more_options"
+                android:padding="2dp"
+                android:src="@drawable/ic_more_vert_24dp"
+                android:visibility="@{(expanded &amp;&amp; !email.draft) ? View.VISIBLE : View.GONE}" />
+
+            <ImageButton
+                android:id="@+id/edit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/edit_draft"
+                android:padding="12dp"
+                android:src="@drawable/ic_edit_24dp"
+                android:visibility="@{(expanded &amp;&amp; email.draft) ? View.VISIBLE : View.GONE}" />
+
+
+        </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/body"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:visibility="@{expanded ? View.VISIBLE : View.GONE}">
+
+            <TextView
+                android:id="@+id/text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:autoLink="web"
+                android:textAppearance="?textAppearanceBodyMedium"
+                app:body="@{email.textBodies}"
+                tools:text="Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores" />
+
+            <LinearLayout
+                android:id="@+id/attachments"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
+        <View
+            android:id="@+id/divider"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/divider_height"
+            android:background="@drawable/background_divider" />
+    </LinearLayout>
+</layout>

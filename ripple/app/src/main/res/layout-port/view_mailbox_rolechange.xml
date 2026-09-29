@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingDefaultResource">
+
+    <data>
+
+        <import type="android.view.View" />
+
+        <variable
+            name="role"
+            type="rs.ltt.android.mail.model.Role" />
+
+        <variable
+            name="mailbox"
+            type="rs.ltt.android.entity.MailboxWithRoleAndName" />
+    </data>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="@dimen/mailbox_width_port"
+            android:layout_height="@dimen/mailbox_height_port"
+            android:backgroundTint="?colorPrimaryContainer"
+            android:background="@drawable/background_mailbox_role_change"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="32dp"
+                app:role="@{mailbox.getRole()}"
+                app:tint="?attr/colorPrimary"
+                tools:src="@drawable/ic_label_24dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{mailbox.getName()}"
+                android:textAppearance="?textAppearanceTitleMedium"
+                tools:text="Archive" />
+        </LinearLayout>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_margin="8dp"
+            android:src="@drawable/ic_arrow_downward_24dp" />
+        <LinearLayout
+            android:layout_width="@dimen/mailbox_width_port"
+            android:layout_height="@dimen/mailbox_height_port"
+            android:backgroundTint="?colorPrimaryContainer"
+            android:background="@drawable/background_mailbox_role_change"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="32dp"
+                app:tint="?attr/colorPrimary"
+                app:role="@{role}"
+                tools:src="@drawable/ic_archive_black_24dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{mailbox.getName()}"
+                android:textAppearance="?textAppearanceTitleMedium"
+                tools:text="Archive" />
+        </LinearLayout>
+    </LinearLayout>
+</layout>

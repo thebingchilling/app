@@ -1,0 +1,50 @@
+buildscript {
+
+    ext {
+        appcompatVersion = "1.7.0"
+        fragmentVersion = "1.8.6"
+        transitionVersion = "1.5.1"
+        lifecycleVersion = "2.2.0"
+        navVersion = '2.8.9'
+        pagingVersion = "3.3.6"
+        recyclerViewVersion = "1.4.0"
+        swipeRefreshLayoutVersion = "1.1.0"
+        roomVersion = "2.8.1"
+        workVersion = "2.10.0"
+        exifInterfaceVersion = "1.4.0"
+        muaVersion = "0.9.0"
+        autocryptJmapVersion = "0.4.3"
+        espressoVersion = "3.6.1"
+        material = "1.12.0"
+        preferenceVersion = "1.2.1"
+    }
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.9.1'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.20'
+        classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$navVersion"
+        classpath "com.diffplug.spotless:spotless-plugin-gradle:7.0.2"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenLocal()
+        mavenCentral()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 30, 'seconds'
+}
+

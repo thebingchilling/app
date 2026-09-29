@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="mailbox_width_land">248dp</dimen>
+    <dimen name="mailbox_height_land">48dp</dimen>
+</resources>

@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="archive">Archivia</string>
+    <string name="to_x">a %s</string>
+    <string name="remove_flag">Rimuovi contrassegno</string>
+    <string name="add_flag">Aggiungi contrassegno</string>
+    <string name="could_not_store_account_credentials">Impossibile salvare le credenziali dell\'account</string>
+    <string name="compose_cc">Cc</string>
+    <string name="draft">Bozza</string>
+    <string name="select_sender">Seleziona mittente.</string>
+    <string name="the_address_x_is_invalid">Qualcosa non va con l\'indirizzo &lt;%s&gt;</string>
+    <string name="add_at_least_one_recipient">Aggiungi almeno un destinatario.</string>
+    <string name="ok">OK</string>
+    <string name="compose_from">Da</string>
+    <string name="compose_subject">Oggetto</string>
+    <string name="compose_compose_email">Componi e-mail</string>
+    <string name="compose_to">A</string>
+    <string name="schedule_send">Programma invio</string>
+    <string name="discard">Scarta</string>
+    <string name="send">Invia</string>
+    <string name="attach_file">Allega file</string>
+    <string name="compose">Componi</string>
+    <string name="unable_to_fetch_session">Impossibile recuperare la sessione: %s</string>
+    <string name="no_network_connection">Nessuna connessione di rete</string>
+    <string name="unknown_host">Impossibile risolvere %s</string>
+    <string name="unable_to_verify_service_identity">Impossibile verificare l\'identità</string>
+    <string name="unable_to_establish_secure_connection">Impossibile stabilire una connessione sicura</string>
+    <string name="timeout_reached">Tempo scaduto tentando di connettersi al servizio e-mail</string>
+    <string name="unable_to_connect">Impossibile connettersi al servizio e-mail</string>
+    <string name="invalid_session_resource">Non c\'è un servizio e-mail valido a questo indirizzo</string>
+    <string name="endpoint_not_found">Non c\'è alcun servizio e-mail a questo indirizzo</string>
+    <string name="enter_a_secure_url">Inserisci un URL sicuro</string>
+    <string name="enter_a_valid_url">Inserisci un URL di connessione valido</string>
+    <string name="enter_your_connection_url">Inserisci l\'URL di connessione</string>
+    <string name="information_required">Informazioni necessarie</string>
+    <string name="wrong_password">Password sbagliata. Riprova.</string>
+    <string name="enter_a_password">Inserisci una password</string>
+    <string name="enter_your_password">Inserisci la tua password</string>
+    <string name="welcome">Benvenuto/a</string>
+    <string name="enter_a_valid_email_address">Inserisci un indirizzo e-mail valido</string>
+    <string name="enter_an_email_address">Inserisci un indirizzo e-mail</string>
+    <string name="next">Avanti</string>
+    <string name="sign_in_instruction">con il tuo account e-mail.</string>
+    <string name="email_address">Indirizzo e-mail</string>
+    <string name="sign_in">Accedi</string>
+    <string name="deleted">Eliminata</string>
+    <plurals name="n_deleted">
+        <item quantity="one">%d eliminata</item>
+        <item quantity="other">%d eliminate</item>
+    </plurals>
+    <string name="undo">Annulla</string>
+    <plurals name="n_archived">
+        <item quantity="one">%d archiviata</item>
+        <item quantity="other">%d archiviate</item>
+    </plurals>
+    <plurals name="n_removed_from_x">
+        <item quantity="one">%d rimosso da %s</item>
+        <item quantity="other">%d rimossi da %s</item>
+    </plurals>
+    <string name="mark_not_important">Segna come non importante</string>
+    <string name="search_hint">Cerca e-mail</string>
+    <string name="remove_label">Rimuovi etichetta</string>
+    <string name="remove_label_x">Rimuovi etichetta %s</string>
+    <plurals name="n_moved_to_inbox">
+        <item quantity="one">%d spostata nella posta in arrivo</item>
+        <item quantity="other">%d spostate nella posta in arrivo</item>
+    </plurals>
+    <string name="move_to_inbox">Sposta nella posta in arrivo</string>
+    <string name="search">Cerca</string>
+    <string name="mark_important">Segna come importante</string>
+    <string name="delete">Elimina</string>
+    <string name="mark_read">Segna come già letto</string>
+    <string name="mark_unread">Segna come non letto</string>
+    <string name="cancel">Annulla</string>
+    <string name="confirm">Conferma</string>
+    <string name="assign_role_detailed_explanation">Ripple richiede un\'etichetta (cassetta postale) con il ruolo di %1$s per funzionare correttamente. Se non vuoi usare l\'etichetta chiamata %2$s a quello scopo, puoi annullare ed usare il tuo client desktop o web per creare un\'etichetta diversa con il ruolo di %1$s.</string>
+    <string name="assign_role_question">Hai già un\'etichetta chiamata %1$s. Vuoi assegnarle il ruolo di %2$s\?</string>
+    <string name="reassign_role_question">Hai già un\'etichetta chiamata %1$s con il ruolo di %2$s. Vuoi riassegnarle il ruolo di %3$s\?</string>
+    <string name="assign_role">Assegna ruolo</string>
+    <string name="reassign_role">Riassegna ruolo</string>
+    <string name="label_as">Etichetta come</string>
+    <string name="apply_changes">Applica modifiche</string>
+    <string name="change_labels">Cambia etichette</string>
+    <string name="create">Crea</string>
+    <string name="new_label">Nuova etichetta</string>
+    <string name="reserved_mailbox_name">Scegli un nome che non sia riservato.</string>
+    <string name="no_name_specified">Nessun nome specificato. Riprova.</string>
+    <string name="enter_a_label_name">Digita una nuova etichetta</string>
+    <string name="add_another_account">Aggiungi un altro account</string>
+    <string name="manage_accounts">Gestisci gli account</string>
+    <string name="session_resource_help_dialog_message">Ripple usa un protocollo JMAP relativamente nuovo per sincronizzare la posta elettronica, ma il tuo fornitore potrebbe non supportarlo ancora.
+\n
+\nContatta il tuo provider e chiedi di JMAP e dell\'URL di connessione JMAP.
+\n
+\nSu un server correttamente configurato, Ripple scoprirà automaticamente l\'URL di connessione.</string>
+    <string name="session_resource_help_dialog_title">Che cos\'è un URL di connessione\?</string>
+    <string name="role_name_subscribed">Abbonamenti</string>
+    <string name="role_name_junk">Posta indesiderata</string>
+    <string name="role_name_trash">Cestino</string>
+    <string name="role_name_important">Importante</string>
+    <string name="role_name_flagged">Preferiti</string>
+    <string name="role_name_drafts">Bozze</string>
+    <string name="role_name_archive">Archivio</string>
+    <string name="role_name_all">Tutte le e-mail</string>
+    <string name="role_name_sent">Inviati</string>
+    <string name="role_name_inbox">Posta in arrivo</string>
+    <string name="foreground_service">Servizio in primo piano</string>
+    <string name="foreground_service_notification_text">Ripple continua a funzionare per notificare i messaggi in arrivo</string>
+    <plurals name="x_new_emails">
+        <item quantity="one">%d nuova e-mail</item>
+        <item quantity="other">%d nuove e-mail</item>
+    </plurals>
+    <string name="notification_channel_name_email">E-mail</string>
+    <string name="view_emails">Visualizza le e-mail</string>
+    <string name="remove_account_dialog_message">La rimozione di questo account elimina tutti i suoi messaggi e altri dati associati dal dispositivo.</string>
+    <string name="remove_account_dialog_title">Rimuovere l\'account\?</string>
+    <string name="end_to_end_encryption">Crittografia dall\'inizio alla fine</string>
+    <string name="vacation_response">Risposta per le vacanze</string>
+    <string name="manage_labels">Gestisci le etichette</string>
+    <string name="identities">Identità</string>
+    <string name="remove_account">Rimuovi l\'account</string>
+    <string name="account">Account</string>
+    <string name="accounts">Account</string>
+    <plurals name="x_emails_will_permanently_deleted">
+        <item quantity="one">%d e-mail sarà eliminata in modo permanente.</item>
+        <item quantity="other">%d e-mail saranno eliminate in modo permanente.</item>
+    </plurals>
+    <plurals name="x_emails_in_trash">
+        <item quantity="one">Attualmente c’è %d e-mail nel cestino.</item>
+        <item quantity="other">Attualmente ci sono %d e-mail nel cestino.</item>
+    </plurals>
+    <string name="empty">Vuoto</string>
+    <string name="empty_trash_dialog_title">Svuotare il cestino\?</string>
+    <string name="empty_trash">Svuota il cestino</string>
+    <string name="combined_size_of_attachments_exceeds_the_limit_of_x">La dimensione combinata di tutti gli allegati supera il limite di %s</string>
+    <string name="attachment_is_not_cached">L’allegato non viene memorizzato nella cache</string>
+    <string name="upload_complete">Caricamento finito</string>
+    <string name="the_file_exceeds_the_limit_of_x">Il file supera il limite di %s</string>
+    <string name="download_complete">Scaricamento finito</string>
+    <string name="no_application_to_open_x">Nessuna applicazione potrebbe visualizzare %s. Prova invece a scaricare l’allegato.</string>
+    <string name="attachments">Allegati</string>
+    <string name="attachment_download_failed_status_code_x">Impossibile scaricare l’allegato. (Codice di stato HTTP %d)</string>
+    <string name="could_not_cache_attachment">Impossibile memorizzare l\'allegato nella cache</string>
+    <string name="encryption_options">Opzioni di crittografia</string>
+    <string name="encrypted">Crittografato</string>
+    <string name="autocrypt_no_preference_description">Su richiesta. Tu e i tuoi contatti potrete abilitare esplicitamente la crittografia per le singole e-mail.</string>
+    <string name="autocrypt_mutual_description">Desideri ricevere e-mail crittografate. La crittografia dall\'inizio alla fine sarà utilizzata per impostazione predefinita per tutti i contatti che desiderano ricevere e-mail crittografate.</string>
+    <string name="autocrypt_encryption_preference">Preferenza di crittografia</string>
+    <string name="could_not_configure_autocrypt">Impossibile configurare Autocrypt</string>
+    <string name="encryption_is_not_available_for_those_recipients">L\'opzione di inviare un\'e-mail criptata non è disponibile per questi destinatari.</string>
+    <string name="send_as_cleartext">Invia come testo in chiaro</string>
+    <string name="encrypted_email">(e-mail crittografata)</string>
+    <string name="no_body">(niente)</string>
+    <string name="no_subject">(nessun oggetto)</string>
+    <string name="autocrypt_export_explained_hint_one">Per trasferire la tua chiave segreta a un altro dispositivo, Ripple creerà un messaggio di installazione. Esso contiene la vostra chiave segreta protetta da un codice di installazione.</string>
+    <string name="show_account_selector">Mostra il selettore di account</string>
+    <string name="hide_account_selector">Nascondi il selettore di account</string>
+    <string name="cleartext">Testo chiaro</string>
+    <string name="autocrypt_enable_description">Abilita il supporto per la crittografia dall\'inizio alla fine. La tua chiave pubblica sarà allegata alle email in uscita. Questo permette ai tuoi contatti di inviarti e-mail criptate.</string>
+    <string name="encryption_provider_can_not_create_secret_key">Il fornitore di crittografia su questo dispositivo non è in grado di creare la tua chiave segreta.</string>
+    <string name="transfer_secret_key">Inoltra la chiave segreta</string>
+    <string name="decrypt_email">Decifra l\'e-mail</string>
+    <string name="could_not_store_setup_message">Impossibile memorizzare il messaggio di impostazione</string>
+    <plurals name="incorrect_secret_key">
+        <item quantity="one">Non hai la chiave segreta corretta per decifrare %d e-mail.</item>
+        <item quantity="other">Non hai la chiave segreta corretta per decifrare %d e-mail.</item>
+    </plurals>
+    <string name="import_secret_key">Importazione della chiave segreta</string>
+    <string name="done">Finito</string>
+    <string name="autocrypt_export_explained_hint_done">Il messaggio di installazione è stato creato. Ora puoi iniziare il processo di importazione sull\'altro dispositivo.</string>
+    <string name="view_email">Visualizza l\'e-mail</string>
+    <plurals name="could_not_download_x_encrypted_emails">
+        <item quantity="one">Impossibile scaricare %d e-mail criptata</item>
+        <item quantity="other">Impossibile scaricare %d e-mail criptate</item>
+    </plurals>
+    <string name="import_private_key_help_dialog_message">Ripple ha rilevato un messaggio di installazione di Autocrypt creato da una delle altre applicazioni che usi. Importando la chiave segreta da questo messaggio puoi iniziare ad usare Autocrypt anche qui in Ripple!
+\n
+\nInserisci il tuo codice di configurazione.
+\n
+\nSe non ricordi il tuo codice di configurazione e puoi saltare questo passaggio e Ripple genererà una nuova chiave segreta su questo dispositivo.</string>
+    <string name="autocrypt_export_explained_hint_two">Il messaggio di configurazione è una normale e-mail etichettata come Inviata. Altre applicazioni saranno in grado di prenderlo da lì e importare la tua chiave segreta.</string>
+    <string name="autocrypt_export_explained_hint_three">Nel prossimo passo Ripple creerà un codice di installazione sicuro. Dovrete scrivere questo codice e tenerlo in un posto sicuro.</string>
+    <string name="autocrypt_export_explained_hint_four">Avrai bisogno di usare questo codice di configurazione sull\'altro dispositivo per importare la tua chiave segreta. Conserva questo codice di configurazione in un posto sicuro.</string>
+    <string name="skip">Salta</string>
+    <string name="enter_your_setup_code">Digita il codice du configurazione per importare la tua chiave segreta o salta questo passo se vuoi che Ripple generi una nuova chiave segreta su questo dispositivo.</string>
+    <string name="wrong_setup_code">Codice di installazione errato. Riprova!</string>
+    <string name="import_private_key_help_dialog_title">Rilevato un messaggio di impostazione autocrypt</string>
+    <string name="show_helper_dialog">Mostra la finestra di dialogo dell\'aiutante</string>
+    <string name="reply_all">Rispondi a tutti</string>
+    <string name="forward_email">Inoltra l\'e-mail</string>
+    <string name="more_options">Altre opzioni</string>
+    <string name="edit_draft">Modifica la bozza</string>
+    <string name="download_attachment">Scarica l\'allegato</string>
+    <string name="reply">Rispondi</string>
+    <string name="remove_attachment">Rimuovi l\'allegato</string>
+    <string name="could_not_determine_metadata_of_attachment">Impossibile determinare il tipo, la dimensione e il nome dell\'allegato che stai cercando di aggiungere.</string>
+    <string name="lttrs_lacks_permissions_to_add_attachment">Ripple non ha i permessi necessari per aggiungere questo allegato.</string>
+    <plurals name="could_not_decrypt_x_emails">
+        <item quantity="one">Impossibile decifrare %d e-mail</item>
+        <item quantity="other">Impossibile decifrare %d e-mail</item>
+    </plurals>
+    <string name="attachment_download_failed">Impossibile scaricare l\'allegato</string>
+    <string name="email_not_cached">L\'e-mail contenente questo allegato non è memorizzata nella cache.</string>
+</resources>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="n_deleted">
+        <item quantity="one">%d было удалено</item>
+        <item quantity="few">%d было удалено</item>
+        <item quantity="many">%d было удалено</item>
+        <item quantity="other">%d было удалено</item>
+    </plurals>
+    <string name="compose_cc">Копия</string>
+    <string name="compose_to">Для</string>
+    <string name="discard">Отменить</string>
+    <string name="compose">Составить</string>
+    <plurals name="n_moved_to_inbox">
+        <item quantity="one">%d перемещено во входящие</item>
+        <item quantity="few">%d перемещено во входящие</item>
+        <item quantity="many">%d перемещено во входящие</item>
+        <item quantity="other">%d перемещено во входящие</item>
+    </plurals>
+    <string name="add_at_least_one_recipient">Добавить получателя.</string>
+    <string name="ok">Ок</string>
+    <string name="compose_from">От</string>
+    <string name="compose_subject">Тема</string>
+    <string name="compose_compose_email">Написать письмо</string>
+    <string name="schedule_send">Расписание отправки</string>
+    <string name="send">Отправить</string>
+    <string name="attach_file">Прикрепить файл</string>
+    <string name="unable_to_fetch_session">Не удалось получить сеанс: %s</string>
+    <string name="no_network_connection">Подключиться к Интернету</string>
+    <string name="unknown_host">Не удалось разрешить %s</string>
+    <string name="unable_to_verify_service_identity">Не удалось подтвердить личность</string>
+    <string name="unable_to_establish_secure_connection">Не удалось установить защищенное соединение</string>
+    <string name="timeout_reached">Попытка подключения к службе эл. почты истекла</string>
+    <string name="unable_to_connect">Не удалось подключиться к службе эл. почты</string>
+    <string name="could_not_store_account_credentials">Не удалось сохранить учетные данные</string>
+    <string name="draft">Черновик</string>
+    <string name="select_sender">Выберите отправителя.</string>
+    <string name="the_address_x_is_invalid">Что-то не так с адресом &lt;%s&gt;</string>
+    <string name="endpoint_not_found">По этой ссылке не найдены сервисы эл. почты</string>
+    <string name="invalid_session_resource">По этой ссылке не найдены рабочих сервисов эл. почты</string>
+    <string name="enter_a_secure_url">Введите защищённый URL</string>
+    <string name="enter_a_valid_url">Введите корректный URL подключения</string>
+    <string name="enter_your_connection_url">Введите URL адрес подключения</string>
+    <string name="information_required">Необходима информация</string>
+    <string name="wrong_password">Неверный пароль. Попробуйте ещё раз.</string>
+    <string name="enter_a_password">Введите пароль</string>
+    <string name="enter_your_password">Введите ваш пароль</string>
+    <string name="welcome">Добро пожаловать</string>
+    <string name="enter_a_valid_email_address">Введите корректный адрес эл. почты</string>
+    <string name="enter_an_email_address">Введите адрес эл. почты</string>
+    <string name="next">Далее</string>
+    <string name="sign_in_instruction">С помощью аккаунта эл. почты.</string>
+    <string name="email_address">Адрес эл. почты</string>
+    <string name="sign_in">Войти</string>
+    <string name="deleted">Удаленные</string>
+    <string name="undo">Отменить</string>
+    <plurals name="n_archived">
+        <item quantity="one">%d заархивировано</item>
+        <item quantity="few">%d заархивировано</item>
+        <item quantity="many">%d заархивировано</item>
+        <item quantity="other">%d заархивировано</item>
+    </plurals>
+    <string name="remove_flag">Удалить флаг</string>
+    <string name="add_flag">Добавить флаг</string>
+    <plurals name="n_removed_from_x">
+        <item quantity="one">%d удалено из %s</item>
+        <item quantity="few">%d удалено из %s</item>
+        <item quantity="many">%d удалено из %s</item>
+        <item quantity="other">%d удалено из %s</item>
+    </plurals>
+    <string name="mark_not_important">Пометить как неважное</string>
+    <string name="search_hint">Искать в эл. почте</string>
+    <string name="remove_label">Удалить ярлык</string>
+    <string name="remove_label_x">Удалить ярлык %s</string>
+    <string name="move_to_inbox">Переместить во входящие</string>
+    <string name="to_x">к %s</string>
+    <string name="search">Поиск</string>
+    <string name="mark_important">Пометить как важное</string>
+    <string name="delete">Удалить</string>
+    <string name="mark_read">Пометить как прочитанное</string>
+    <string name="mark_unread">Пометить как непрочитанное</string>
+    <string name="archive">Архив</string>
+</resources>

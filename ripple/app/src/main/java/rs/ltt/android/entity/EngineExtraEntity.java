@@ -1,0 +1,43 @@
+/*
+ * Copyright 2019 Daniel Gultsch
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package rs.ltt.android.entity;
+
+import androidx.annotation.NonNull;
+import androidx.room.Entity;
+
+/**
+ * Key/value storage for the mail engine. An empty {@code mailboxId} holds account wide values,
+ * otherwise the value belongs to that folder (UIDVALIDITY, HIGHESTMODSEQ, ...).
+ */
+@Entity(
+        tableName = "engine_extra",
+        primaryKeys = {"mailboxId", "name"})
+public class EngineExtraEntity {
+
+    @NonNull public String mailboxId;
+    @NonNull public String name;
+
+    public String text;
+    public Long number;
+
+    public EngineExtraEntity(
+            @NonNull String mailboxId, @NonNull String name, String text, Long number) {
+        this.mailboxId = mailboxId;
+        this.name = name;
+        this.text = text;
+        this.number = number;
+    }
+}
