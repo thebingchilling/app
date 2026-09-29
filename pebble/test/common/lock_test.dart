@@ -10,8 +10,7 @@ void main() {
 
   setUp(() {
     home = Directory.systemTemp.createTempSync('flclash-lock-');
-    SingleInstanceLock.resolvePath = () async =>
-        join(home.path, 'FlClash.lock');
+    SingleInstanceLock.resolvePath = () async => join(home.path, 'Pebble.lock');
   });
 
   tearDown(() async {
@@ -27,7 +26,7 @@ void main() {
   test(
     'acquiring holds the lock file the second instance would test',
     () async {
-      final path = join(home.path, 'FlClash.lock');
+      final path = join(home.path, 'Pebble.lock');
       expect(File(path).existsSync(), isFalse);
 
       expect(await SingleInstanceLock().acquire(), isTrue);
@@ -44,7 +43,7 @@ void main() {
 
   test('an unusable lock path is reported, not thrown', () async {
     SingleInstanceLock.resolvePath = () async =>
-        join(home.path, 'missing-dir', 'FlClash.lock');
+        join(home.path, 'missing-dir', 'Pebble.lock');
 
     expect(
       await SingleInstanceLock().acquire(),
@@ -56,7 +55,7 @@ void main() {
   });
 
   test('a path that is a directory is reported, not thrown', () async {
-    final directory = Directory(join(home.path, 'FlClash.lock'))
+    final directory = Directory(join(home.path, 'Pebble.lock'))
       ..createSync(recursive: true);
     SingleInstanceLock.resolvePath = () async => directory.path;
 

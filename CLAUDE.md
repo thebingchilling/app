@@ -11,8 +11,9 @@ A collection of small standalone apps, each in its own folder.
   percentage.
 - [`tidewall/`](tidewall/) — Material 3 Android VPN client: mihomo (Clash)
   proxy engine, Direct WireGuard/AmneziaWG and Direct OpenVPN (OpenVPN 3).
-- [`pebble/`](pebble/) — **work in progress**: FlClash's Flutter UI 1:1,
-  rebranded as Pebble, for Android and Windows. Start with [`pebble/HANDOFF.md`](pebble/HANDOFF.md).
+- [`pebble/`](pebble/) — FlClash's Flutter UI 1:1, rebranded as Pebble, for
+  Android and Windows; imports WireGuard/AmneziaWG `.conf` and OpenVPN `.ovpn`
+  as mihomo profiles. Read [`pebble/HANDOFF.md`](pebble/HANDOFF.md) first.
 
 ## Purpose
 

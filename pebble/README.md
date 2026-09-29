@@ -1,135 +1,83 @@
-<div>
+# Pebble
 
-[**简体中文**](README_zh_CN.md)
+A proxy and VPN client for Android and Windows. Pebble is
+[FlClash](https://github.com/chen08209/FlClash)'s Flutter app with its
+interface kept as it is, rebranded and trimmed. It runs FlClash's mihomo
+(Clash.Meta) engine.
 
-</div>
+## What it imports
 
-## FlClash
+Add a profile from **Profiles → +** (file, URL or QR code):
 
-[![Downloads](https://img.shields.io/github/downloads/chen08209/FlClash/total?style=flat-square&logo=github)](https://github.com/chen08209/FlClash/releases/)[![Last Version](https://img.shields.io/github/release/chen08209/FlClash/all.svg?style=flat-square)](https://github.com/chen08209/FlClash/releases/)[![License](https://img.shields.io/github/license/chen08209/FlClash?style=flat-square)](LICENSE)
+- **Clash / mihomo YAML** subscriptions and files, as in FlClash.
+- **WireGuard and AmneziaWG** `.conf` files, including QR codes exported by
+  WireGuard apps. The config becomes a profile with one `wireguard` proxy
+  (several `[Peer]` sections go under `peers`).
+- **OpenVPN** `.ovpn` files with inline `<ca>` (and `<cert>`/`<key>`,
+  `<tls-auth>`, `<tls-crypt>` when present). Each `remote` becomes a proxy,
+  grouped under "Proxy" with an "Auto" url-test group.
+  - If the file has `auth-user-pass` without inline credentials, Pebble asks
+    for a username and password and stores them in the generated profile.
+    VPN providers often issue separate OpenVPN (service or manual setup)
+    credentials that differ from the website login.
+  - When a subscription URL serves the `.ovpn`, updates reuse the saved login.
 
-[![Channel](https://img.shields.io/badge/Telegram-Channel-blue?style=flat-square&logo=telegram)](https://t.me/FlClash)
+The converted profile is ordinary mihomo YAML: edit it, add rules, or chain
+it behind other proxies like any other profile. WireGuard and OpenVPN run
+inside mihomo, so they get FlClash's VPN service, delay tests and IP check.
 
-A multi-platform proxy client based on ClashMeta, simple and easy to use, open-source and ad-free.
+## Differences from FlClash
 
-<p align="center">
-    <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="snapshots/preview-dark.png">
-        <img alt="FlClash on desktop and mobile" src="snapshots/preview.png" width="90%">
-    </picture>
-</p>
+- Name, package (`app.pebble.android`) and icon are Pebble's, so it installs
+  next to FlClash.
+- No Firebase Crashlytics and no update checker.
+- The About page credits FlClash and mihomo.
 
-## Features
+## Building
 
-✈️ Multi-platform: Android, Windows, macOS and Linux
+CI builds on every push to `main` that touches `pebble/**`
+(`.github/workflows/build-pebble.yml`) and uploads the APK as the
+**Pebble-apk** artifact.
 
-💻 Adaptive multiple screen sizes, Multiple color themes available
-
-💡 Based on Material You Design, [Surfboard](https://github.com/getsurfboard/surfboard)-like UI
-
-☁️ Supports data sync via WebDAV
-
-✨ Support subscription link, Dark mode
-
-## Use
-
-### Linux
-
-⚠️ Make sure to install the following dependencies before using them
-
-   ```bash
-    sudo apt-get install libayatana-appindicator3-dev
-   ```
-
-### Android
-
-Support the following actions
-
-   ```bash
-    com.follow.clash.action.START
-    
-    com.follow.clash.action.STOP
-    
-    com.follow.clash.action.TOGGLE
-   ```
-
-## Download
-
-<a href="https://chen08209.github.io/FlClash-fdroid-repo/repo?fingerprint=789D6D32668712EF7672F9E58DEEB15FBD6DCEEC5AE7A4371EA72F2AAE8A12FD"><img alt="Get it on F-Droid" src="snapshots/get-it-on-fdroid.svg" width="200px"/></a> <a href="https://github.com/chen08209/FlClash/releases"><img alt="Get it on GitHub" src="snapshots/get-it-on-github.svg" width="200px"/></a>
-
-### Homebrew
+Locally (Linux or macOS host):
 
 ```bash
-brew tap chen08209/tap
-brew install --cask flclash
+git submodule update --init --recursive   # core/Clash.Meta
+tool/fetch_geodata.sh                     # geo databases into assets/data/
+flutter pub get
+echo '{"APP_ENV":"stable"}' > env.json
+flutter build apk --release --split-per-abi \
+  --target-platform android-arm64 --dart-define-from-file=env.json
 ```
 
-## Build
+Requirements: Flutter 3.47.x, Go 1.26, Rust with the Android targets
+(`rustup target add aarch64-linux-android`), Java 17+, Android SDK 36 and
+NDK 28.2.13676358. The Go core and the Rust library are built by Dart build
+hooks (`plugins/setup`, `plugins/rust_api`) during `flutter build`.
 
-1. Update submodules
-   ```bash
-   git submodule update --init --recursive
-   ```
+Tests: set `build_assets: false` for both packages under `hooks.user_defines`
+in `pubspec.yaml` (so the hooks skip the native build), then `flutter test`.
 
-2. Install `Flutter` and `Golang` environment
+### Release signing
 
-3. Build Application
+Set these repository secrets so every CI build is signed with the same key
+(Android refuses to update an app signed with a different key):
 
-    - android
+| Secret | Value |
+| --- | --- |
+| `PEBBLE_KEYSTORE_BASE64` | `base64 -w0 pebble.p12` (PKCS12 or JKS keystore) |
+| `PEBBLE_KEYSTORE_PASSWORD` | keystore password |
+| `PEBBLE_KEY_ALIAS` | key alias |
+| `PEBBLE_KEY_PASSWORD` | key password |
 
-        1. Install `Android SDK`, `Android NDK`
+Without them CI falls back to Tidewall's `TIDEWALL_*` signing secrets, and
+without those to a throwaway debug key (a new one per run). Create a key with:
 
-        2. Set `ANDROID_NDK` environment variable
+```bash
+keytool -genkeypair -storetype PKCS12 -keystore pebble.p12 -alias pebble \
+  -keyalg RSA -keysize 4096 -validity 10000
+```
 
-        3. Run build script
+## License
 
-           ```bash
-           dart setup.dart android
-           ```
-
-    - windows
-
-        1. Requires a Windows client
-
-        2. Install `GCC`, `Inno Setup`
-
-        3. Run build script
-
-           ```bash
-           dart setup.dart windows
-           ```
-
-    - linux
-
-        1. Requires a Linux client
-
-        2. Dependencies are auto-installed by setup script, or manually:
-           ```bash
-           sudo apt-get install -y libayatana-appindicator3-dev
-           ```
-
-        3. Run build script
-
-           ```bash
-           dart setup.dart linux
-           ```
-
-    - macOS
-
-        1. Requires a macOS client
-
-        2. Run build script
-
-           ```bash
-           dart setup.dart macos
-           ```
-
-## Star
-
-The easiest way to support developers is to click on the star (⭐) at the top of the page.
-
-<p style="text-align: center;">
-    <a href="https://api.star-history.com/svg?repos=chen08209/FlClash&Date">
-        <img alt="start" width=50% src="https://api.star-history.com/svg?repos=chen08209/FlClash&Date"/>
-    </a>
-</p>
+GPL-3.0, like FlClash. See [LICENSE](LICENSE).

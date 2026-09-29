@@ -48,4 +48,5 @@ export 'task.dart';
 export 'task_pool.dart';
 export 'text.dart';
 export 'webdav.dart';
+export 'vpn_import.dart';
 export 'yaml.dart';

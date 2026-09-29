@@ -96,20 +96,42 @@ class ProfilesAction extends _$ProfilesAction {
     }
   }
 
+  /// Asks for the login of an OpenVPN server during an import.
+  Future<OvpnCredentials?> _askOvpnCredentials(String server) {
+    return dialogs.showCommonDialog<OvpnCredentials>(
+      dismissible: false,
+      child: OvpnLoginDialog(server: server),
+    );
+  }
+
+  Future<Profile?> _importRun(Future<Profile> Function() import) {
+    return globalState.loadingRun<Profile?>(tag: LoadingTag.profiles, () async {
+      try {
+        return await import();
+      } on ImportCancelledException {
+        return null;
+      }
+    }, title: currentAppLocalizations.addProfile);
+  }
+
   Future<void> addProfileFormFile() async {
     final platformFile = await globalState.safeRun(picker.pickerFile);
     if (platformFile == null) return;
     final bytes = await platformFile.readBytes();
+    await addProfileFormBytes(bytes, fileName: platformFile.name);
+  }
+
+  /// Adds a profile from file contents: a Clash/mihomo YAML, a WireGuard or
+  /// AmneziaWG .conf, or an OpenVPN .ovpn.
+  Future<void> addProfileFormBytes(Uint8List bytes, {String? fileName}) async {
     globalState.navigatorKey.currentState?.popUntil((route) => route.isFirst);
     ref.read(currentPageLabelProvider.notifier).toProfiles();
-    final profile = await globalState.loadingRun(
-      tag: LoadingTag.profiles,
-      () async {
-        return Profile.normal(
-          label: platformFile.name,
-        ).saveFile(bytes, validate: (path) => _core.validateConfig(path));
-      },
-      title: currentAppLocalizations.addProfile,
+    final profile = await _importRun(
+      () => Profile.normal(label: fileName).saveFile(
+        bytes,
+        validate: (path) => _core.validateConfig(path),
+        askCredentials: _askOvpnCredentials,
+      ),
     );
     if (profile != null) {
       putProfile(profile);
@@ -117,18 +139,23 @@ class ProfilesAction extends _$ProfilesAction {
   }
 
   Future<void> addProfileFormURL(String url) async {
+    // QR codes from WireGuard apps carry the config itself, not a URL.
+    if (!url.isUrl && detectVpnConfig(url) != VpnConfigKind.none) {
+      final kind = detectVpnConfig(url);
+      return addProfileFormBytes(
+        Uint8List.fromList(utf8.encode(url)),
+        fileName: kind == VpnConfigKind.wireGuard ? 'WireGuard' : 'OpenVPN',
+      );
+    }
     if (globalState.navigatorKey.currentState?.canPop() ?? false) {
       globalState.navigatorKey.currentState?.popUntil((route) => route.isFirst);
     }
     ref.read(currentPageLabelProvider.notifier).value = PageLabel.profiles;
-    final profile = await globalState.loadingRun(
-      tag: LoadingTag.profiles,
-      () async {
-        return Profile.normal(
-          url: url,
-        ).update(validate: (path) => _core.validateConfig(path));
-      },
-      title: currentAppLocalizations.addProfile,
+    final profile = await _importRun(
+      () => Profile.normal(url: url).update(
+        validate: (path) => _core.validateConfig(path),
+        askCredentials: _askOvpnCredentials,
+      ),
     );
     if (profile != null) {
       putProfile(profile);

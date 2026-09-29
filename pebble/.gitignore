@@ -81,3 +81,6 @@ devtools_options.yaml
 # Geo databases are downloaded by CI (tool/fetch_geodata.sh), not committed.
 /assets/data/*
 !/assets/data/.gitkeep
+
+# Kotlin compiler session data
+/android/.kotlin/
