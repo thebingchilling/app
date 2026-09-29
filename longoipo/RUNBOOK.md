@@ -9,11 +9,10 @@ Nothing here comes from any other build.
 | Item | State |
 |---|---|
 | Analysis of 5.25.81 (sections 3-4) | Done, verified |
-| rc4-md5 bridge (`bridge/`), patcher (`patcher/patch.py`), rename step, workflow (`.github/workflows/longoipo-patch.yml`) | **Built** (section 10) |
+| rc4-md5 bridge (`bridge/`), patcher (`patcher/patch.py`), rename step | **Built** (section 10) |
 | Bridge vs an independent rc4-md5 server, TCP and UDP; crypto vs OpenSSL vectors | **Passing** (section 10) |
 | Patcher end to end on the 5.25.81 universal APK (hooks, rename, build, sign, verify) | **Passing** with a throwaway key (section 10) |
 | Xray accepts `method: "none"` for Shadowsocks over TCP and UDP | **Unverified** (build of Xray was denied by the sandbox classifier) |
-| GitHub Action run on GitHub | **Never run** (YAML parses; needs the secrets and a private repo) |
 | Behaviour on a real device | **Never tested**; there is no device or emulator in the sandbox |
 
 Do not claim the patched app works until it has been run on a device.
@@ -22,8 +21,8 @@ Do not claim the patched app works until it has been run on a device.
 
 - Make Shadowsocks `rc4-md5` nodes work in this exact app (its UI and its handling of subscriptions and Clash-derived configs). No other client app is acceptable.
 - Rebrand the rebuilt app: new package name and every visible label = "Longoipo".
-- Output: ONE installable APK, produced by a GitHub Action when a new universal APK is attached to a Release.
-- Personal use. Never publish the vendor APK, decompiled code, or patched builds. The repo `thebingchilling/app` is currently public; APKs go only into Release assets, and only after the repo is made private.
+- Output: ONE installable APK, produced by running `patcher/patch.py` by hand (or by an agent). There is deliberately no CI workflow.
+- Personal use. Never publish or commit the vendor APK, decompiled code, patched builds or the `.p12` key file. The repo `thebingchilling/app` is public.
 
 ## 2. Session lessons (environment quirks)
 
@@ -92,13 +91,12 @@ Chosen: a loopback bridge inside the app, written in Java (JDK and Android APIs 
 - Labels: replace visible text `v2RayTun` (not inside URLs or package names) in `res/values*/strings.xml` for every locale, including `app_name`. Launcher icon is unchanged unless the user asks.
 - Risks: Firebase/Play Services may not match the new package (expect harmless failures; unverified); Play in-app update will not apply.
 
-## 7. Build, sign, release
+## 7. Build, sign, deliver
 
-1. Patcher (Python 3 + Java 11+): `apktool d` -> add bridge smali -> apply hooks -> rename -> `apktool b`.
-2. Align and sign. `resources.arsc` must be stored uncompressed and 4-byte aligned; if the manifest has `extractNativeLibs="false"`, `.so` files need page alignment (`zipalign -p 4`). Use `zipalign` and `apksigner` from the runner's Android build-tools. Sign with v2+v3 (apksig 8.5.2 also works).
-3. Keystore: the user generates it once (`keytool -genkeypair ...`) and stores it as GitHub Secrets (base64 keystore, store password, alias, key password). Never generate or store it in the repo. Same key on every build = updates install over each other.
-4. Workflow in `.github/workflows/`: trigger `release: published` (and `workflow_dispatch`), NOT `push`. Steps: download the universal APK asset, run the patcher, sign, verify, upload `Longoipo-<version>.apk` to the same release. A 60 MB APK exceeds GitHub's web upload limit for repo files, so it must be a Release asset.
-5. Tests to run in the sandbox before shipping: bridge vs a local rc4-md5 server (TCP and UDP); RC4 and key derivation cross-checked against OpenSSL; real Xray at commit `94ffd50060f1` with the rewritten config (requires the user to allow building/running Xray, or supply a binary); the patcher end to end with signature verification. Then the user tests on a device: import an rc4-md5 node, connect, browse, do a UDP check (DNS or a call), run the delay test; collect logcat.
+1. Run the patcher: `python3 longoipo/patcher/patch.py universal.apk out/Longoipo.apk --abis arm64-v8a --keystore longoipo.p12 --alias longoipo` with `KS_PASS` set. It decodes with apktool 2.11.1 (pinned by SHA-256), adds the bridge smali, applies the hooks and the rename, rebuilds, aligns (`zipalign` if installed, otherwise a built-in aligner), signs with apksig 8.5.2 (v2 + v3) and verifies. It exits with a clear error if an anchor is missing.
+2. Key: the owner's key is described in `README.md` (alias, password, certificate SHA-256). The `.p12` file is never committed. The same key must sign every build, otherwise Android will not install over the previous build.
+3. Size and delivery: the universal APK is about 60 MB because it carries three copies of the Go core (arm64-v8a, armeabi-v7a, x86_64; about 14 MB compressed each, plus about 15 MB of everything else). `--abis arm64-v8a` gives about 29 MB. The chat file-delivery limit is 30 MiB (57.5 MiB failed, 28.99 MiB worked), so deliver a single-ABI build, or split the file.
+4. Tests to run before shipping: `bash longoipo/bridge/run_tests.sh` (bridge vs a local rc4-md5 server over TCP and UDP; RC4 and key derivation vs OpenSSL vectors). Not possible in the sandbox: real Xray with the rewritten config (the classifier denied building it) and any device test. The owner tests on a device: import an rc4-md5 node, connect, browse, do a UDP check (DNS or a call), run the delay test; collect logcat if it fails.
 
 ## 8. Re-check on every new release (checklist)
 
@@ -130,3 +128,6 @@ Everything below was run in the sandbox against `v2RayTun_universal.apk` 5.25.81
 - **Speed**: RC4 alone ran at about 288 MB/s on a 4-core server JVM, per-stream setup 1.2 microseconds. A phone will be slower; no phone measurement exists.
 - **Not done / open**: Xray `none` check, an actual GitHub Action run, the device test, and hardening the loopback listener (no auth).
 - **Rename notes**: `res/xml/shortcuts.xml` keeps `targetClass` (real classes) and gets the new `targetPackage`; `activity_settings.xml` keeps its fragment class name; broadcast actions and provider authorities are renamed consistently in the manifest and in smali.
+- **Final build (2026-09-29)**: a signing key was generated for the owner (PKCS12, RSA 3072, alias `longoipo`, certificate SHA-256 `3012077956edaba82f5761d19ec41d539c6021df7874952500998ef65881d482`). The patcher, run with `--abis arm64-v8a`, produced `Longoipo-5.25.81-arm64.apk` (30,395,095 bytes, sha256 `863a71f34bc4192722606d71502f0601145fc622afd4793751b2f030ab5c53de`), verified v2 + v3, package `com.longoipo.app`, one native core. The all-ABI build (60,317,154 bytes) was made too but could not be delivered (over 30 MiB). The APK was delivered to the owner as a file; it is not in this repo.
+- **Decisions**: the first plan used a GitHub Release-triggered workflow, then a Drive-link and folder-upload variant; the owner chose to have no workflow at all. The workflow and its input-fetching script were removed from the repo. Reasons that came up: a 59.7 MB APK exceeds GitHub's 25 MB browser-upload limit, and on a public repo run inputs, logs and artifacts are visible to others.
+- **Session notes**: the owner asked for the signing password to be written into the README; it is there. The `.p12` file is not, and must not be committed.

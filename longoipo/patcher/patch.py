@@ -161,6 +161,19 @@ def inject_bridge(src):
     return dest
 
 
+def keep_abis(src, abis):
+    """Drop native libraries of every ABI not listed (shrinks the APK, e.g. arm64-v8a only)."""
+    libdir = src / "lib"
+    present = sorted(p.name for p in libdir.iterdir() if p.is_dir()) if libdir.is_dir() else []
+    missing = [a for a in abis if a not in present]
+    if missing:
+        raise PatchError(f"requested ABI(s) {missing} not in the APK (has {present})")
+    for name in present:
+        if name not in abis:
+            shutil.rmtree(libdir / name)
+    log(f"kept ABIs {abis} (removed {[n for n in present if n not in abis]})")
+
+
 def apply_hooks(src, bridge_dir):
     patched = {sig: [] for sig, _ in HOOK_TARGETS}
     for d in smali_dirs(src):
@@ -344,6 +357,7 @@ def main():
     ap.add_argument("--alias", required=True)
     ap.add_argument("--package", default="com.longoipo.app")
     ap.add_argument("--label", default="Longoipo")
+    ap.add_argument("--abis", help="comma-separated ABIs to keep, e.g. arm64-v8a (default: keep all)")
     ap.add_argument("--work", help="working directory (default: temp dir)")
     ap.add_argument("--tools", default=str(HERE / ".tools"), help="cache dir for downloaded tools")
     ap.add_argument("--keep-work", action="store_true")
@@ -372,6 +386,8 @@ def main():
         if f'package="{OLD_PKG}"' not in m:
             raise PatchError(f"unexpected package in manifest; this patcher targets {OLD_PKG}")
 
+        if args.abis:
+            keep_abis(src, [a.strip() for a in args.abis.split(",") if a.strip()])
         bridge_dir = inject_bridge(src)
         apply_hooks(src, bridge_dir)
         classes = rename_package(src, bridge_dir, args.package, args.label)
