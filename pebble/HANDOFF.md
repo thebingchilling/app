@@ -130,18 +130,44 @@ supported". The test is in `ContentDetectorTest.ovpnClientCertDetection`. It
 was **not built locally** before pushing; the Tidewall CI run on this push
 builds and tests it. Check that run and fix it if it is red.
 
-## Pending question: a Windows version
+## Windows version (approved by the user — do it after Android)
 
-The user asked whether the same app (the same engine as FlClash desktop) would
-work well on Windows, and wants a plan before any work. It is **not decided**.
-Until it is:
-- do **not** delete `services/helper` (the Rust Windows service helper),
-  the desktop code paths in `lib/`, or `tool/`;
-- the `windows/` platform folder was left out of this copy; restore it from
-  FlClash at the same commit if Windows is approved.
-If approved, the plan is: restore `windows/` and rebrand it (exe name, icon,
-installer via Inno Setup in `distribute_options.yaml`); keep the desktop
-features for Windows only (tray, hotkeys, system proxy, TUN through the helper
-service, loopback); build with `dart setup.dart windows` on a `windows-2022`
-runner (GCC + Inno Setup), with its own CI job. WireGuard/OpenVPN import comes
-for free because it is Dart + mihomo.
+The user approved a **Windows build of Pebble** too: the same app, the same
+engine, the same UI as FlClash desktop. Do it after Android (steps 1–8) is
+green. Both builds share one codebase, so features are written once.
+
+Keep for Windows:
+- **Do not delete** `services/helper` (the Rust Windows service helper), the
+  desktop code paths in `lib/` (tray, hotkeys, system proxy, loopback,
+  `lib/core/desktop/`), `plugins/tray`, or `tool/`.
+- The earlier "drop desktop-only features" decision applies to **Android
+  only**: they stay platform-gated off there.
+
+Steps:
+9. **Restore `windows/`.** Copy FlClash's `windows/` folder at the same
+   commit (FlClash `main` of 2026-09-17; the Clash.Meta submodule stays at
+   `70f0570`). It was left out of the first copy.
+10. **Rebrand Windows.**
+    - Exe/product name "Pebble" and the icon (`windows/runner/resources/`,
+      `assets/images/icon.ico`, tray icons in `assets/images/tray/`).
+    - Installer (Inno Setup) and portable zip settings in
+      `distribute_options.yaml`, plus `windows/packaging/` if present.
+    - Helper service name and mutex/pipe names (grep `FlClash` in
+      `services/helper` and `lib/common/constant.dart`: `appHelperService`,
+      `windowsPipeName`).
+    - Pebble must be installable next to FlClash without clashing.
+11. **Drop what does not belong in Pebble:** FlClash's update checker and
+    Firebase, same as on Android. Keep TUN via the helper service
+    (admin/UAC prompt once), system proxy, tray, hotkeys and loopback.
+12. **CI.**
+    - Add a `windows` job (or a separate `build-pebble-windows.yml`) on
+      `windows-2022`: checkout with submodules, Flutter 3.47.1, Go, Rust, and
+      Inno Setup + GCC (see FlClash's `build.yaml` build matrix and
+      `.agents` notes: "Windows: GCC and Inno Setup").
+    - Build with `dart setup.dart windows --arch amd64`.
+    - Upload `Pebble-windows` (installer `.exe` + portable `.zip`).
+    - Only run on changes under `pebble/**`.
+13. **Tell the user:**
+    - The installer is not code-signed, so SmartScreen shows "unknown
+      publisher" ("More info → Run anyway").
+    - TUN mode asks for admin once to install the helper service.
