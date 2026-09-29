@@ -6,6 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
+import android.net.LinkProperties
+import android.net.Network
 import android.net.VpnService
 import android.os.Build
 import android.util.Log
@@ -50,6 +53,7 @@ class TidewallVpnService : VpnService() {
     private var engine: ProfileKind? = null
     private var openVpn: OpenVpnSession? = null
     private var lastTotals = 0L to 0L
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -94,6 +98,7 @@ class TidewallVpnService : VpnService() {
         }
         updateNotification(profile.name, "Connecting…")
         try {
+            watchUnderlyingNetwork()
             val text = app.profiles.content(profile)
             when (profile.kind) {
                 ProfileKind.CLASH -> startProxy(profile, text, settings)
@@ -138,6 +143,44 @@ class TidewallVpnService : VpnService() {
             }
         }
         return b
+    }
+
+    /**
+     * Tracks the phone's physical network (Tidewall itself is excluded from the
+     * VPN, so its default network is the underlying one). Reports it to Android
+     * as the VPN's underlying network, and hands its DNS servers to mihomo,
+     * which cannot read them itself when embedded in an app.
+     */
+    private fun watchUnderlyingNetwork() {
+        if (networkCallback != null) return
+        val cm = getSystemService(ConnectivityManager::class.java)
+        cm.activeNetwork?.let { cm.getLinkProperties(it) }?.let(::pushSystemDns)
+        val cb = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                runCatching { setUnderlyingNetworks(arrayOf(network)) }
+            }
+
+            override fun onLinkPropertiesChanged(network: Network, lp: LinkProperties) = pushSystemDns(lp)
+
+            override fun onLost(network: Network) {
+                runCatching { setUnderlyingNetworks(null) }
+            }
+        }
+        runCatching { cm.registerDefaultNetworkCallback(cb) }
+            .onSuccess { networkCallback = cb }
+            .onFailure { LogBuffer.add("warning", "Tidewall: cannot watch network changes: ${it.message}") }
+    }
+
+    private fun pushSystemDns(lp: LinkProperties) {
+        val servers = lp.dnsServers.mapNotNull { it.hostAddress }.joinToString(",")
+        if (servers.isNotEmpty()) Libcore.updateSystemDNS(servers)
+    }
+
+    private fun unwatchUnderlyingNetwork() {
+        networkCallback?.let { cb ->
+            runCatching { getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(cb) }
+        }
+        networkCallback = null
     }
 
     private fun startProxy(profile: Profile, yaml: String, settings: AppSettings) {
@@ -242,6 +285,7 @@ class TidewallVpnService : VpnService() {
         lock.withLock {
             VpnStateHolder.set { it.copy(status = VpnStatus.STOPPING) }
             stopEngines()
+            unwatchUnderlyingNetwork()
             VpnStateHolder.set { VpnState(error = it.error) }
         }
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
@@ -249,6 +293,7 @@ class TidewallVpnService : VpnService() {
     }
 
     private fun fail(message: String) {
+        unwatchUnderlyingNetwork()
         VpnStateHolder.set { VpnState(error = message) }
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -260,6 +305,7 @@ class TidewallVpnService : VpnService() {
 
     override fun onDestroy() {
         if (instance === this) instance = null
+        unwatchUnderlyingNetwork()
         if (engine != null || openVpn != null) {
             stopEngines()
             VpnStateHolder.set { VpnState() }
@@ -313,9 +359,16 @@ object VpnLauncher {
     fun needsPermission(context: Context): Boolean = VpnService.prepare(context) != null
 
     fun start(context: Context, profileId: String? = null) {
+        // Flip to CONNECTING right away: the service only updates the state once
+        // its coroutine runs, and a second tap in that gap would start twice.
+        VpnStateHolder.set { if (it.active) it else VpnState(VpnStatus.CONNECTING, since = System.currentTimeMillis()) }
         val i = Intent(context, TidewallVpnService::class.java).setAction(TidewallVpnService.ACTION_START)
         if (profileId != null) i.putExtra(TidewallVpnService.EXTRA_PROFILE_ID, profileId)
-        ContextCompat.startForegroundService(context, i)
+        try {
+            ContextCompat.startForegroundService(context, i)
+        } catch (e: Exception) {
+            VpnStateHolder.set { VpnState(error = "Could not start the VPN service: ${e.message}") }
+        }
     }
 
     fun stop(context: Context) {

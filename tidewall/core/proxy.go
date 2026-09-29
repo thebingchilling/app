@@ -111,7 +111,11 @@ func buildRawConfig(profile []byte, fd int, opts proxyOptions) (*config.RawConfi
 	if opts.Sniffing {
 		raw.Sniffer.Enable = true
 		if len(raw.Sniffer.Sniff) == 0 && len(raw.Sniffer.Sniffing) == 0 {
-			raw.Sniffer.Sniffing = []string{"tls", "http"}
+			raw.Sniffer.Sniff = map[string]config.RawSniffingConfig{
+				"TLS":  {Ports: []string{"443", "8443"}},
+				"HTTP": {Ports: []string{"80", "8080-8880"}},
+				"QUIC": {Ports: []string{"443", "8443"}},
+			}
 		}
 	}
 

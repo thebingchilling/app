@@ -118,7 +118,7 @@ mode: global
 proxies: []
 rules: ["MATCH,DIRECT"]
 `
-	raw, err := buildRawConfig([]byte(profile), 42, proxyOptions{Mode: "rule", IPv6: true, Stack: "mixed", MTU: 1500})
+	raw, err := buildRawConfig([]byte(profile), 42, proxyOptions{Mode: "rule", IPv6: true, Stack: "mixed", MTU: 1500, Sniffing: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,6 +133,9 @@ rules: ["MATCH,DIRECT"]
 	}
 	if !raw.DNS.Enable || raw.DNS.EnhancedMode != C.DNSFakeIP {
 		t.Fatal("default DNS not applied")
+	}
+	if !raw.Sniffer.Enable || len(raw.Sniffer.Sniff) == 0 || len(raw.Sniffer.Sniffing) != 0 {
+		t.Fatalf("sniffer should use the non-deprecated sniff map: %+v", raw.Sniffer)
 	}
 	if len(raw.Tun.Inet6Address) != 1 {
 		t.Fatal("IPv6 tun address missing")

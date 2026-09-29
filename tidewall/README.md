@@ -107,7 +107,7 @@ The first Gradle build downloads the OpenVPN 3 sources and dependencies into
 
 ```bash
 cd tidewall/core
-go test -tags with_gvisor,no_tailscale,no_zerotier,no_easytier ./...
+go test -tags cmfa,with_gvisor,no_tailscale,no_zerotier,no_easytier ./...
 sudo testdata/openvpn-e2e.sh        # Linux, needs root + openvpn + openssl
 
 cd ../android && ./gradlew testDebugUnitTest

@@ -8,9 +8,11 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 ABIS="${ABIS:-android/arm64}"
+# cmfa: mihomo's "embedded in an Android VPN app" mode. Without it the TUN
+#   listener reads /data/system/packages.xml, which apps may not read.
 # with_gvisor: mihomo's gVisor TUN stack and userspace WireGuard/OpenVPN netstacks.
 # no_*: drop the Tailscale/ZeroTier/EasyTier outbounds, which add ~20 MB.
-TAGS="${TAGS:-with_gvisor,no_tailscale,no_zerotier,no_easytier}"
+TAGS="${TAGS:-cmfa,with_gvisor,no_tailscale,no_zerotier,no_easytier}"
 OUT="../android/app/libs"
 export PATH="$PATH:$(go env GOPATH)/bin"
 
