@@ -1,0 +1,11 @@
+# Never commit vendor APKs, patched builds, signing keys or tool caches.
+*.apk
+*.aab
+*.apks
+*.p12
+*.jks
+*.keystore
+.tools/
+out/
+work/
+work*/

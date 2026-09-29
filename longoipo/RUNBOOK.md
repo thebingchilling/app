@@ -9,11 +9,14 @@ Nothing here comes from any other build.
 | Item | State |
 |---|---|
 | Analysis of 5.25.81 (sections 3-4) | Done, verified |
-| rc4-md5 bridge, patcher, rename step, workflow | **Designed, NOT built, NOT tested** |
-| Xray accepts `method: "none"` for TCP and UDP | **Unverified** (build of Xray was denied by the sandbox classifier) |
+| rc4-md5 bridge (`bridge/`), patcher (`patcher/patch.py`), rename step, workflow (`.github/workflows/longoipo-patch.yml`) | **Built** (section 10) |
+| Bridge vs an independent rc4-md5 server, TCP and UDP; crypto vs OpenSSL vectors | **Passing** (section 10) |
+| Patcher end to end on the 5.25.81 universal APK (hooks, rename, build, sign, verify) | **Passing** with a throwaway key (section 10) |
+| Xray accepts `method: "none"` for Shadowsocks over TCP and UDP | **Unverified** (build of Xray was denied by the sandbox classifier) |
+| GitHub Action run on GitHub | **Never run** (YAML parses; needs the secrets and a private repo) |
 | Behaviour on a real device | **Never tested**; there is no device or emulator in the sandbox |
 
-Do not claim the patch works until it has been run on a device.
+Do not claim the patched app works until it has been run on a device.
 
 ## 1. Goal and constraints from the user
 
@@ -115,3 +118,15 @@ Chosen: a loopback bridge inside the app, written in Java (JDK and Android APIs 
 - How the vendor core consumes the TUN fd and the `tun` inbound; whether UDP over a SOCKS or SS outbound behaves as expected through it.
 - Effect of the new package on Firebase and Play Services; whether the app misbehaves after a rename beyond the strings listed.
 - Throughput: RC4 and MD5 should be cheap and the extra loopback hop small; no measurement exists.
+
+## 10. Build results (2026-09-29)
+
+Everything below was run in the sandbox against `v2RayTun_universal.apk` 5.25.81.
+
+- **Bridge** (`longoipo/bridge/src`, package `com.longoipo.rc4`): `Rc4Bridge.rewrite(json)` plus a TCP/UDP transcoder. `bridge/run_tests.sh` passes: 16 unit checks (EVP_BytesToKey and a 32-byte rc4-md5 keystream generated with OpenSSL, the classic RC4 vector, rewrite cases including untouched AEAD, TLS and WebSocket nodes) and an end-to-end run against a separately written Python rc4-md5 server (TCP 1 MiB, domain header, half-close, 8 parallel connections, UDP single and multi-packet flow).
+- **Smali**: `bridge/make_smali.py` (javac --release 8 -> D8 9.1.31 -> baksmali 3.0.9) generated `bridge/smali/` (10 files). The output re-assembles with smali.
+- **Patcher** (`patcher/patch.py`, about 1 minute): found and hooked `smali_classes2/q/r.smali:459` (`startLoop`, register `v4`) and `CoreTestService.smali:437` (`measureOutboundDelay`, register `p0`); rename counts manifest 11, smali 132 (=119+5+4+3+1), res 2, labels 10. The rebuilt APK (60.3 MB) verifies with apksig (v2 and v3), has package `com.longoipo.app`, `app_name` "Longoipo", the bridge in the dex, and all three `libgojni.so`. In `CoreVpnService.d` the register passed to `addDisallowedApplication` now loads `"com.longoipo.app"`. No old-package literal remains in smali; the manifest keeps only names that resolve to real classes; the native core does not contain the old package string.
+- **Signing**: a throwaway PKCS12 key was used for the test only; the real key must be created by the owner and stored as secrets (see README).
+- **Speed**: RC4 alone ran at about 288 MB/s on a 4-core server JVM, per-stream setup 1.2 microseconds. A phone will be slower; no phone measurement exists.
+- **Not done / open**: Xray `none` check, an actual GitHub Action run, the device test, and hardening the loopback listener (no auth).
+- **Rename notes**: `res/xml/shortcuts.xml` keeps `targetClass` (real classes) and gets the new `targetPackage`; `activity_settings.xml` keeps its fragment class name; broadcast actions and provider authorities are renamed consistently in the manifest and in smali.
