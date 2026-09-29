@@ -4,6 +4,7 @@ import android.net.VpnService
 import android.os.Build
 import dev.tidewall.BuildConfig
 import dev.tidewall.core.LogBuffer
+import dev.tidewall.data.ContentDetector
 import dev.tidewall.data.AppSettings
 import dev.tidewall.data.Profile
 import dev.tidewall.ovpn3.ClientAPI_Config
@@ -63,10 +64,16 @@ class OpenVpnSession(
             allowLocalLanAccess = settings.bypassLan
             enableLegacyAlgorithms = settings.openVpnLegacyCiphers
             sslDebugLevel = 0
+            // A profile without <cert>/<key> logs in with username/password
+            // only. OpenVPN 3 treats such a profile as "certificate in the
+            // Android keystore" unless told otherwise (OpenVPN 2 does not).
+            disableClientCert = !ContentDetector.ovpnHasClientCert(ovpn)
         }
         val eval = eval_config(cfg)
         if (eval.error) throw IllegalArgumentException("OpenVPN profile error: ${eval.message}")
-        if (eval.externalPki) throw IllegalArgumentException("Profiles using an Android keystore certificate are not supported yet")
+        if (eval.externalPki && !cfg.disableClientCert) {
+            throw IllegalArgumentException("This profile's client certificate is not inside the .ovpn file. Add the <cert> and <key> blocks to it.")
+        }
         if (!eval.autologin) {
             val user = profile.username
             if (user.isNullOrBlank()) throw IllegalArgumentException(TidewallVpnService.LOGIN_NEEDED)

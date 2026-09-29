@@ -3,6 +3,8 @@ package dev.tidewall
 import dev.tidewall.data.ContentDetector
 import dev.tidewall.data.ContentType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.util.Base64
@@ -53,5 +55,15 @@ class ContentDetectorTest {
         assertEquals("https://example.com/sub?token=1", url)
         assertEquals("Work", name)
         assertNull(ContentDetector.installConfigUrl("clash://install-config"))
+    }
+
+    @Test fun ovpnClientCertDetection() {
+        val userPassOnly = "client\ndev tun\nremote vpn.example.com 1194\nauth-user-pass\n<ca>\nMIIB\n</ca>\n"
+        assertFalse(ContentDetector.ovpnHasClientCert(userPassOnly))
+        assertTrue(ContentDetector.ovpnHasClientCert(userPassOnly + "<cert>\nMIIC\n</cert>\n<key>\nMIIE\n</key>\n"))
+        assertTrue(ContentDetector.ovpnHasClientCert(userPassOnly + "cert client.crt\nkey client.key\n"))
+        assertTrue(ContentDetector.ovpnHasClientCert(userPassOnly + "pkcs12 client.p12\n"))
+        // key-direction and tls-auth keys are not client certificates.
+        assertFalse(ContentDetector.ovpnHasClientCert(userPassOnly + "key-direction 1\n<tls-auth>\nabc\n</tls-auth>\n"))
     }
 }

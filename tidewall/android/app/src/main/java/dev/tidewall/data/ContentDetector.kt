@@ -33,6 +33,17 @@ object ContentDetector {
         return hasRemote && (ls.any { it == "client" || it.startsWith("dev tun") } || text.contains("<ca>"))
     }
 
+    /**
+     * True when a .ovpn carries a client certificate (inline <cert>/<key>,
+     * <pkcs12>, or cert/key/pkcs12 directives). Without one the server
+     * authenticates by username/password only; OpenVPN 3 would otherwise
+     * look for the certificate in the Android keystore.
+     */
+    fun ovpnHasClientCert(text: String): Boolean = lines(text).any { l ->
+        val d = l.substringBefore(' ').substringBefore('\t').lowercase()
+        d in setOf("cert", "key", "pkcs12", "<cert>", "<key>", "<pkcs12>")
+    }
+
     fun looksLikeWireGuard(text: String): Boolean =
         lines(text).any { it.equals("[Interface]", ignoreCase = true) } &&
             lines(text).any { it.replace(" ", "").startsWith("PrivateKey=", ignoreCase = true) }
