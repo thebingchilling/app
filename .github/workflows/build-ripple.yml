@@ -1,0 +1,91 @@
+name: Build Ripple
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ripple/**'
+      - '.github/workflows/build-ripple.yml'
+  workflow_dispatch: {}
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: ripple
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # The action's default package list includes the removed "tools" package,
+      # so name the packages explicitly.
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-36 build-tools;36.0.0
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Restore release signing key
+        env:
+          RIPPLE_KEYSTORE_BASE64: ${{ secrets.RIPPLE_KEYSTORE_BASE64 }}
+          RIPPLE_KEYSTORE_PASSWORD: ${{ secrets.RIPPLE_KEYSTORE_PASSWORD }}
+          RIPPLE_KEY_ALIAS: ${{ secrets.RIPPLE_KEY_ALIAS }}
+          RIPPLE_KEY_PASSWORD: ${{ secrets.RIPPLE_KEY_PASSWORD }}
+          TIDEWALL_KEYSTORE_BASE64: ${{ secrets.TIDEWALL_KEYSTORE_BASE64 }}
+          TIDEWALL_KEYSTORE_PASSWORD: ${{ secrets.TIDEWALL_KEYSTORE_PASSWORD }}
+          TIDEWALL_KEY_ALIAS: ${{ secrets.TIDEWALL_KEY_ALIAS }}
+          TIDEWALL_KEY_PASSWORD: ${{ secrets.TIDEWALL_KEY_PASSWORD }}
+        run: |
+          keystore="$RUNNER_TEMP/ripple.keystore"
+          if [ -n "$RIPPLE_KEYSTORE_BASE64" ]; then
+            echo "$RIPPLE_KEYSTORE_BASE64" | base64 -d > "$keystore"
+            {
+              echo "RIPPLE_KEYSTORE=$keystore"
+              echo "RIPPLE_KEYSTORE_PASSWORD=$RIPPLE_KEYSTORE_PASSWORD"
+              echo "RIPPLE_KEY_ALIAS=$RIPPLE_KEY_ALIAS"
+              echo "RIPPLE_KEY_PASSWORD=$RIPPLE_KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+          elif [ -n "$TIDEWALL_KEYSTORE_BASE64" ]; then
+            echo "::notice::No RIPPLE_KEYSTORE_BASE64 secret: signing with Tidewall's key."
+            echo "$TIDEWALL_KEYSTORE_BASE64" | base64 -d > "$keystore"
+            {
+              echo "RIPPLE_KEYSTORE=$keystore"
+              echo "RIPPLE_KEYSTORE_PASSWORD=$TIDEWALL_KEYSTORE_PASSWORD"
+              echo "RIPPLE_KEY_ALIAS=$TIDEWALL_KEY_ALIAS"
+              echo "RIPPLE_KEY_PASSWORD=$TIDEWALL_KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+          else
+            echo "::warning::No signing secrets: the APK is signed with a throwaway debug key (see ripple/README.md)."
+          fi
+
+      - name: Unit and integration tests
+        run: ./gradlew --no-daemon :app:testDebugUnitTest
+
+      - name: Build APK
+        env:
+          RIPPLE_BUILD_NUMBER: ${{ github.run_number }}
+          RIPPLE_GOOGLE_CLIENT_ID: ${{ secrets.RIPPLE_GOOGLE_CLIENT_ID }}
+          RIPPLE_MICROSOFT_CLIENT_ID: ${{ secrets.RIPPLE_MICROSOFT_CLIENT_ID }}
+        run: |
+          ./gradlew --no-daemon :app:assembleRelease
+          mkdir -p "$RUNNER_TEMP/out"
+          cp app/build/outputs/apk/release/*.apk "$RUNNER_TEMP/out/"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Ripple-test-reports
+          path: ripple/app/build/reports/tests/
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ripple-apk
+          path: ${{ runner.temp }}/out/*.apk
+          if-no-files-found: error

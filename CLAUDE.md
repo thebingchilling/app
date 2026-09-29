@@ -14,6 +14,9 @@ A collection of small standalone apps, each in its own folder.
 - [`pebble/`](pebble/) — FlClash's Flutter UI 1:1, rebranded as Pebble, for
   Android and Windows; imports WireGuard/AmneziaWG `.conf` and OpenVPN `.ovpn`
   as mihomo profiles. Read [`pebble/HANDOFF.md`](pebble/HANDOFF.md) first.
+- [`ripple/`](ripple/) — Material 3 Android email app: Ltt.rs' UI on
+  Thunderbird for Android's IMAP/POP3/SMTP engine, OAuth for Gmail/Outlook,
+  instant delivery via IMAP IDLE. Read [`ripple/HANDOFF.md`](ripple/HANDOFF.md) first.
 
 ## Purpose
 

@@ -247,8 +247,21 @@ class RoomBackendStorage(
                     when {
                         isGmail && stripped == "Important" -> Role.IMPORTANT
                         isGmail && stripped == "Starred" -> Role.FLAGGED
-                        else -> null
+                        else -> roleByName(serverId)
                     }
+            }
+        }
+
+        /** For servers without SPECIAL-USE: guess from common folder names. */
+        private fun roleByName(serverId: String): Role? {
+            val name = serverId.substringAfterLast('/').substringAfterLast('.').lowercase()
+            return when (name) {
+                "trash", "deleted items", "deleted messages", "deleted", "bin", "papierkorb" -> Role.TRASH
+                "sent", "sent items", "sent messages", "sent mail", "gesendet" -> Role.SENT
+                "drafts", "draft", "entwürfe" -> Role.DRAFTS
+                "junk", "spam", "junk e-mail", "junk email", "bulk mail" -> Role.JUNK
+                "archive", "archives", "archiv" -> Role.ARCHIVE
+                else -> null
             }
         }
 

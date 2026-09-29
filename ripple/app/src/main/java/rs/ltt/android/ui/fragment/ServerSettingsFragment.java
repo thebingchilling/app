@@ -40,6 +40,7 @@ public class ServerSettingsFragment extends AbstractSetupFragment {
                         inflater, R.layout.fragment_server_settings, container, false);
         binding.setSetupViewModel(setupViewModel);
         binding.setLifecycleOwner(getViewLifecycleOwner());
+        applyDefaults();
         binding.protocol.check(
                 Boolean.TRUE.equals(setupViewModel.getPop3().getValue())
                         ? R.id.protocol_pop3
@@ -59,6 +60,29 @@ public class ServerSettingsFragment extends AbstractSetupFragment {
         bindSecurity(binding.incomingSecurity, setupViewModel.getIncomingSecurity());
         bindSecurity(binding.smtpSecurity, setupViewModel.getSmtpSecurity());
         return binding.getRoot();
+    }
+
+    /** Nothing was discovered: start from the most common secure setup. */
+    private void applyDefaults() {
+        final boolean pop3 = Boolean.TRUE.equals(setupViewModel.getPop3().getValue());
+        setIfEmpty(setupViewModel.getIncomingSecurity(), SetupViewModel.SECURITY_OPTIONS[0]);
+        setIfEmpty(setupViewModel.getSmtpSecurity(), SetupViewModel.SECURITY_OPTIONS[0]);
+        setIfEmpty(setupViewModel.getIncomingPort(), pop3 ? "995" : "993");
+        setIfEmpty(setupViewModel.getSmtpPort(), "465");
+        setIfEmpty(setupViewModel.getUsername(), setupViewModel.getEmailAddress().getValue());
+        final String email = setupViewModel.getEmailAddress().getValue();
+        if (email != null && email.contains("@")) {
+            final String domain = email.substring(email.lastIndexOf('@') + 1);
+            setIfEmpty(setupViewModel.getIncomingHost(), (pop3 ? "pop." : "imap.") + domain);
+            setIfEmpty(setupViewModel.getSmtpHost(), "smtp." + domain);
+        }
+    }
+
+    private static void setIfEmpty(final MutableLiveData<String> liveData, final String value) {
+        final String current = liveData.getValue();
+        if ((current == null || current.isEmpty()) && value != null) {
+            liveData.setValue(value);
+        }
     }
 
     private void bindSecurity(

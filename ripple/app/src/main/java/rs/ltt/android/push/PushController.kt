@@ -21,6 +21,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import org.slf4j.LoggerFactory
 import rs.ltt.android.database.AppDatabase
+import rs.ltt.android.ui.notification.EmailNotification
 import rs.ltt.android.worker.MainMailboxQueryRefreshWorker
 
 /**
@@ -44,6 +45,9 @@ object PushController {
         val appContext = context.applicationContext
         EXECUTOR.execute {
             val accounts = AppDatabase.getInstance(appContext).accountDao().accountsSync
+            for (account in accounts) {
+                EmailNotification.createChannel(appContext, account)
+            }
             schedulePeriodicRefresh(appContext, accounts.map { it.id })
             val wantsPush = isInstantDeliveryEnabled(appContext) && accounts.any { !it.credentials.isPop3 }
             if (wantsPush) {

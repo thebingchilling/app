@@ -277,6 +277,31 @@ public class LttrsActivity extends AppCompatActivity
         }
     }
 
+    /** IMAP IDLE only stays connected in Doze when Ripple may ignore battery optimizations. */
+    private void maybeAskForBatteryOptimizationExemption() {
+        final var preferences = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this);
+        if (!PushController.isInstantDeliveryEnabled(this)
+                || PushController.isIgnoringBatteryOptimizations(this)
+                || preferences.getBoolean("asked_battery_optimization", false)) {
+            return;
+        }
+        preferences.edit().putBoolean("asked_battery_optimization", true).apply();
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.battery_optimization_title)
+                .setMessage(R.string.battery_optimization_message)
+                .setNegativeButton(R.string.not_now, null)
+                .setPositiveButton(
+                        R.string.allow,
+                        (dialog, which) -> {
+                            try {
+                                startActivity(PushController.batteryOptimizationIntent(this));
+                            } catch (final android.content.ActivityNotFoundException e) {
+                                LOGGER.warn("No battery optimization settings", e);
+                            }
+                        })
+                .show();
+    }
+
     public NavController getNavController() {
         return NavControllers.findNavController(this, R.id.nav_host_fragment);
     }
@@ -290,6 +315,7 @@ public class LttrsActivity extends AppCompatActivity
     public void onStart() {
         super.onStart();
         PushController.onAccountsChanged(this);
+        maybeAskForBatteryOptimizationExemption();
         getNavController().addOnDestinationChangedListener(this);
         final Intent intent = getIntent();
         if (handleIntent(intent)) {

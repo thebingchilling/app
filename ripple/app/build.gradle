@@ -71,9 +71,18 @@ android {
     buildTypes {
         release {
             signingConfig System.getenv("RIPPLE_KEYSTORE") ? signingConfigs.release : signingConfigs.debug
-            minifyEnabled true
+            minifyEnabled false
             crunchPngs false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+            all {
+                maxHeapSize = "2g"
+            }
         }
     }
 
@@ -164,6 +173,10 @@ dependencies {
 
     //Testing
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.17'
+    testImplementation 'androidx.test:core:1.6.1'
+    testImplementation 'com.icegreen:greenmail:2.1.14'
+    testImplementation "androidx.work:work-testing:$rootProject.ext.workVersion"
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation "androidx.test.espresso:espresso-core:$rootProject.ext.espressoVersion"
     androidTestImplementation "androidx.test.espresso:espresso-intents:$rootProject.ext.espressoVersion"
