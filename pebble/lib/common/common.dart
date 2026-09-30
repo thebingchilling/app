@@ -8,6 +8,7 @@ export 'context.dart';
 export 'converter.dart';
 export 'datetime.dart';
 export 'dialog.dart';
+export 'direct_tunnel.dart';
 export 'exception.dart';
 export 'file.dart';
 export 'fixed.dart';

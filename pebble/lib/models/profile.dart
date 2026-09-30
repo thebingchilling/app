@@ -176,25 +176,45 @@ extension ProfileExtension on Profile {
     return _getFile();
   }
 
-  Future<Profile> update({required ValidateConfig validate}) async {
+  Future<Profile> update({
+    required ValidateConfig validate,
+    OvpnCredentialsRequest? askCredentials,
+  }) async {
     final response = await request.getFileResponseForUrl(url);
     final disposition = response.headers.value('content-disposition');
     final userinfo = response.headers.value('subscription-userinfo');
+    final fileName = getFileNameForDisposition(disposition);
     return copyWith(
-      label: label.takeFirstValid([
-        getFileNameForDisposition(disposition),
-        id.toString(),
-      ]),
+      label: label.takeFirstValid([fileName, id.toString()]),
       subscriptionInfo: SubscriptionInfo.formHString(userinfo),
-    ).saveFile(response.data ?? Uint8List.fromList([]), validate: validate);
+    ).saveFile(
+      response.data ?? Uint8List.fromList([]),
+      validate: validate,
+      fileName: fileName ?? Uri.tryParse(url)?.pathSegments.lastOrNull,
+      askCredentials: askCredentials,
+    );
   }
 
+  /// Saves [bytes] as this profile. WireGuard, AmneziaWG and OpenVPN files
+  /// become a direct-tunnel profile first (see direct_tunnel.dart);
+  /// [fileName] helps recognise an .ovpn.
   Future<Profile> saveFile(
     Uint8List bytes, {
     required ValidateConfig validate,
+    String? fileName,
+    OvpnCredentialsRequest? askCredentials,
   }) async {
     final path = await appPath.tempFilePath;
     final tempFile = File(path);
+    final previous = await _getFile(false);
+    bytes = await convertDirectTunnel(
+      bytes,
+      fileName: fileName ?? label,
+      askCredentials: askCredentials,
+      previousProfile: await previous.exists()
+          ? await previous.readAsString().catchError((_) => '')
+          : null,
+    );
     await tempFile.safeWriteAsBytes(bytes);
     final message = await validate(path);
     if (message.isNotEmpty) {

@@ -34,6 +34,10 @@ dependencies {
     implementation(project(":common"))
     implementation(libs.gson)
     implementation(libs.androidx.core)
+    // Direct tunnels: the official WireGuard library, AmneziaWG and OpenVPN.
+    implementation(libs.wireguard.tunnel)
+    implementation(project(":amneziawg"))
+    implementation(project(":openvpn"))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }

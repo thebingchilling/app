@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:fl_clash/common/color.dart';
 import 'package:fl_clash/common/context.dart';
+import 'package:fl_clash/common/direct_tunnel.dart';
 import 'package:fl_clash/common/shape.dart';
 import 'package:fl_clash/providers/action.dart';
 import 'package:fl_clash/widgets/activate_box.dart';
@@ -40,8 +41,11 @@ class _ScanPageState extends ConsumerState<ScanPage>
       return;
     }
     final barcode = barcodeCapture.barcodes.first;
-    if (barcode.type == BarcodeType.url) {
-      Navigator.pop<String>(context, barcode.rawValue);
+    final raw = barcode.rawValue;
+    // WireGuard apps export the config itself as the QR code.
+    if (barcode.type == BarcodeType.url ||
+        (raw != null && detectDirectTunnel(raw) != null)) {
+      Navigator.pop<String>(context, raw);
     } else {
       Navigator.pop(context);
     }

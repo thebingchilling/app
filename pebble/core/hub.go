@@ -213,6 +213,20 @@ func handleGetTraffic(onlyStatisticsProxy bool) Traffic {
 	}
 }
 
+// directTunnelChain names the traffic of Pebble's direct WireGuard and
+// OpenVPN engines, which bypass mihomo, so FlClash's traffic views count it
+// as proxied traffic.
+const directTunnelChain = "Direct tunnel"
+
+func handleAddDirectTraffic(up, down int64) {
+	if up > 0 {
+		statistic.DefaultManager.PushUploaded(directTunnelChain, up)
+	}
+	if down > 0 {
+		statistic.DefaultManager.PushDownloaded(directTunnelChain, down)
+	}
+}
+
 func handleGetTotalTraffic(onlyStatisticsProxy bool) Traffic {
 	up, down := statistic.DefaultManager.TotalTraffic(onlyStatisticsProxy)
 	return Traffic{

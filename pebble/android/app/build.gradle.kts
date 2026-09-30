@@ -57,6 +57,8 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
+            // The WireGuard library's root-mode tools; Pebble only uses libwg-go.so.
+            excludes += setOf("**/libwg.so", "**/libwg-quick.so")
         }
     }
 

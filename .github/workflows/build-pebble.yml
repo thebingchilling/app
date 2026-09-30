@@ -1,0 +1,134 @@
+name: Build Pebble
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pebble/**'
+      - '.github/workflows/build-pebble.yml'
+  workflow_dispatch: {}
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: pebble
+    steps:
+      - uses: actions/checkout@v4
+
+      # Only the nested submodules the build uses: ics-openvpn also pins
+      # OpenVPN 3, asio and mbedTLS, which Pebble does not build.
+      - name: Fetch submodules
+        working-directory: .
+        run: |
+          git submodule update --init --depth 1 pebble/core/Clash.Meta \
+            pebble/android/vendor/amneziawg-android pebble/android/vendor/ics-openvpn
+          git -C pebble/android/vendor/ics-openvpn submodule update --init --depth 1 \
+            main/src/main/cpp/openvpn main/src/main/cpp/openssl \
+            main/src/main/cpp/lz4 main/src/main/cpp/fmt
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: |
+            pebble/core/go.sum
+            pebble/core/Clash.Meta/go.sum
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # The action's default package list includes the removed "tools" package,
+      # so name the packages explicitly.
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-35 platforms;android-36 build-tools;36.0.0 ndk;28.2.13676358 cmake;3.22.1
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            pebble/plugins/rust_api/rust
+          cache-on-failure: true
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+
+      - name: Go tests (direct-tunnel profiles)
+        run: |
+          cd core && go test -tags with_gvisor -run 'DirectTunnel|AddDirectTraffic' .
+
+      - name: Dart tests
+        run: |
+          # The build hooks would compile the Go core and Rust library for
+          # the host; no test loads them.
+          cp pubspec.yaml "$RUNNER_TEMP/pubspec.yaml"
+          sed -i 's/build_assets: true/build_assets: false/' pubspec.yaml
+          flutter pub get
+          flutter test
+          cp "$RUNNER_TEMP/pubspec.yaml" pubspec.yaml
+
+      - name: Restore release signing key
+        env:
+          PEBBLE_KEYSTORE_BASE64: ${{ secrets.PEBBLE_KEYSTORE_BASE64 }}
+          PEBBLE_KEYSTORE_PASSWORD: ${{ secrets.PEBBLE_KEYSTORE_PASSWORD }}
+          PEBBLE_KEY_ALIAS: ${{ secrets.PEBBLE_KEY_ALIAS }}
+          PEBBLE_KEY_PASSWORD: ${{ secrets.PEBBLE_KEY_PASSWORD }}
+          TIDEWALL_KEYSTORE_BASE64: ${{ secrets.TIDEWALL_KEYSTORE_BASE64 }}
+          TIDEWALL_KEYSTORE_PASSWORD: ${{ secrets.TIDEWALL_KEYSTORE_PASSWORD }}
+          TIDEWALL_KEY_ALIAS: ${{ secrets.TIDEWALL_KEY_ALIAS }}
+          TIDEWALL_KEY_PASSWORD: ${{ secrets.TIDEWALL_KEY_PASSWORD }}
+        run: |
+          keystore="$RUNNER_TEMP/pebble.keystore"
+          if [ -n "$PEBBLE_KEYSTORE_BASE64" ]; then
+            echo "$PEBBLE_KEYSTORE_BASE64" | base64 -d > "$keystore"
+            {
+              echo "PEBBLE_KEYSTORE=$keystore"
+              echo "PEBBLE_KEYSTORE_PASSWORD=$PEBBLE_KEYSTORE_PASSWORD"
+              echo "PEBBLE_KEY_ALIAS=$PEBBLE_KEY_ALIAS"
+              echo "PEBBLE_KEY_PASSWORD=$PEBBLE_KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+          elif [ -n "$TIDEWALL_KEYSTORE_BASE64" ]; then
+            echo "::notice::No PEBBLE_KEYSTORE_BASE64 secret: signing with Tidewall's key."
+            echo "$TIDEWALL_KEYSTORE_BASE64" | base64 -d > "$keystore"
+            {
+              echo "PEBBLE_KEYSTORE=$keystore"
+              echo "PEBBLE_KEYSTORE_PASSWORD=$TIDEWALL_KEYSTORE_PASSWORD"
+              echo "PEBBLE_KEY_ALIAS=$TIDEWALL_KEY_ALIAS"
+              echo "PEBBLE_KEY_PASSWORD=$TIDEWALL_KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+          else
+            echo "::warning::No signing secrets: the APK is signed with a throwaway debug key (see pebble/README.md)."
+          fi
+
+      - name: Build APK
+        run: |
+          # The runner presets ANDROID_NDK_HOME to an older NDK without the
+          # libclang the Rust build needs; use the one the app pins.
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/28.2.13676358"
+          export ANDROID_NDK_PATH="$ANDROID_NDK_HOME" ANDROID_NDK_ROOT="$ANDROID_NDK_HOME" ANDROID_NDK="$ANDROID_NDK_HOME"
+          test -d "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/lib"
+          echo '{"APP_ENV":"stable"}' > env.json
+          flutter build apk --release --split-per-abi \
+            --target-platform android-arm64 --dart-define-from-file=env.json \
+            --build-number=${{ github.run_number }}
+          version=$(sed -n 's/^version: \([^+]*\).*/\1/p' pubspec.yaml)
+          mkdir -p "$RUNNER_TEMP/out"
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk \
+            "$RUNNER_TEMP/out/Pebble-$version-arm64-v8a.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pebble-apk
+          path: ${{ runner.temp }}/out/*.apk
+          if-no-files-found: error
+

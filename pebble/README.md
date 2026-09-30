@@ -1,138 +1,92 @@
-<div>
+# Pebble
 
-[**简体中文**](README_zh_CN.md)
+A proxy and VPN client for Android. Pebble is
+[FlClash](https://github.com/chen08209/FlClash) v0.8.98 with its interface
+and its mihomo (Clash.Meta) engine unchanged, rebranded, plus **direct
+WireGuard, AmneziaWG and OpenVPN tunnels** that run on their own official
+engines instead of inside mihomo.
 
-</div>
+## What it imports
 
-## FlClash
+Add a profile from **Profiles → +** (file, URL or QR code):
 
-[![Downloads](https://img.shields.io/github/downloads/chen08209/FlClash/total?style=flat-square&logo=github)](https://github.com/chen08209/FlClash/releases/)[![Last Version](https://img.shields.io/github/release/chen08209/FlClash/all.svg?style=flat-square)](https://github.com/chen08209/FlClash/releases/)[![License](https://img.shields.io/github/license/chen08209/FlClash?style=flat-square)](LICENSE)
+| File | Runs on |
+|---|---|
+| Clash / mihomo YAML (files and subscriptions) | mihomo, exactly as in FlClash |
+| WireGuard `.conf` (also QR codes from WireGuard apps) | the official WireGuard library, [`com.wireguard.android:tunnel`](https://git.zx2c4.com/wireguard-android) 1.0.20260102 |
+| AmneziaWG `.conf` (`Jc`, `Jmin`, `S1`, `H1`… in `[Interface]`) | Amnezia's own engine, [amneziawg-android](https://github.com/amnezia-vpn/amneziawg-android) 3.1.4 |
+| OpenVPN `.ovpn` | OpenVPN 2 as built by [OpenVPN for Android](https://github.com/schwabe/ics-openvpn) (ics-openvpn) v0.7.65 |
 
-[![Channel](https://img.shields.io/badge/Telegram-Channel-blue?style=flat-square&logo=telegram)](https://t.me/FlClash)
+- A `.ovpn` with `auth-user-pass` and no inline login asks for a username and
+  password on import. VPN providers often issue separate OpenVPN (service)
+  credentials that differ from the website login. A URL that serves an
+  `.ovpn` keeps the saved login when it updates.
+- `dev tap` servers are refused on import: Android VPNs only carry IP traffic.
 
-A multi-platform proxy client based on ClashMeta, simple and easy to use, open-source and ad-free.
+## How direct tunnels work
 
-on Desktop:
-<p style="text-align: center;">
-    <img alt="desktop" src="snapshots/desktop.gif">
-</p>
+A WireGuard/AmneziaWG/OpenVPN file is saved as a small Clash profile that
+keeps the original file word for word on one `x-pebble-direct:` line
+(`lib/common/direct_tunnel.dart`). mihomo ignores that key and loads an empty
+profile that sends everything DIRECT, so FlClash's pages keep working.
 
-on Mobile:
-<p style="text-align: center;">
-    <img alt="mobile" src="snapshots/mobile.gif">
-</p>
+When you connect, FlClash's `VpnService` reads that line
+(`android/service/.../direct/`) and, instead of handing the VPN to mihomo,
+builds the interface from the tunnel's own addresses, DNS, routes and MTU and
+starts its engine:
 
-## Features
+- **WireGuard / AmneziaWG** (`WireGuardEngine.kt`): does what the libraries'
+  own `GoBackend` does, parsing with their config parser and passing the
+  interface to their Go engine, whose sockets are kept out of the VPN.
+- **OpenVPN** (`OpenVpnEngine.kt`): starts `libovpnexec.so` like OpenVPN for
+  Android and answers OpenVPN's management interface: login, socket
+  protection, the tunnel's addresses/routes/DNS, and the interface itself.
 
-✈️ Multi-platform: Android, Windows, macOS and Linux
+FlClash's per-app VPN setting, "allow bypass", the notification, Quick
+Settings tile and always-on VPN apply to direct tunnels too. Their traffic is
+counted in FlClash's statistics (Dashboard, notification). A direct tunnel
+always uses the VPN service, even with FlClash's VPN switch off.
 
-💻 Adaptive multiple screen sizes, Multiple color themes available
+## Differences from FlClash
 
-💡 Based on Material You Design, [Surfboard](https://github.com/getsurfboard/surfboard)-like UI
+- Name, package (`app.pebble.android`) and icon are Pebble's, so it installs
+  next to FlClash.
+- No Firebase Crashlytics and no update checker; the About page credits
+  FlClash and mihomo.
+- The direct tunnels above. Everything else, including DNS defaults, is
+  FlClash's.
 
-☁️ Supports data sync via WebDAV
+## Building
 
-✨ Support subscription link, Dark mode
+CI builds on every push to `main` that touches `pebble/**`
+(`.github/workflows/build-pebble.yml`) and uploads the APK as the
+**Pebble-apk** artifact.
 
-## Use
-
-### Linux
-
-⚠️ Make sure to install the following dependencies before using them
-
-   ```bash
-    sudo apt-get install libayatana-appindicator3-dev
-   ```
-
-### Android
-
-Support the following actions
-
-   ```bash
-    com.follow.clash.action.START
-    
-    com.follow.clash.action.STOP
-    
-    com.follow.clash.action.TOGGLE
-   ```
-
-## Download
-
-<a href="https://chen08209.github.io/FlClash-fdroid-repo/repo?fingerprint=789D6D32668712EF7672F9E58DEEB15FBD6DCEEC5AE7A4371EA72F2AAE8A12FD"><img alt="Get it on F-Droid" src="snapshots/get-it-on-fdroid.svg" width="200px"/></a> <a href="https://github.com/chen08209/FlClash/releases"><img alt="Get it on GitHub" src="snapshots/get-it-on-github.svg" width="200px"/></a>
-
-### Homebrew
+Locally (Linux host):
 
 ```bash
-brew tap chen08209/tap
-brew install --cask flclash
+git submodule update --init pebble/core/Clash.Meta \
+  pebble/android/vendor/amneziawg-android pebble/android/vendor/ics-openvpn
+git -C pebble/android/vendor/ics-openvpn submodule update --init \
+  main/src/main/cpp/openvpn main/src/main/cpp/openssl \
+  main/src/main/cpp/lz4 main/src/main/cpp/fmt
+cd pebble
+flutter pub get
+echo '{"APP_ENV":"stable"}' > env.json
+flutter build apk --release --split-per-abi \
+  --target-platform android-arm64 --dart-define-from-file=env.json
 ```
 
-## Build
+Requirements: Flutter 3.47.x, Go 1.26 (plus network access: amneziawg-android's
+Makefile fetches its own Go), Rust with `aarch64-linux-android`, Java 17+,
+Android SDK 36, NDK 28.2.13676358 and CMake 3.22.1.
 
-1. Update submodules
-   ```bash
-   git submodule update --init --recursive
-   ```
+Release signing: set `PEBBLE_KEYSTORE` (path), `PEBBLE_KEYSTORE_PASSWORD`,
+`PEBBLE_KEY_ALIAS` and `PEBBLE_KEY_PASSWORD`; CI reads them from the
+`PEBBLE_KEYSTORE_BASE64`/`…` repository secrets. Without them the APK is
+signed with a throwaway key and cannot update a previous install.
 
-2. Install `Flutter` and `Golang` environment
+## Licenses
 
-3. Build Application
-
-    - android
-
-        1. Install `Android SDK`, `Android NDK`
-
-        2. Set `ANDROID_NDK` environment variable
-
-        3. Run build script
-
-           ```bash
-           dart setup.dart android
-           ```
-
-    - windows
-
-        1. Requires a Windows client
-
-        2. Install `GCC`, `Inno Setup`
-
-        3. Run build script
-
-           ```bash
-           dart setup.dart windows
-           ```
-
-    - linux
-
-        1. Requires a Linux client
-
-        2. Dependencies are auto-installed by setup script, or manually:
-           ```bash
-           sudo apt-get install -y libayatana-appindicator3-dev
-           ```
-
-        3. Run build script
-
-           ```bash
-           dart setup.dart linux
-           ```
-
-    - macOS
-
-        1. Requires a macOS client
-
-        2. Run build script
-
-           ```bash
-           dart setup.dart macos
-           ```
-
-## Star
-
-The easiest way to support developers is to click on the star (⭐) at the top of the page.
-
-<p style="text-align: center;">
-    <a href="https://api.star-history.com/svg?repos=chen08209/FlClash&Date">
-        <img alt="start" width=50% src="https://api.star-history.com/svg?repos=chen08209/FlClash&Date"/>
-    </a>
-</p>
+FlClash is GPL-3.0. The WireGuard and AmneziaWG libraries are Apache-2.0.
+OpenVPN and OpenVPN for Android are GPL-2.0.

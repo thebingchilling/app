@@ -380,6 +380,11 @@ func suspend(suspended bool) {
 	handleSuspend(suspended)
 }
 
+//export addDirectTraffic
+func addDirectTraffic(up, down int64) {
+	handleAddDirectTraffic(up, down)
+}
+
 //export forceGC
 func forceGC() {
 	handleForceGC()
