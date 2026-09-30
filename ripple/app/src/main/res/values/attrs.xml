@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <attr name="colorSurfaceWarning" format="color|reference" />
-    <attr name="colorActionModeBackground" format="color|reference" />
-    <attr name="colorStatusBarSearch" format="color|reference" />
-</resources>

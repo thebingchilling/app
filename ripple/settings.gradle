@@ -1,3 +1,0 @@
-include ':app'
-include ':engine'
-rootProject.name = "Ripple"

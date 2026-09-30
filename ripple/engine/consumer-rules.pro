@@ -1,4 +1,0 @@
--keep class com.fsck.k9.** { *; }
--dontwarn org.apache.hc.**
--dontwarn org.ietf.jgss.**
--dontwarn javax.naming.**
