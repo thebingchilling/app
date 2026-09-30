@@ -129,7 +129,6 @@ class ProfilesAction extends _$ProfilesAction {
     final profile = await _importRun(
       () => Profile.normal(label: fileName).saveFile(
         bytes,
-        fileName: fileName,
         validate: (path) => _core.validateConfig(path),
         askCredentials: _askOvpnCredentials,
       ),
@@ -141,14 +140,12 @@ class ProfilesAction extends _$ProfilesAction {
 
   Future<void> addProfileFormURL(String url) async {
     // QR codes from WireGuard apps carry the config itself, not a URL.
-    if (!url.isUrl) {
-      final type = detectDirectTunnel(url);
-      if (type != null) {
-        return addProfileFormBytes(
-          Uint8List.fromList(utf8.encode(url)),
-          fileName: type.label,
-        );
-      }
+    if (!url.isUrl && detectVpnConfig(url) != VpnConfigKind.none) {
+      final kind = detectVpnConfig(url);
+      return addProfileFormBytes(
+        Uint8List.fromList(utf8.encode(url)),
+        fileName: kind == VpnConfigKind.wireGuard ? 'WireGuard' : 'OpenVPN',
+      );
     }
     if (globalState.navigatorKey.currentState?.canPop() ?? false) {
       globalState.navigatorKey.currentState?.popUntil((route) => route.isFirst);

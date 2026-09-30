@@ -10,17 +10,13 @@ gson = "2.13.1"
 smaliDexlib2 = "3.0.9"
 junit = "4.13.2"
 kotlinxCoroutines = "1.10.2"
-jsr305 = "3.0.2"
-wireguardTunnel = "1.0.20260102"
 
 [libraries]
 androidx-core = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 annotation-jvm = { module = "androidx.annotation:annotation-jvm", version.ref = "annotationJvm" }
 core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
-jsr305 = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }
 junit = { module = "junit:junit", version.ref = "junit" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
-wireguard-tunnel = { module = "com.wireguard.android:tunnel", version.ref = "wireguardTunnel" }
 smali-dexlib2 = { module = "com.android.tools.smali:smali-dexlib2", version.ref = "smaliDexlib2" }
 

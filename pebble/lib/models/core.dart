@@ -53,8 +53,6 @@ abstract class VpnOptions with _$VpnOptions {
     required List<String> bypassDomain,
     required String stack,
     @Default([]) List<String> routeAddress,
-    // The Android service reads this profile to start a direct tunnel.
-    int? profileId,
   }) = _VpnOptions;
 
   factory VpnOptions.fromJson(Map<String, Object?> json) =>

@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/url"
 	"os"
@@ -100,8 +101,32 @@ func handleValidateConfig(path string) string {
 	if err != nil {
 		return err.Error()
 	}
-	if _, err = config.UnmarshalRawConfig(buf); err != nil {
+	rawConfig, err := config.UnmarshalRawConfig(buf)
+	if err != nil {
 		return err.Error()
+	}
+	return validateProxies(rawConfig.Proxy)
+}
+
+// validateProxies builds every proxy the way applying the profile will.
+// One proxy the engine rejects makes the whole profile fail to apply, and
+// the core then runs with no proxies at all, so report it on import.
+func validateProxies(mappings []map[string]any) string {
+	names := make(map[string]struct{}, len(mappings))
+	for idx, mapping := range mappings {
+		name, _ := mapping["name"].(string)
+		if name == "" {
+			name = "#" + strconv.Itoa(idx+1)
+		}
+		proxy, err := adapter.ParseProxy(mapping, adapter.WithTunnelForAPI(tunnel.Tunnel))
+		if err != nil {
+			return fmt.Sprintf("proxy %q: %v", name, err)
+		}
+		_ = proxy.Close()
+		if _, exist := names[proxy.Name()]; exist {
+			return fmt.Sprintf("proxy %q: duplicate name", proxy.Name())
+		}
+		names[proxy.Name()] = struct{}{}
 	}
 	return ""
 }
@@ -210,20 +235,6 @@ func handleGetTraffic(onlyStatisticsProxy bool) Traffic {
 	return Traffic{
 		Up:   up,
 		Down: down,
-	}
-}
-
-// directTunnelChain names the traffic of Pebble's direct WireGuard and
-// OpenVPN engines, which bypass mihomo, so FlClash's traffic views count it
-// as proxied traffic.
-const directTunnelChain = "Direct tunnel"
-
-func handleAddDirectTraffic(up, down int64) {
-	if up > 0 {
-		statistic.DefaultManager.PushUploaded(directTunnelChain, up)
-	}
-	if down > 0 {
-		statistic.DefaultManager.PushDownloaded(directTunnelChain, down)
 	}
 }
 

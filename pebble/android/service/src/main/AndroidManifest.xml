@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-
-    <!-- The WireGuard library asks for Android 7; WireGuardEngine refuses older versions itself. -->
-    <uses-sdk tools:overrideLibrary="com.wireguard.android.tunnel" />
 
     <application>
         <service
@@ -20,11 +16,6 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="vpn" />
         </service>
-
-        <!-- WireGuard runs inside Pebble's VpnService, not the library's own. -->
-        <service
-            android:name="com.wireguard.android.backend.GoBackend$VpnService"
-            tools:node="remove" />
 
         <service
             android:name=".ProxyService"

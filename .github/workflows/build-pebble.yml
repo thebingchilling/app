@@ -18,16 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Only the nested submodules the build uses: ics-openvpn also pins
-      # OpenVPN 3, asio and mbedTLS, which Pebble does not build.
-      - name: Fetch submodules
+      - name: Fetch the engine submodule
         working-directory: .
-        run: |
-          git submodule update --init --depth 1 pebble/core/Clash.Meta \
-            pebble/android/vendor/amneziawg-android pebble/android/vendor/ics-openvpn
-          git -C pebble/android/vendor/ics-openvpn submodule update --init --depth 1 \
-            main/src/main/cpp/openvpn main/src/main/cpp/openssl \
-            main/src/main/cpp/lz4 main/src/main/cpp/fmt
+        run: git submodule update --init --depth 1 pebble/core/Clash.Meta
 
       - uses: actions/setup-go@v5
         with:
@@ -45,7 +38,7 @@ jobs:
       # so name the packages explicitly.
       - uses: android-actions/setup-android@v3
         with:
-          packages: platform-tools platforms;android-35 platforms;android-36 build-tools;36.0.0 ndk;28.2.13676358 cmake;3.22.1
+          packages: platform-tools platforms;android-35 platforms;android-36 build-tools;36.0.0 ndk;28.2.13676358
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -63,9 +56,18 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Go tests (direct-tunnel profiles)
+      # The build hook applies core/patches too; applying them first lets the
+      # Go tests below cover the patched engine.
+      - name: Apply engine patches
         run: |
-          cd core && go test -tags with_gvisor -run 'DirectTunnel|AddDirectTraffic' .
+          for patch in core/patches/*.patch; do
+            git -C core/Clash.Meta apply "$PWD/$patch"
+          done
+
+      - name: Go tests (engine patches, profile import)
+        run: |
+          (cd core/Clash.Meta && go test ./transport/openvpn/ ./adapter/outbound/)
+          (cd core && go test -tags with_gvisor -run 'ValidateConfig|ClashProfiles' .)
 
       - name: Dart tests
         run: |

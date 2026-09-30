@@ -50,7 +50,8 @@ class Picker {
       formats: [BarcodeFormat.qrCode],
     );
     final result = capture?.barcodes.first.rawValue;
-    if (result == null || !result.isUrl && detectDirectTunnel(result) == null) {
+    if (result == null ||
+        !result.isUrl && detectVpnConfig(result) == VpnConfigKind.none) {
       throw MessageException(currentAppLocalizations.pleaseUploadValidQrcode);
     }
     return result;

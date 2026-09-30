@@ -213,7 +213,6 @@ SharedState sharedState(Ref ref) {
       allowBypass: vpnSetting.allowBypass,
       bypassDomain: networkSetting.bypassDomain,
       routeAddress: clashConfig.routeAddress,
-      profileId: ref.watch(currentProfileIdProvider),
     ),
   );
 }

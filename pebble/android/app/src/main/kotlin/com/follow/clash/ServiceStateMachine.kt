@@ -221,7 +221,7 @@ internal class ServiceStateMachine(private val host: ServiceStateHost) {
         if (!isCurrent(request)) {
             return false
         }
-        val options = sharedState.vpnOptions?.let(host::resolveVpnOptions)
+        val options = sharedState.vpnOptions
         if (options == null) {
             fail(request)
             return false

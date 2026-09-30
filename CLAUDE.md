@@ -9,9 +9,9 @@ A collection of small standalone apps, each in its own folder.
 
 - [`battery-taskbar/`](battery-taskbar/) — Windows tray icon showing battery
   percentage.
-- [`pebble/`](pebble/) — FlClash v0.8.98 (Android) rebranded as Pebble, with
-  direct WireGuard/AmneziaWG (official libraries) and OpenVPN (ics-openvpn's
-  OpenVPN 2) tunnels next to mihomo. Read [`pebble/HANDOFF.md`](pebble/HANDOFF.md) first.
+- [`pebble/`](pebble/) — FlClash v0.8.98 (Android) rebranded as Pebble; imports
+  WireGuard/AmneziaWG `.conf` and OpenVPN `.ovpn` into FlClash's own engine.
+  Read [`pebble/HANDOFF.md`](pebble/HANDOFF.md) first.
 
 ## Purpose
 

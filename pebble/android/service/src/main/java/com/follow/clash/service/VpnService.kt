@@ -15,16 +15,11 @@ import com.follow.clash.common.R as CommonR
 import com.follow.clash.core.Core
 import com.follow.clash.service.models.CIDR
 import com.follow.clash.service.models.VpnOptions
-import com.follow.clash.service.direct.DirectEngine
-import com.follow.clash.service.direct.DirectTunnel
-import com.follow.clash.service.direct.TunnelHost
 import com.follow.clash.service.models.getIpv4RouteAddress
 import com.follow.clash.service.models.getIpv6RouteAddress
 import com.follow.clash.service.models.toCIDR
 import com.follow.clash.service.modules.ServiceModules
 import java.net.InetSocketAddress
-import java.util.Timer
-import kotlin.concurrent.fixedRateTimer
 import java.util.concurrent.ConcurrentHashMap
 import android.net.VpnService as SystemVpnService
 
@@ -33,8 +28,6 @@ class VpnService : SystemVpnService(), ManagedService {
     private val binder = LocalBinder()
     private val tunLock = Any()
     private var tunRunning = false
-    private var directEngine: DirectEngine? = null
-    private var directTraffic: Timer? = null
 
     override fun onDestroy() {
         try {
@@ -124,13 +117,6 @@ class VpnService : SystemVpnService(), ManagedService {
     }
 
     private fun handleStart(options: VpnOptions) {
-        // WireGuard, AmneziaWG and OpenVPN profiles run on their own engine;
-        // mihomo keeps an empty DIRECT profile and gets no TUN.
-        val tunnel = DirectTunnel.read(this, options.profileId)
-        if (tunnel != null) {
-            startDirect(tunnel, options)
-            return
-        }
         val fd = with(Builder()) {
             addAddressAndRoutes(options)
             addDnsServers(options)
@@ -180,63 +166,6 @@ class VpnService : SystemVpnService(), ManagedService {
                 stopTunLocked()
                 throw error
             }
-        }
-    }
-
-    private fun startDirect(tunnel: DirectTunnel, options: VpnOptions) {
-        GlobalState.log("Starting direct ${tunnel.type} tunnel")
-        val engine = DirectEngine.create(tunnel, DirectHost(options))
-        synchronized(tunLock) {
-            directEngine = engine
-            tunRunning = true
-        }
-        try {
-            engine.start()
-        } catch (error: Exception) {
-            stopTun()
-            throw error
-        }
-        // FlClash's dashboard, notification and totals read mihomo's counters.
-        var sent = 0L
-        var received = 0L
-        directTraffic = fixedRateTimer("DirectTraffic", daemon = true, period = 1000) {
-            val (up, down) = runCatching(engine::traffic).getOrDefault(sent to received)
-            if (up >= sent && down >= received) {
-                Core.addDirectTraffic(up - sent, down - received)
-            }
-            sent = up
-            received = down
-        }
-    }
-
-    private inner class DirectHost(private val options: VpnOptions) : TunnelHost {
-        override val context get() = this@VpnService
-
-        override fun newBuilder(included: Set<String>, excluded: Set<String>): Builder =
-            Builder().apply {
-                setSession(getString(CommonR.string.app_name))
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    setMetered(false)
-                }
-                if (options.allowBypass) {
-                    allowBypass()
-                }
-                if (options.accessControlProps.enable) {
-                    configureAccessControl(options)
-                } else {
-                    included.forEach { addApplication(it, ::addAllowedApplication) }
-                    excluded.forEach { addApplication(it, ::addDisallowedApplication) }
-                }
-            }
-
-        override fun protect(fd: Int): Boolean = this@VpnService.protect(fd)
-
-        override fun log(message: String) = GlobalState.log(message)
-
-        override fun onEngineStopped(reason: String) {
-            GlobalState.log("Direct tunnel stopped: $reason")
-            stop()
-            notifyVpnRevoked()
         }
     }
 
@@ -350,15 +279,7 @@ class VpnService : SystemVpnService(), ManagedService {
 
     private fun stopTunLocked() {
         if (tunRunning) {
-            val engine = directEngine
-            if (engine != null) {
-                directTraffic?.cancel()
-                directTraffic = null
-                directEngine = null
-                engine.stop()
-            } else {
-                Core.stopTun()
-            }
+            Core.stopTun()
             tunRunning = false
         }
     }

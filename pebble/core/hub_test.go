@@ -878,3 +878,31 @@ func TestHandleGetProxiesSeesAProviderUpdate(t *testing.T) {
 		t.Error("a proxy the refresh removed is still reported")
 	}
 }
+
+func TestValidateConfigReportsAProxyTheEngineRejects(t *testing.T) {
+	dir := t.TempDir()
+	write := func(body string) string {
+		path := filepath.Join(dir, "profile.yaml")
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+
+	good := write("proxies:\n  - {name: a, type: ss, server: 1.2.3.4, port: 8388, cipher: aes-128-gcm, password: x}\n")
+	if msg := handleValidateConfig(good); msg != "" {
+		t.Fatalf("valid profile rejected: %s", msg)
+	}
+
+	bad := write("proxies:\n  - {name: a, type: ss, server: 1.2.3.4, port: 8388, cipher: aes-128-gcm, password: x}\n" +
+		"  - {name: broken, type: ss, server: 1.2.3.4, port: 8388, cipher: not-a-cipher, password: x}\n")
+	if msg := handleValidateConfig(bad); !strings.Contains(msg, `"broken"`) {
+		t.Fatalf("message = %q, want it to name the broken proxy", msg)
+	}
+
+	dup := write("proxies:\n  - {name: a, type: ss, server: 1.2.3.4, port: 8388, cipher: aes-128-gcm, password: x}\n" +
+		"  - {name: a, type: ss, server: 1.2.3.5, port: 8388, cipher: aes-128-gcm, password: x}\n")
+	if msg := handleValidateConfig(dup); !strings.Contains(msg, "duplicate") {
+		t.Fatalf("message = %q, want a duplicate-name error", msg)
+	}
+}

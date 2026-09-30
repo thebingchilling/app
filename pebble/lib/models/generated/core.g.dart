@@ -105,7 +105,6 @@ _VpnOptions _$VpnOptionsFromJson(Map<String, dynamic> json) => _VpnOptions(
           ?.map((e) => e as String)
           .toList() ??
       const [],
-  profileId: (json['profileId'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$VpnOptionsToJson(_VpnOptions instance) =>
@@ -120,7 +119,6 @@ Map<String, dynamic> _$VpnOptionsToJson(_VpnOptions instance) =>
       'bypassDomain': instance.bypassDomain,
       'stack': instance.stack,
       'routeAddress': instance.routeAddress,
-      'profileId': instance.profileId,
     };
 
 _InitParams _$InitParamsFromJson(Map<String, dynamic> json) => _InitParams(

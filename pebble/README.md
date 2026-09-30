@@ -1,51 +1,36 @@
 # Pebble
 
 A proxy and VPN client for Android. Pebble is
-[FlClash](https://github.com/chen08209/FlClash) v0.8.98 with its interface
-and its mihomo (Clash.Meta) engine unchanged, rebranded, plus **direct
-WireGuard, AmneziaWG and OpenVPN tunnels** that run on their own official
-engines instead of inside mihomo.
+[FlClash](https://github.com/chen08209/FlClash) v0.8.98, including its
+mihomo (Clash.Meta) engine, rebranded, that can also **import WireGuard,
+AmneziaWG and OpenVPN files**. They run in FlClash's own engine like any
+other proxy.
 
 ## What it imports
 
 Add a profile from **Profiles → +** (file, URL or QR code):
 
-| File | Runs on |
-|---|---|
-| Clash / mihomo YAML (files and subscriptions) | mihomo, exactly as in FlClash |
-| WireGuard `.conf` (also QR codes from WireGuard apps) | the official WireGuard library, [`com.wireguard.android:tunnel`](https://git.zx2c4.com/wireguard-android) 1.0.20260102 |
-| AmneziaWG `.conf` (`Jc`, `Jmin`, `S1`, `H1`… in `[Interface]`) | Amnezia's own engine, [amneziawg-android](https://github.com/amnezia-vpn/amneziawg-android) 3.1.4 |
-| OpenVPN `.ovpn` | OpenVPN 2 as built by [OpenVPN for Android](https://github.com/schwabe/ics-openvpn) (ics-openvpn) v0.7.65 |
+- **Clash / mihomo YAML** subscriptions and files, as in FlClash.
+- **WireGuard and AmneziaWG** `.conf` files, including QR codes exported by
+  WireGuard apps. The config becomes a profile with one `wireguard` proxy
+  (AmneziaWG's `Jc`/`S1`/`H1`… go into `amnezia-wg-option`; several
+  `[Peer]` sections go under `peers`).
+- **OpenVPN** `.ovpn` files with an inline `<ca>` (and `<cert>`/`<key>`,
+  `<tls-auth>`, `<tls-crypt>`, `<tls-crypt-v2>` when present). Each `remote`
+  becomes an `openvpn` proxy, grouped under "Proxy" with an "Auto" group.
+  - A file with `auth-user-pass` and no inline login asks for a username and
+    password once. VPN providers often issue separate OpenVPN (service)
+    credentials that differ from the website login. A URL that serves an
+    `.ovpn` keeps the saved login when it updates.
+  - Supported: `dev tun`, UDP or TCP, AES-GCM, AES-CBC and
+    ChaCha20-Poly1305, `tls-auth` with any `auth` digest, `tls-crypt`,
+    `tls-crypt-v2`, `comp-lzo` and `compress` (stub, lz4, lz4-v2). Files that
+    need something else (`dev tap`, BF-CBC only, PKCS#12, no inline `<ca>`)
+    are refused on import with the reason.
 
-- A `.ovpn` with `auth-user-pass` and no inline login asks for a username and
-  password on import. VPN providers often issue separate OpenVPN (service)
-  credentials that differ from the website login. A URL that serves an
-  `.ovpn` keeps the saved login when it updates.
-- `dev tap` servers are refused on import: Android VPNs only carry IP traffic.
-
-## How direct tunnels work
-
-A WireGuard/AmneziaWG/OpenVPN file is saved as a small Clash profile that
-keeps the original file word for word on one `x-pebble-direct:` line
-(`lib/common/direct_tunnel.dart`). mihomo ignores that key and loads an empty
-profile that sends everything DIRECT, so FlClash's pages keep working.
-
-When you connect, FlClash's `VpnService` reads that line
-(`android/service/.../direct/`) and, instead of handing the VPN to mihomo,
-builds the interface from the tunnel's own addresses, DNS, routes and MTU and
-starts its engine:
-
-- **WireGuard / AmneziaWG** (`WireGuardEngine.kt`): does what the libraries'
-  own `GoBackend` does, parsing with their config parser and passing the
-  interface to their Go engine, whose sockets are kept out of the VPN.
-- **OpenVPN** (`OpenVpnEngine.kt`): starts `libovpnexec.so` like OpenVPN for
-  Android and answers OpenVPN's management interface: login, socket
-  protection, the tunnel's addresses/routes/DNS, and the interface itself.
-
-FlClash's per-app VPN setting, "allow bypass", the notification, Quick
-Settings tile and always-on VPN apply to direct tunnels too. Their traffic is
-counted in FlClash's statistics (Dashboard, notification). A direct tunnel
-always uses the VPN service, even with FlClash's VPN switch off.
+Every proxy is built once when the profile is added, so a problem shows up
+as an error on import instead of a profile that connects and carries
+nothing.
 
 ## Differences from FlClash
 
@@ -53,8 +38,16 @@ always uses the VPN service, even with FlClash's VPN switch off.
   next to FlClash.
 - No Firebase Crashlytics and no update checker; the About page credits
   FlClash and mihomo.
-- The direct tunnels above. Everything else, including DNS defaults, is
-  FlClash's.
+- **Default DNS**: the phone's own resolver plus Cloudflare and Google (by IP,
+  so they need no lookup first) instead of FlClash's China-only servers
+  (doh.pub, AliDNS). With those unreachable, mihomo cannot even resolve a VPN
+  server's name: the VPN "connects" and nothing loads. Installs that never
+  changed the DNS settings switch automatically.
+- The engine carries two patches (`core/patches/`, applied by the Go build
+  hook): OpenVPN `tls-auth` uses the file's `auth` digest (NordVPN,
+  Surfshark use SHA512; the engine always used SHA1), and OpenVPN
+  compression framing (`comp-lzo`, `compress`, pushed or not) is understood.
+- Importing `.conf`/`.ovpn` (above).
 
 ## Building
 
@@ -65,11 +58,7 @@ CI builds on every push to `main` that touches `pebble/**`
 Locally (Linux host):
 
 ```bash
-git submodule update --init pebble/core/Clash.Meta \
-  pebble/android/vendor/amneziawg-android pebble/android/vendor/ics-openvpn
-git -C pebble/android/vendor/ics-openvpn submodule update --init \
-  main/src/main/cpp/openvpn main/src/main/cpp/openssl \
-  main/src/main/cpp/lz4 main/src/main/cpp/fmt
+git submodule update --init pebble/core/Clash.Meta
 cd pebble
 flutter pub get
 echo '{"APP_ENV":"stable"}' > env.json
@@ -77,16 +66,14 @@ flutter build apk --release --split-per-abi \
   --target-platform android-arm64 --dart-define-from-file=env.json
 ```
 
-Requirements: Flutter 3.47.x, Go 1.26 (plus network access: amneziawg-android's
-Makefile fetches its own Go), Rust with `aarch64-linux-android`, Java 17+,
-Android SDK 36, NDK 28.2.13676358 and CMake 3.22.1.
+The Go build hook applies `core/patches/*.patch` to `core/Clash.Meta`
+(already-applied patches are skipped). To work on the engine by hand:
+`for p in core/patches/*.patch; do git -C core/Clash.Meta apply "$PWD/$p"; done`.
+
+Requirements: Flutter 3.47.x, Go 1.26, Rust with `aarch64-linux-android`,
+Java 17+, Android SDK 36 and NDK 28.2.13676358.
 
 Release signing: set `PEBBLE_KEYSTORE` (path), `PEBBLE_KEYSTORE_PASSWORD`,
 `PEBBLE_KEY_ALIAS` and `PEBBLE_KEY_PASSWORD`; CI reads them from the
 `PEBBLE_KEYSTORE_BASE64`/`…` repository secrets. Without them the APK is
 signed with a throwaway key and cannot update a previous install.
-
-## Licenses
-
-FlClash is GPL-3.0. The WireGuard and AmneziaWG libraries are Apache-2.0.
-OpenVPN and OpenVPN for Android are GPL-2.0.

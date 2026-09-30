@@ -23,8 +23,6 @@ data class VpnOptions(
     val bypassDomain: List<String>,
     val stack: String,
     val routeAddress: List<String>,
-    // The profile a direct WireGuard/OpenVPN tunnel is read from.
-    val profileId: Int? = null,
 )
 
 data class CIDR(

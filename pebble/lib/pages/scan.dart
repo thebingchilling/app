@@ -3,8 +3,8 @@ import 'dart:math';
 
 import 'package:fl_clash/common/color.dart';
 import 'package:fl_clash/common/context.dart';
-import 'package:fl_clash/common/direct_tunnel.dart';
 import 'package:fl_clash/common/shape.dart';
+import 'package:fl_clash/common/vpn_import.dart';
 import 'package:fl_clash/providers/action.dart';
 import 'package:fl_clash/widgets/activate_box.dart';
 import 'package:material_ui/material_ui.dart';
@@ -42,9 +42,9 @@ class _ScanPageState extends ConsumerState<ScanPage>
     }
     final barcode = barcodeCapture.barcodes.first;
     final raw = barcode.rawValue;
-    // WireGuard apps export the config itself as the QR code.
     if (barcode.type == BarcodeType.url ||
-        (raw != null && detectDirectTunnel(raw) != null)) {
+        (raw != null &&
+            detectVpnConfig(raw) != VpnConfigKind.none)) {
       Navigator.pop<String>(context, raw);
     } else {
       Navigator.pop(context);

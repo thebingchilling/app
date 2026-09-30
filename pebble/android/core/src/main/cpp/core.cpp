@@ -76,13 +76,6 @@ Java_com_follow_clash_core_Core_suspended(JNIEnv *env, jobject thiz, jboolean su
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_follow_clash_core_Core_addDirectTraffic(JNIEnv *env, jobject thiz, jlong up,
-                                                 jlong down) {
-    addDirectTraffic(up, down);
-}
-
-extern "C"
-JNIEXPORT void JNICALL
 Java_com_follow_clash_core_Core_quickSetup(JNIEnv *env, jobject thiz, jstring init_params_string,
                                            jstring setup_params_string, jobject cb) {
     const auto interface = new_global(cb);

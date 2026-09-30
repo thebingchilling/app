@@ -49,7 +49,42 @@ class GoBuilder {
     return cc;
   }
 
+  /// Applies `core/patches/*.patch` (Pebble's fixes to the engine) to the
+  /// Clash.Meta submodule. Already-applied patches are left alone.
+  void applyEnginePatches() {
+    final patchDir = Directory(p.join(_corePath, 'patches'));
+    if (!patchDir.existsSync()) return;
+    final engineDir = p.join(_corePath, 'Clash.Meta');
+    final patches =
+        patchDir
+            .listSync()
+            .whereType<File>()
+            .where((file) => file.path.endsWith('.patch'))
+            .map((file) => file.absolute.path)
+            .toList()
+          ..sort();
+    for (final patch in patches) {
+      final applied = Process.runSync('git', [
+        'apply',
+        '--reverse',
+        '--check',
+        patch,
+      ], workingDirectory: engineDir);
+      if (applied.exitCode == 0) continue;
+      try {
+        runCommand('git', ['apply', patch], workingDirectory: engineDir);
+      } on CommandFailedException catch (e) {
+        throw BuildException(
+          'Engine patch ${p.basename(patch)} does not apply to '
+          '$engineDir: $e',
+        );
+      }
+      _log.info('Applied engine patch ${p.basename(patch)}');
+    }
+  }
+
   Future<BuildExecution> build(Target target) async {
+    applyEnginePatches();
     final outDir = target.isLib
         ? p.join(_outputPath, target.platformDir, target.abi!)
         : p.join(_outputPath, target.platformDir);

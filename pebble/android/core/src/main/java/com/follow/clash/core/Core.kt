@@ -15,12 +15,6 @@ object Core {
 
     external fun forceGC()
 
-    /** Counts bytes moved by a direct WireGuard/OpenVPN tunnel in the traffic statistics. */
-    external fun addDirectTraffic(
-        up: Long,
-        down: Long,
-    )
-
     external fun updateDNS(
         dns: String,
     )

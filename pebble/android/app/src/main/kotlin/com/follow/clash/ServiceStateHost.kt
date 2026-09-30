@@ -6,7 +6,6 @@ import com.follow.clash.models.SharedState
 import com.follow.clash.plugins.AppPlugin
 import com.follow.clash.plugins.TilePlugin
 import com.follow.clash.service.ServiceConfig
-import com.follow.clash.service.direct.DirectTunnel
 import com.follow.clash.service.models.NotificationParams
 import com.follow.clash.service.models.VpnOptions
 import io.flutter.embedding.engine.FlutterEngine
@@ -39,9 +38,6 @@ internal interface ServiceStateHost {
     fun app(): AppGateway?
 
     suspend fun quickSetup(initParams: String, setupParams: String): Result<String>
-
-    /** The options a start really uses: a direct tunnel always needs the VPN service. */
-    fun resolveVpnOptions(options: VpnOptions): VpnOptions = options
 
     suspend fun startService(options: VpnOptions): Long
 
@@ -127,13 +123,6 @@ internal object AndroidServiceStateHost : ServiceStateHost {
 
     override suspend fun quickSetup(initParams: String, setupParams: String): Result<String> =
         ServiceController.quickSetup(initParams, setupParams)
-
-    override fun resolveVpnOptions(options: VpnOptions): VpnOptions =
-        if (!options.enable && DirectTunnel.read(GlobalState.application, options.profileId) != null) {
-            options.copy(enable = true)
-        } else {
-            options
-        }
 
     override suspend fun startService(options: VpnOptions): Long =
         ServiceController.start(options)

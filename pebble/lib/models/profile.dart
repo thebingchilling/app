@@ -195,9 +195,9 @@ extension ProfileExtension on Profile {
     );
   }
 
-  /// Saves [bytes] as this profile. WireGuard, AmneziaWG and OpenVPN files
-  /// become a direct-tunnel profile first (see direct_tunnel.dart);
-  /// [fileName] helps recognise an .ovpn.
+  /// Saves [bytes] as this profile. WireGuard and OpenVPN configs are
+  /// converted to a mihomo profile first; [fileName] helps detect them and
+  /// names the proxy.
   Future<Profile> saveFile(
     Uint8List bytes, {
     required ValidateConfig validate,
@@ -207,7 +207,7 @@ extension ProfileExtension on Profile {
     final path = await appPath.tempFilePath;
     final tempFile = File(path);
     final previous = await _getFile(false);
-    bytes = await convertDirectTunnel(
+    bytes = await convertVpnConfig(
       bytes,
       fileName: fileName ?? label,
       askCredentials: askCredentials,

@@ -2,9 +2,3 @@
 	path = pebble/core/Clash.Meta
 	url = https://github.com/chen08209/Clash.Meta.git
 	branch = FlClash
-[submodule "pebble/android/vendor/amneziawg-android"]
-	path = pebble/android/vendor/amneziawg-android
-	url = https://github.com/amnezia-vpn/amneziawg-android.git
-[submodule "pebble/android/vendor/ics-openvpn"]
-	path = pebble/android/vendor/ics-openvpn
-	url = https://github.com/schwabe/ics-openvpn.git
