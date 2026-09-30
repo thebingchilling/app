@@ -230,7 +230,7 @@ _Dns _$DnsFromJson(Map<String, dynamic> json) => _Dns(
       (json['default-nameserver'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
-      const ['223.5.5.5'],
+      const ['system', '1.1.1.1', '8.8.8.8'],
   enhancedMode:
       $enumDecodeNullable(_$DnsModeEnumMap, json['enhanced-mode']) ??
       DnsMode.fakeIp,
@@ -239,29 +239,29 @@ _Dns _$DnsFromJson(Map<String, dynamic> json) => _Dns(
       (json['fake-ip-filter'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
-      const ['*.lan', 'localhost.ptlogin2.qq.com'],
+      const ['*.lan', '+.local'],
   nameserverPolicy:
       (json['nameserver-policy'] as Map<String, dynamic>?)?.map(
         (k, e) => MapEntry(k, e as String),
       ) ??
-      const {
-        'www.baidu.com': '114.114.114.114',
-        '+.internal.crop.com': '10.0.0.1',
-        'geosite:cn': 'https://doh.pub/dns-query',
-      },
+      const {},
   nameserver:
       (json['nameserver'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
-      const ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
+      const [
+        'system',
+        'https://1.1.1.1/dns-query',
+        'https://8.8.8.8/dns-query',
+      ],
   fallback:
       (json['fallback'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-      const ['tls://8.8.4.4', 'tls://1.1.1.1'],
+      const [],
   proxyServerNameserver:
       (json['proxy-server-nameserver'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
-      const ['https://doh.pub/dns-query'],
+      const ['system', 'https://1.1.1.1/dns-query'],
   fallbackFilter: json['fallback-filter'] == null
       ? const FallbackFilter()
       : FallbackFilter.fromJson(
@@ -326,6 +326,7 @@ const _$RuleActionEnumMap = {
   RuleAction.DOMAIN_SUFFIX: 'DOMAIN_SUFFIX',
   RuleAction.DOMAIN_KEYWORD: 'DOMAIN_KEYWORD',
   RuleAction.DOMAIN_REGEX: 'DOMAIN_REGEX',
+  RuleAction.DOMAIN_WILDCARD: 'DOMAIN_WILDCARD',
   RuleAction.GEOSITE: 'GEOSITE',
   RuleAction.IP_CIDR: 'IP_CIDR',
   RuleAction.IP_CIDR6: 'IP_CIDR6',
@@ -342,10 +343,13 @@ const _$RuleActionEnumMap = {
   RuleAction.IN_TYPE: 'IN_TYPE',
   RuleAction.IN_USER: 'IN_USER',
   RuleAction.IN_NAME: 'IN_NAME',
+  RuleAction.REMATCH_NAME: 'REMATCH_NAME',
   RuleAction.PROCESS_PATH: 'PROCESS_PATH',
   RuleAction.PROCESS_PATH_REGEX: 'PROCESS_PATH_REGEX',
+  RuleAction.PROCESS_PATH_WILDCARD: 'PROCESS_PATH_WILDCARD',
   RuleAction.PROCESS_NAME: 'PROCESS_NAME',
   RuleAction.PROCESS_NAME_REGEX: 'PROCESS_NAME_REGEX',
+  RuleAction.PROCESS_NAME_WILDCARD: 'PROCESS_NAME_WILDCARD',
   RuleAction.UID: 'UID',
   RuleAction.NETWORK: 'NETWORK',
   RuleAction.DSCP: 'DSCP',

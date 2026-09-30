@@ -51,7 +51,9 @@ class Picker {
     );
     final result = capture?.barcodes.first.rawValue;
     if (result == null ||
-        !result.isUrl && detectVpnConfig(result) == VpnConfigKind.none) {
+        !result.isUrl &&
+            !looksLikeShareLinks(result) &&
+            detectVpnConfig(result) == VpnConfigKind.none) {
       throw MessageException(currentAppLocalizations.pleaseUploadValidQrcode);
     }
     return result;

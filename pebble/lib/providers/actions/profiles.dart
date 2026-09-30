@@ -139,6 +139,13 @@ class ProfilesAction extends _$ProfilesAction {
   }
 
   Future<void> addProfileFormURL(String url) async {
+    // Share links (vless://, ss://, ...) are converted by the core.
+    if (!url.isUrl && looksLikeShareLinks(url)) {
+      return addProfileFormBytes(
+        Uint8List.fromList(utf8.encode(url.trim())),
+        fileName: shareLinksLabel(url),
+      );
+    }
     // QR codes from WireGuard apps carry the config itself, not a URL.
     if (!url.isUrl && detectVpnConfig(url) != VpnConfigKind.none) {
       final kind = detectVpnConfig(url);

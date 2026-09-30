@@ -43,7 +43,9 @@ class _ScanPageState extends ConsumerState<ScanPage>
     final barcode = barcodeCapture.barcodes.first;
     final raw = barcode.rawValue;
     if (barcode.type == BarcodeType.url ||
-        (raw != null && detectVpnConfig(raw) != VpnConfigKind.none)) {
+        (raw != null &&
+            (looksLikeShareLinks(raw) ||
+                detectVpnConfig(raw) != VpnConfigKind.none))) {
       Navigator.pop<String>(context, raw);
     } else {
       Navigator.pop(context);

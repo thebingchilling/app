@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/url"
 	"os"
@@ -100,8 +101,40 @@ func handleValidateConfig(path string) string {
 	if err != nil {
 		return err.Error()
 	}
-	if _, err = config.UnmarshalRawConfig(buf); err != nil {
+	// Share links become a profile here, so file, URL and QR imports and
+	// subscription updates all save the converted YAML.
+	if profile, ok := profileFromShareLinks(buf); ok {
+		if err = os.WriteFile(path, profile, 0o644); err != nil {
+			return err.Error()
+		}
+		buf = profile
+	}
+	rawConfig, err := config.UnmarshalRawConfig(buf)
+	if err != nil {
 		return err.Error()
+	}
+	return validateProxies(rawConfig.Proxy)
+}
+
+// validateProxies builds every proxy the way applying the profile will.
+// One proxy the engine rejects makes the whole profile fail to apply, and
+// the core then runs with no proxies at all, so report it on import.
+func validateProxies(mappings []map[string]any) string {
+	names := make(map[string]struct{}, len(mappings))
+	for idx, mapping := range mappings {
+		name, _ := mapping["name"].(string)
+		if name == "" {
+			name = "#" + strconv.Itoa(idx+1)
+		}
+		proxy, err := adapter.ParseProxy(mapping, adapter.WithTunnelForAPI(tunnel.Tunnel))
+		if err != nil {
+			return fmt.Sprintf("proxy %q: %v", name, err)
+		}
+		_ = proxy.Close()
+		if _, exist := names[proxy.Name()]; exist {
+			return fmt.Sprintf("proxy %q: duplicate name", proxy.Name())
+		}
+		names[proxy.Name()] = struct{}{}
 	}
 	return ""
 }

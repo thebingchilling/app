@@ -302,6 +302,20 @@ abstract class FallbackFilter with _$FallbackFilter {
       _$FallbackFilterFromJson(json);
 }
 
+/// FlClash's default DNS settings, which earlier Pebble builds shipped.
+const legacyFlClashDns = Dns(
+  defaultNameserver: ['223.5.5.5'],
+  fakeIpFilter: ['*.lan', 'localhost.ptlogin2.qq.com'],
+  nameserverPolicy: {
+    'www.baidu.com': '114.114.114.114',
+    '+.internal.crop.com': '10.0.0.1',
+    'geosite:cn': 'https://doh.pub/dns-query',
+  },
+  nameserver: ['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'],
+  fallback: ['tls://8.8.4.4', 'tls://1.1.1.1'],
+  proxyServerNameserver: ['https://doh.pub/dns-query'],
+);
+
 @freezed
 abstract class Dns with _$Dns {
   const factory Dns({
@@ -312,7 +326,9 @@ abstract class Dns with _$Dns {
     @Default(true) @JsonKey(name: 'use-system-hosts') bool useSystemHosts,
     @Default(false) @JsonKey(name: 'respect-rules') bool respectRules,
     @Default(false) bool ipv6,
-    @Default(['223.5.5.5'])
+    // Pebble: the system resolver first, public DoH beside it (mihomo asks
+    // them together), instead of FlClash's China-only servers.
+    @Default(['system', '1.1.1.1', '8.8.8.8'])
     @JsonKey(name: 'default-nameserver')
     List<String> defaultNameserver,
     @Default(DnsMode.fakeIp)
@@ -321,20 +337,20 @@ abstract class Dns with _$Dns {
     @Default('198.18.0.1/16')
     @JsonKey(name: 'fake-ip-range')
     String fakeIpRange,
-    @Default(['*.lan', 'localhost.ptlogin2.qq.com'])
+    @Default(['*.lan', '+.local'])
     @JsonKey(name: 'fake-ip-filter')
     List<String> fakeIpFilter,
-    @Default({
-      'www.baidu.com': '114.114.114.114',
-      '+.internal.crop.com': '10.0.0.1',
-      'geosite:cn': 'https://doh.pub/dns-query',
-    })
+    @Default({})
     @JsonKey(name: 'nameserver-policy')
     Map<String, String> nameserverPolicy,
-    @Default(['https://doh.pub/dns-query', 'https://dns.alidns.com/dns-query'])
+    @Default([
+      'system',
+      'https://1.1.1.1/dns-query',
+      'https://8.8.8.8/dns-query',
+    ])
     List<String> nameserver,
-    @Default(['tls://8.8.4.4', 'tls://1.1.1.1']) List<String> fallback,
-    @Default(['https://doh.pub/dns-query'])
+    @Default([]) List<String> fallback,
+    @Default(['system', 'https://1.1.1.1/dns-query'])
     @JsonKey(name: 'proxy-server-nameserver')
     List<String> proxyServerNameserver,
     @Default(FallbackFilter())
@@ -345,11 +361,12 @@ abstract class Dns with _$Dns {
   factory Dns.fromJson(Map<String, Object?> json) => _$DnsFromJson(json);
 
   factory Dns.safeDnsFromJson(Map<String, Object?> json) {
-    return decodeOrRestoreDefault(
-      'dns config',
-      () => Dns.fromJson(json),
-      () => const Dns(),
-    );
+    return decodeOrRestoreDefault('dns config', () {
+      final dns = Dns.fromJson(json);
+      // Untouched FlClash defaults from an earlier Pebble build move to the
+      // new ones; DNS settings the user changed are kept.
+      return dns == legacyFlClashDns ? const Dns() : dns;
+    }, () => const Dns());
   }
 }
 

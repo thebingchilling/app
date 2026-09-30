@@ -17,7 +17,7 @@ User decisions:
 - The user interrupts long **foreground** commands. Run builds with
   `run_in_background` and keep the user posted in short lines.
 
-## State (2026-09-29)
+## State (2026-09-30)
 
 Source: FlClash `main` at `c7be702` (2026-09-17); engine submodule
 `pebble/core/Clash.Meta` → `chen08209/Clash.Meta` @ `70f0570` (branch FlClash).
@@ -56,12 +56,47 @@ Done:
   artifact **Pebble-apk**) and `windows` job (`dart setup.dart windows`,
   artifact **Pebble-windows**: installer + portable zip).
 
+## Audit (2026-09-30)
+
+The user reported that nothing connects and some servers cannot be added.
+Tested end to end in the container with Pebble's own core (`handleValidateConfig`
+→ `handleSetupConfig` → delay test → HTTP through the mixed port), profiles
+made by `vpn_import.dart` + `makeRealProfileTask`, against local servers:
+wireguard-go (+dnsmasq), OpenVPN 2.6 in six setups (tls-crypt + login,
+tls-auth + `auth SHA512` + comp-lzo over TCP, no `auth` + `compress lz4-v2`,
+tls-crypt-v2, `comp-lzo no`, `compress` stub) and a Shadowsocks server for
+share links. Found and fixed:
+
+- **Whole profile silently dead**: `validateConfig` only parsed YAML; one
+  proxy mihomo rejects makes `applyConfig` fall back to an empty config (every
+  delay "Timeout"). It now builds every proxy (`validateProxies`), so import
+  shows the error.
+- **OpenVPN `tls-auth` always used HMAC-SHA1**; OpenVPN uses the `auth`
+  digest (NordVPN/Surfshark use SHA512). Engine patch in `core/patches/`.
+- **OpenVPN `compress`** (stub/lz4/lz4-v2, and pushed `compress`/`comp-lzo`)
+  was unsupported, so data never flowed; same patch. `comp-lzo no` now
+  keeps its framing byte as OpenVPN does.
+- **Missing `auth`** defaulted to SHA256 in mihomo, SHA1 in OpenVPN: the
+  converter writes `auth: SHA1`. It also offers OpenVPN 2.6's default
+  data-ciphers and refuses tap/BF-CBC/PKCS#12 on import.
+- **Share links / base64 subscriptions** could not be added: the core
+  converts them (`core/share_links.go`, mihomo's `common/convert`) and the
+  URL dialog, QR picker and scan page accept them.
+- **DNS defaults** were FlClash's China-only resolvers; now system + public
+  DoH (`legacyFlClashDns` migrates untouched old settings).
+
+Engine patches: `core/patches/*.patch`, applied by `GoBuilder.applyEnginePatches`
+(skips applied ones) and explicitly in CI before the Go tests. When bumping
+the Clash.Meta submodule, re-check that they still apply.
+
 ## Open items
 
 - Watch the CI run of the latest push; the **Windows job has never run
   before** (no Windows machine here), so fix whatever it reports.
-- Signing: CI uses `PEBBLE_KEYSTORE_*` secrets, else Tidewall's
-  `TIDEWALL_KEYSTORE_*`, else a throwaway debug key (see README).
+- Signing: **no signing secrets are set** (checked in the CI log), so every
+  CI APK has a new throwaway key and cannot update the previous install. The
+  user has to add `PEBBLE_KEYSTORE_*` (see README); the repo is public, so
+  never commit a key or upload one as an artifact.
 - Not checked on a device (no KVM/emulator here).
 - The Windows installer is not code-signed (SmartScreen "unknown publisher");
   TUN mode asks for admin once to install the helper service.

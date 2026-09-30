@@ -112,7 +112,7 @@ void main() {
     });
 
     test('puts several peers under peers', () {
-      final text =
+      const text =
           '''
 [Interface]
 PrivateKey = $_key1
@@ -272,6 +272,75 @@ AllowedIPs = 10.0.0.0/24
         convertVpnConfig(_bytes(_ovpn)),
         throwsA(isA<MessageException>()),
       );
+    });
+  });
+
+  group('share links', () {
+    test('are recognised by scheme', () {
+      expect(looksLikeShareLinks('vless://id@1.2.3.4:443#A'), isTrue);
+      expect(looksLikeShareLinks('\nss://abc@h:1#B\ntrojan://p@h:443'), isTrue);
+      expect(looksLikeShareLinks('https://example.com/sub'), isFalse);
+      expect(looksLikeShareLinks('proxies: []'), isFalse);
+    });
+
+    test('name the profile after the first link', () {
+      expect(
+        shareLinksLabel(
+          'vless://id@1.2.3.4:443?x=1#Tokyo%20%F0%9F%87%AF%F0%9F%87%B5',
+        ),
+        'Tokyo 🇯🇵',
+      );
+      expect(shareLinksLabel('ss://abc@h:1'), 'SS');
+    });
+  });
+
+  group('OpenVPN engine support', () {
+    OvpnFile parse(String extra) => OvpnFile.parse(
+      'client\ndev tun\nremote a.example 1194\n$extra\n<ca>\n$_ca\n</ca>\n'
+      '<cert>\nC\n</cert>\n<key>\nK\n</key>\n',
+    );
+    YamlMap proxyOf(String extra) =>
+        (_load(profileFromOvpn(parse(extra)))['proxies'] as YamlList).first
+            as YamlMap;
+
+    test('defaults auth to SHA1 and offers OpenVPN 2.6 ciphers', () {
+      final proxy = proxyOf('');
+      expect(proxy['auth'], 'SHA1');
+      expect(proxy['data-ciphers'], [
+        'AES-256-GCM',
+        'AES-128-GCM',
+        'CHACHA20-POLY1305',
+      ]);
+      expect(proxy.containsKey('cipher'), isFalse);
+    });
+
+    test('keeps a supported cipher and replaces BF-CBC', () {
+      expect(
+        proxyOf('cipher AES-256-CBC')['data-ciphers'],
+        contains('AES-256-CBC'),
+      );
+      expect(proxyOf('cipher BF-CBC')['cipher'], 'AES-256-GCM');
+    });
+
+    test('passes compress and comp-lzo through', () {
+      expect(proxyOf('compress')['compress'], 'stub');
+      expect(proxyOf('compress lz4-v2')['compress'], 'lz4-v2');
+      expect(proxyOf('comp-lzo no')['comp-lzo'], 'no');
+    });
+
+    test('refuses what the engine cannot run', () {
+      for (final extra in [
+        'dev tap',
+        'cipher BF-CBC\ndata-ciphers BF-CBC',
+        'compress snappy',
+        'pkcs12 cert.p12',
+      ]) {
+        expect(
+          () => profileFromOvpn(parse(extra)),
+          throwsA(isA<MessageException>()),
+          reason: extra,
+        );
+      }
     });
   });
 }

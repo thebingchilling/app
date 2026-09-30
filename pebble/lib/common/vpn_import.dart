@@ -81,6 +81,39 @@ VpnConfigKind detectVpnConfig(String text, {String? fileName}) {
   return VpnConfigKind.none;
 }
 
+/// Schemes of the proxy share links the engine converts into a profile.
+const shareLinkSchemes = {
+  'vless', 'vmess', 'ss', 'ssr', 'trojan', 'hysteria', 'hysteria2', 'hy2', //
+  'tuic', 'anytls', 'socks', 'socks5', 'socks5h', 'mierus',
+};
+
+/// True when [text] holds proxy share links such as `vless://...`, one per
+/// line. The core turns them into a profile when it validates the import.
+bool looksLikeShareLinks(String text) => const LineSplitter()
+    .convert(text.trim())
+    .map((line) => line.trim())
+    .any((line) {
+      final end = line.indexOf('://');
+      return end > 0 &&
+          shareLinkSchemes.contains(line.substring(0, end).toLowerCase());
+    });
+
+/// A profile name for pasted share links: the first link's `#name`.
+String shareLinksLabel(String text) {
+  final first = text.trim().split(RegExp(r'\s+')).first;
+  final hash = first.indexOf('#');
+  if (hash >= 0 && hash + 1 < first.length) {
+    try {
+      final name = Uri.decodeComponent(first.substring(hash + 1)).trim();
+      if (name.isNotEmpty) return name;
+    } on ArgumentError {
+      // Keep the scheme-based name below.
+    }
+  }
+  final end = first.indexOf('://');
+  return end > 0 ? first.substring(0, end).toUpperCase() : 'Proxy';
+}
+
 /// A profile name from a file name: drops the directory and extension.
 String? nameFromFileName(String? fileName) {
   if (fileName == null) return null;
@@ -517,6 +550,7 @@ Map<String, Object> ovpnToProxy(
       'OpenVPN: the .ovpn file has no inline <ca> block',
     );
   }
+  _checkOvpnSupported(file);
   final proxy = <String, Object>{
     'name': name,
     'type': 'openvpn',
@@ -537,18 +571,37 @@ Map<String, Object> ovpnToProxy(
     if (direction.isEmpty) direction = file.arg('tls-auth', 1);
     if (direction.isNotEmpty) proxy['key-direction'] = direction;
   }
-  final cipher = file.arg('cipher');
-  if (cipher.isNotEmpty) proxy['cipher'] = cipher;
+  final cipher = file.arg('cipher').toUpperCase();
   var dataCiphers = file.arg('data-ciphers');
   if (dataCiphers.isEmpty) dataCiphers = file.arg('ncp-ciphers');
-  if (dataCiphers.isNotEmpty) proxy['data-ciphers'] = dataCiphers.split(':');
+  // OpenVPN 2.6 offers these when the file names none, and adds `cipher`.
+  final offered = dataCiphers.isEmpty
+      ? [..._defaultDataCiphers]
+      : dataCiphers.toUpperCase().split(':').where((c) => c.isNotEmpty);
+  final usable = {
+    ...offered.where(_supportedCiphers.contains),
+    if (_supportedCiphers.contains(cipher)) cipher,
+  }.toList();
+  proxy['data-ciphers'] = usable;
+  if (cipher.isNotEmpty) {
+    // An unsupported legacy `cipher` (BF-CBC) is only used by servers that
+    // cannot negotiate; the others pick one of `data-ciphers`.
+    proxy['cipher'] = _supportedCiphers.contains(cipher)
+        ? cipher
+        : usable.first;
+  }
   final fallback = file.arg('data-ciphers-fallback');
   if (fallback.isNotEmpty) proxy['data-ciphers-fallback'] = fallback;
+  // OpenVPN's default digest is SHA1; mihomo would assume SHA256.
   final auth = file.arg('auth');
-  if (auth.isNotEmpty) proxy['auth'] = auth;
+  proxy['auth'] = auth.isEmpty ? 'SHA1' : auth.toUpperCase();
   if (file.has('comp-lzo')) {
     final value = file.arg('comp-lzo');
     proxy['comp-lzo'] = value.isEmpty ? 'adaptive' : value;
+  }
+  if (file.has('compress')) {
+    final value = file.arg('compress').toLowerCase();
+    proxy['compress'] = value.isEmpty ? 'stub' : value;
   }
   void putInt(String key, String value) {
     final number = int.tryParse(value);
@@ -573,6 +626,71 @@ Map<String, Object> ovpnToProxy(
     proxy['password'] = login.password;
   }
   return proxy;
+}
+
+const _defaultDataCiphers = ['AES-256-GCM', 'AES-128-GCM', 'CHACHA20-POLY1305'];
+
+/// Data ciphers Pebble's OpenVPN engine implements.
+const _supportedCiphers = {
+  'AES-128-GCM', 'AES-192-GCM', 'AES-256-GCM', 'AES-128-CBC', //
+  'AES-192-CBC', 'AES-256-CBC', 'CHACHA20-POLY1305',
+};
+
+/// Rejects, at import, what the engine cannot run: once a profile is
+/// active, a single unusable proxy would disable every proxy in it.
+void _checkOvpnSupported(OvpnFile file) {
+  final dev = file.arg('dev').toLowerCase();
+  if (dev.startsWith('tap') || file.arg('dev-type').toLowerCase() == 'tap') {
+    throw const MessageException(
+      'OpenVPN: "dev tap" (layer 2) servers are not supported, only "dev tun"',
+    );
+  }
+  final cipher = file.arg('cipher').toUpperCase();
+  var dataCiphers = file.arg('data-ciphers');
+  if (dataCiphers.isEmpty) dataCiphers = file.arg('ncp-ciphers');
+  final offered = dataCiphers.isEmpty
+      ? _defaultDataCiphers
+      : dataCiphers.toUpperCase().split(':');
+  if (cipher.isNotEmpty &&
+      !_supportedCiphers.contains(cipher) &&
+      !offered.any(_supportedCiphers.contains)) {
+    throw MessageException(
+      'OpenVPN: cipher $cipher is not supported (use AES-GCM, AES-CBC or '
+      'CHACHA20-POLY1305)',
+    );
+  }
+  final auth = file.arg('auth').toUpperCase();
+  if (auth.isNotEmpty &&
+      !const {
+        'MD5',
+        'SHA1',
+        'SHA-1',
+        'SHA256',
+        'SHA384',
+        'SHA512',
+      }.contains(auth)) {
+    throw MessageException('OpenVPN: auth $auth is not supported');
+  }
+  final compress = file.arg('compress').toLowerCase();
+  if (file.has('compress') &&
+      !const {
+        '',
+        'stub',
+        'stub-v2',
+        'lz4',
+        'lz4-v2',
+        'lzo',
+        'migrate',
+      }.contains(compress)) {
+    throw MessageException('OpenVPN: compress $compress is not supported');
+  }
+  final pkcs12 = file.has('pkcs12') || file.blocks.containsKey('pkcs12');
+  if (pkcs12) {
+    throw const MessageException(
+      'OpenVPN: PKCS#12 certificates are not supported; export the .ovpn '
+      'with inline <cert> and <key>',
+    );
+  }
 }
 
 String profileFromOvpn(
