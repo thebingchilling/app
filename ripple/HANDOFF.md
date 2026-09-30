@@ -10,7 +10,7 @@ with the JMAP protocol removed and replaced by an open-source IMAP/POP3/SMTP
 engine (Thunderbird for Android's), plus OAuth for Gmail/Outlook and
 iOS-like instant delivery. Android only. Name chosen by the user: Ripple.
 
-## State (2026-09-29)
+## State (2026-09-30)
 
 Sources: Ltt.rs `codeberg.org/iNPUTmice/lttrs-android` @ `d950cf9`;
 Thunderbird for Android @ `0e1137f` (see `engine/README.md`).
@@ -48,13 +48,37 @@ How it fits together:
   provider has a client id) or password → `Mua.checkSettings` → insert.
   Manual settings: `ServerSettingsFragment`.
 
+## Audit (2026-09-30)
+
+User report: "some does not work, I would like to add OAuth".
+- CI had **no OAuth client ids** (and no signing secrets): the Google/
+  Microsoft buttons never appear, and Outlook.com rejects passwords, so
+  those accounts could not be added at all. README now has step-by-step
+  registration (Google: iOS-type client, no SHA-1 needed; Microsoft: public
+  client with `app.ripple.mail://oauth2redirect`) and the secrets to add.
+- A rejected login (expired/revoked OAuth, changed password) made sync and
+  push fail silently. `engine/SignInProblems` now posts "Sign in to … again"
+  from push, query refresh and send; it opens `SetupActivity` with
+  `EXTRA_REAUTH_ACCOUNT`, which re-runs OAuth (or asks for the password) and
+  replaces the login in place (`AccountDao.updateLogin`), then restarts that
+  account's IDLE connection (`PushController.onLoginChanged`).
+- OAuth state survives the setup activity being destroyed while the browser
+  is open (pending provider and re-sign-in account are in the saved state).
+- Re-sign-in refuses a token for a different address than the account's.
+- Yahoo/AOL and iCloud now explain their app passwords like Gmail/Outlook.
+- Test: `engine/SignInProblemsTest` (GreenMail).
+
 ## Open items
 
 - Never run on a device (no KVM here). First real-device test should cover:
   Gmail app password, Outlook, a Dovecot server, IDLE across Doze and network
   changes, notifications, attachments, compose/reply.
-- OAuth needs client ids (`RIPPLE_GOOGLE_CLIENT_ID`, `RIPPLE_MICROSOFT_CLIENT_ID`,
-  see README); the flow is untested end to end without them.
+- OAuth needs client ids (`RIPPLE_GOOGLE_CLIENT_ID`, `RIPPLE_MICROSOFT_CLIENT_ID`
+  repository secrets, see README); the user has to register them. The flow is
+  untested end to end without them.
+- Signing: no `RIPPLE_KEYSTORE_*` secrets yet, so each CI APK has a new key
+  and cannot update the installed one. The repo is public: never commit a
+  key or upload one as an artifact.
 - HTML-only mail is converted to text (`MessageMapper.htmlToText`); a WebView
   renderer would be the next UI improvement.
 - Search is local only (synced mail). IMAP `SEARCH` via `Backend.search` could

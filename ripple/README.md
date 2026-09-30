@@ -59,29 +59,63 @@ CI (`.github/workflows/build-ripple.yml`) runs the tests and uploads a release
 APK as the `Ripple-apk` artifact. It signs with the `RIPPLE_KEYSTORE_*`
 secrets, else Tidewall's key, else a throwaway debug key.
 
-### OAuth client ids (optional)
+### Sign in with Google / Microsoft (OAuth)
 
-Put them in `local.properties` or the environment (CI: repository secrets):
+Gmail works with an app password, but Outlook.com/Hotmail/Live accounts no
+longer accept passwords in mail apps at all: they need "Sign in with
+Microsoft". Those buttons appear only in builds that carry OAuth client ids,
+which you register once (free) and store as repository secrets. CI then
+builds them into every APK.
 
-```
-RIPPLE_GOOGLE_CLIENT_ID=1234-abc.apps.googleusercontent.com
-RIPPLE_MICROSOFT_CLIENT_ID=00000000-0000-0000-0000-000000000000
-```
+**Microsoft (Outlook.com, Hotmail, Live, Microsoft 365)**
 
-- **Google:** Google Cloud console → APIs & Services → Credentials → OAuth
-  client ID of type *Android*, package `app.ripple.mail`, SHA-1 of the key
-  that signs your APK; under *Advanced settings* enable *Custom URI scheme*
-  (Ripple uses the `com.googleusercontent.apps.<id>:/oauth2redirect`
-  redirect). Add the scope `https://mail.google.com/`. While the
-  consent screen is in *Testing* only listed test users can sign in and
-  refresh tokens expire after 7 days; publishing needs Google's verification
-  of this restricted scope.
-- **Microsoft:** Entra admin center → App registrations → New registration,
-  "Accounts in any organizational directory and personal Microsoft accounts".
-  Add a *Mobile and desktop applications* redirect URI
-  `app.ripple.mail://oauth2redirect`, and API permissions (Office 365 Exchange
-  Online / delegated) `IMAP.AccessAsUser.All`, `SMTP.Send`, plus
-  `offline_access`, `openid`, `email`, `profile`.
+1. Go to <https://entra.microsoft.com> → *Identity* → *Applications* →
+   *App registrations* → *New registration* (a personal Microsoft account
+   works).
+2. Name: `Ripple`. Supported account types: *Accounts in any organizational
+   directory and personal Microsoft accounts*.
+3. Redirect URI: platform *Public client/native (mobile & desktop)*, value
+   `app.ripple.mail://oauth2redirect`. Register.
+4. Copy the *Application (client) ID* (a GUID).
+5. Optional: *API permissions* → add *Office 365 Exchange Online* delegated
+   `IMAP.AccessAsUser.All`, `POP.AccessAsUser.All`, `SMTP.Send` (Ripple also
+   asks for them at sign-in, so this only pre-lists them).
+
+**Google (Gmail, Google Workspace)**
+
+1. <https://console.cloud.google.com> → create a project → *APIs & Services*
+   → *OAuth consent screen* (*Google Auth Platform*): user type *External*,
+   app name `Ripple`, your email as support and developer contact.
+2. *Data access* → *Add or remove scopes* → add `https://mail.google.com/`.
+3. *Audience*: while the app is in *Testing*, add your Gmail address(es) as
+   test users; Google then expires the sign-in every 7 days (Ripple shows a
+   "Sign in again" notification). Clicking *Publish app* avoids that: you get
+   an "unverified app" warning at sign-in (*Advanced* → *Go to Ripple*) and a
+   limit of 100 users, which is fine for personal use.
+4. *Clients* → *Create client* → Application type **iOS**, Bundle ID
+   `app.ripple.mail`. (iOS clients use the redirect Ripple expects,
+   `com.googleusercontent.apps.<id>:/oauth2redirect`, and need no
+   signing-key fingerprint. An *Android* client works too if you enable
+   *Custom URI scheme* under its advanced settings.)
+5. Copy the client ID (`1234-abc.apps.googleusercontent.com`).
+
+**Put them into the build**
+
+GitHub → this repository → *Settings* → *Secrets and variables* →
+*Actions* → *New repository secret*:
+
+| Secret | Value |
+| --- | --- |
+| `RIPPLE_MICROSOFT_CLIENT_ID` | the Microsoft application (client) ID |
+| `RIPPLE_GOOGLE_CLIENT_ID` | the Google client ID |
+
+Then *Actions* → *Build Ripple* → *Run workflow*, and install the new
+`Ripple-apk`. For local builds put the same lines in `local.properties` or
+the environment.
+
+When a server later rejects a saved login (password changed, sign-in expired
+or revoked), Ripple posts a "Sign in to … again" notification; tapping it
+replaces the login of that account without removing it.
 
 ## Licences
 

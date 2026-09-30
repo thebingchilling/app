@@ -17,41 +17,48 @@ package rs.ltt.android.ui.activity;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Bundle;
+import androidx.activity.ComponentActivity;
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.databinding.DataBindingUtil;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
 import net.openid.appauth.AuthState;
 import net.openid.appauth.AuthorizationException;
 import net.openid.appauth.AuthorizationRequest;
 import net.openid.appauth.AuthorizationResponse;
 import net.openid.appauth.AuthorizationService;
 import net.openid.appauth.ResponseTypeValues;
-import rs.ltt.android.engine.OAuthProvider;
-import rs.ltt.android.mail.util.EmailAddressUtil;
-import android.net.Uri;
-import android.os.Bundle;
-import androidx.activity.ComponentActivity;
-import androidx.activity.OnBackPressedCallback;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.databinding.DataBindingUtil;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.NavController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rs.ltt.android.R;
 import rs.ltt.android.SetupNavigationDirections;
 import rs.ltt.android.databinding.ActivitySetupBinding;
+import rs.ltt.android.engine.OAuthProvider;
+import rs.ltt.android.mail.util.EmailAddressUtil;
+import rs.ltt.android.mail.util.MailToUri;
 import rs.ltt.android.ui.MaterialAlertDialogs;
 import rs.ltt.android.ui.model.SetupViewModel;
 import rs.ltt.android.util.Event;
 import rs.ltt.android.util.NavControllers;
-import rs.ltt.android.mail.util.MailToUri;
 
 public class SetupActivity extends AppCompatActivity {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SetupActivity.class);
 
     public static String EXTRA_NEXT_ACTION = "rs.ltt.android.extras.next-action";
+
+    /** Account id whose login the server rejected; sign in to it again. */
+    public static final String EXTRA_REAUTH_ACCOUNT = "rs.ltt.android.extras.reauth-account";
+
+    private static final String STATE_PENDING_PROVIDER = "pending-oauth-provider";
+    private static final String STATE_REAUTH_ACCOUNT = "reauth-account";
     private SetupViewModel setupViewModel;
     private AuthorizationService authorizationService;
     private OAuthProvider pendingProvider;
@@ -87,6 +94,20 @@ public class SetupActivity extends AppCompatActivity {
         this.setupViewModel.getWarningMessage().observe(this, this::onWarningMessage);
         this.setupViewModel.getOAuthRequest().observe(this, this::onOAuthRequest);
         this.authorizationService = new AuthorizationService(this);
+        if (savedInstanceState != null) {
+            // Android may destroy this activity while the browser shows the sign-in page.
+            this.pendingProvider =
+                    OAuthProvider.of(savedInstanceState.getString(STATE_PENDING_PROVIDER));
+            final long reauth = savedInstanceState.getLong(STATE_REAUTH_ACCOUNT, -1L);
+            if (reauth >= 0 && setupViewModel.getReauthAccountId() == null) {
+                setupViewModel.restoreReauth(reauth);
+            }
+        } else {
+            final long reauth = getIntent().getLongExtra(EXTRA_REAUTH_ACCOUNT, -1L);
+            if (reauth >= 0) {
+                setupViewModel.startReauth(reauth);
+            }
+        }
         this.getOnBackPressedDispatcher().addCallback(this, this.loadingBackPressedCallback);
         this.setupViewModel
                 .isLoading()
@@ -95,6 +116,18 @@ public class SetupActivity extends AppCompatActivity {
                         loading ->
                                 this.loadingBackPressedCallback.setEnabled(
                                         Boolean.TRUE.equals(loading)));
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull final Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (this.pendingProvider != null) {
+            outState.putString(STATE_PENDING_PROVIDER, this.pendingProvider.getId());
+        }
+        final Long reauth = setupViewModel.getReauthAccountId();
+        if (reauth != null) {
+            outState.putLong(STATE_REAUTH_ACCOUNT, reauth);
+        }
     }
 
     private void onWarningMessage(Event<String> event) {

@@ -58,6 +58,27 @@ object PushController {
         }
     }
 
+    /** The user signed in again: reconnect instant delivery with the new login. */
+    @JvmStatic
+    fun onLoginChanged(context: Context, accountId: Long) {
+        val appContext = context.applicationContext
+        EXECUTOR.execute {
+            val accounts = AppDatabase.getInstance(appContext).accountDao().accountsSync
+            if (!isInstantDeliveryEnabled(appContext) || accounts.none { !it.credentials.isPop3 }) {
+                return@execute
+            }
+            try {
+                ContextCompat.startForegroundService(
+                    appContext,
+                    Intent(appContext, PushService::class.java)
+                        .putExtra(PushService.EXTRA_RESTART_ACCOUNT, accountId),
+                )
+            } catch (e: Exception) {
+                LOGGER.warn("Unable to restart push service", e)
+            }
+        }
+    }
+
     @JvmStatic
     fun start(context: Context) {
         try {

@@ -123,4 +123,17 @@ public abstract class AccountDao {
 
     @Query("update credentials set password=:password where id=:credentialsId")
     public abstract void setPassword(Long credentialsId, String password);
+
+    /** Replaces the login of an existing account after the user signed in again. */
+    @Query(
+            "update credentials set authType=:authType, username=:username, password=:password,"
+                    + " oauthProvider=:oauthProvider, oauthState=:oauthState where id=(select"
+                    + " credentialsId from account where id=:accountId)")
+    public abstract void updateLogin(
+            Long accountId,
+            String authType,
+            String username,
+            String password,
+            String oauthProvider,
+            String oauthState);
 }

@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rs.ltt.android.engine.SignInProblems;
 import rs.ltt.android.entity.QueryInfo;
 import rs.ltt.android.entity.SearchSuggestion;
 import rs.ltt.android.mail.model.query.EmailQuery;
@@ -102,6 +103,7 @@ public abstract class QueryRefreshWorker extends AbstractMuaWorker {
             return refresh(emailQuery);
         } catch (final Exception e) {
             LOGGER.info("Unable to refresh query", e);
+            SignInProblems.reportIfAuthFailure(getApplicationContext(), account, e);
             return Result.failure();
         }
     }

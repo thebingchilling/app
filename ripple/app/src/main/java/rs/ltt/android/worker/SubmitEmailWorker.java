@@ -22,6 +22,7 @@ import androidx.work.WorkerParameters;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rs.ltt.android.engine.SignInProblems;
 import rs.ltt.android.entity.IdentityWithNameAndEmail;
 
 public class SubmitEmailWorker extends AbstractMuaWorker {
@@ -65,6 +66,7 @@ public class SubmitEmailWorker extends AbstractMuaWorker {
             return Result.success();
         } catch (ExecutionException e) {
             LOGGER.warn("Unable to submit draft", e);
+            SignInProblems.reportIfAuthFailure(getApplicationContext(), account, e);
             if (shouldRetry(e)) {
                 return Result.retry();
             } else {

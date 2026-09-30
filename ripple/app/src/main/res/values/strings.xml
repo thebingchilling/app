@@ -221,7 +221,13 @@
     <string name="account_already_exists">This account is already set up</string>
     <string name="app_password">App password</string>
     <string name="app_password_explanation_google">Gmail does not accept your normal password in email apps. Turn on 2-Step Verification in your Google account, then create an app password at myaccount.google.com/apppasswords and enter it here.</string>
-    <string name="app_password_explanation_microsoft">Outlook.com and Microsoft 365 only accept an app password here, if your account allows them at all. Signing in with Microsoft needs an OAuth client id in this build (see README).</string>
+    <string name="app_password_explanation_microsoft">Outlook.com, Hotmail and Live accounts no longer accept passwords in email apps, and most Microsoft 365 work accounts do not either. They need \"Sign in with Microsoft\", which this build of Ripple does not have: its OAuth client id is missing (see Ripple\'s README). A Microsoft 365 account whose admin allows it can use an app password here.</string>
+    <string name="app_password_explanation_yahoo">Yahoo and AOL do not accept your normal password in email apps. Create an app password under Account security → Generate app password (login.yahoo.com/account/security) and enter it here.</string>
+    <string name="app_password_explanation_icloud">iCloud Mail needs an app-specific password: account.apple.com → Sign-In and Security → App-Specific Passwords. Enter it here.</string>
+    <string name="sign_in_problems_channel">Sign-in problems</string>
+    <string name="sign_in_again_title">Sign in to %s again</string>
+    <string name="sign_in_again_text">The server no longer accepts the saved login, so new mail is not arriving. Tap to sign in again.</string>
+    <string name="signed_in_as_other_account">You signed in as %1$s, but this account is %2$s. Sign in with %2$s.</string>
     <string name="could_not_determine_email_address">Could not determine the email address of this account</string>
     <string name="sign_in_failed_x">Sign-in failed: %s</string>
     <string name="enter_a_server_name">Enter a server name</string>

@@ -21,9 +21,10 @@ import androidx.work.WorkerParameters;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rs.ltt.android.engine.Mua;
+import rs.ltt.android.engine.SignInProblems;
 import rs.ltt.android.entity.IdentityWithNameAndEmail;
 import rs.ltt.android.mail.model.Email;
-import rs.ltt.android.engine.Mua;
 
 public class SendEmailWorker extends AbstractCreateEmailWorker {
 
@@ -52,6 +53,7 @@ public class SendEmailWorker extends AbstractCreateEmailWorker {
             // TODO we might have a weird corner case here where saving the draft works but
             // submission fails. Do we need to handle that somehow?
             LOGGER.warn("Unable to send email", e);
+            SignInProblems.reportIfAuthFailure(getApplicationContext(), account, e);
             return Result.failure(Failure.of(e.getCause()));
         } catch (final InterruptedException e) {
             return Result.retry();

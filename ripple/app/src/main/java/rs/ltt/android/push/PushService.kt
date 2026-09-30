@@ -26,6 +26,7 @@ import rs.ltt.android.MuaPool
 import rs.ltt.android.R
 import rs.ltt.android.database.AppDatabase
 import rs.ltt.android.engine.Mua
+import rs.ltt.android.engine.SignInProblems
 import rs.ltt.android.entity.AccountWithCredentials
 import rs.ltt.android.ui.activity.MainActivity
 
@@ -52,7 +53,14 @@ class PushService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startInForeground(getString(R.string.push_notification_connecting))
-        executor.execute { updatePushers() }
+        val restart = intent?.getLongExtra(EXTRA_RESTART_ACCOUNT, -1L) ?: -1L
+        executor.execute {
+            if (restart >= 0) {
+                // The login changed: reconnect with the new one.
+                pushers.remove(restart)?.stop()
+            }
+            updatePushers()
+        }
         return START_STICKY
     }
 
@@ -129,6 +137,7 @@ class PushService : Service() {
                     mua.syncBlocking(folderServerId ?: mua.foldersToPush().first(), true)
                 } catch (e: Exception) {
                     LOGGER.warn("Sync after push event failed for {}", account.id, e)
+                    SignInProblems.reportIfAuthFailure(this@PushService, account.id, e)
                 }
             }
         }
@@ -140,6 +149,7 @@ class PushService : Service() {
 
         override fun onPushError(exception: Exception) {
             LOGGER.warn("Push error for account {}", account.id, exception)
+            SignInProblems.reportIfAuthFailure(this@PushService, account.id, exception)
         }
 
         override suspend fun onPushNotSupported() {
@@ -220,5 +230,6 @@ class PushService : Service() {
         private val LOGGER = LoggerFactory.getLogger(PushService::class.java)
         private const val CHANNEL_ID = "push"
         private const val NOTIFICATION_ID = 0x7075
+        const val EXTRA_RESTART_ACCOUNT = "restart_account"
     }
 }

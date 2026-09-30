@@ -51,16 +51,18 @@ import rs.ltt.android.engine.Autoconfig;
 import rs.ltt.android.engine.MailSettings;
 import rs.ltt.android.engine.Mua;
 import rs.ltt.android.engine.OAuthProvider;
+import rs.ltt.android.engine.SignInProblems;
 import rs.ltt.android.engine.StaticTokenProvider;
 import rs.ltt.android.entity.AccountWithCredentials;
 import rs.ltt.android.entity.CredentialsEntity;
 import rs.ltt.android.mail.util.EmailAddressUtil;
+import rs.ltt.android.push.PushController;
 import rs.ltt.android.repository.MainRepository;
 import rs.ltt.android.util.Event;
 
 /**
- * Drives account setup: email address, then server discovery, then either OAuth (Google,
- * Microsoft) or a password, then a login test against IMAP/POP3 and SMTP.
+ * Drives account setup: email address, then server discovery, then either OAuth (Google, Microsoft)
+ * or a password, then a login test against IMAP/POP3 and SMTP.
  */
 public class SetupViewModel extends AndroidViewModel {
 
@@ -69,7 +71,9 @@ public class SetupViewModel extends AndroidViewModel {
     private static final ListeningExecutorService NETWORK =
             MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
 
-    public static final String[] SECURITY_OPTIONS = {"SSL_TLS_REQUIRED", "STARTTLS_REQUIRED", "NONE"};
+    public static final String[] SECURITY_OPTIONS = {
+        "SSL_TLS_REQUIRED", "STARTTLS_REQUIRED", "NONE"
+    };
 
     private final MutableLiveData<String> emailAddress = new MutableLiveData<>();
     private final MutableLiveData<String> emailAddressError = new MutableLiveData<>();
@@ -96,6 +100,8 @@ public class SetupViewModel extends AndroidViewModel {
     private final MainRepository mainRepository;
     private ListenableFuture<?> networkFuture = null;
     private Long primaryAccountId = null;
+    // Set while signing in again to an existing account; its login is replaced, not added.
+    private Long reauthAccountId = null;
 
     public SetupViewModel(@NonNull Application application) {
         super(application);
@@ -197,6 +203,79 @@ public class SetupViewModel extends AndroidViewModel {
         return Strings.nullToEmpty(this.emailAddress.getValue()).trim();
     }
 
+    // ------------------------------------------------------------------ signing in again
+
+    public Long getReauthAccountId() {
+        return reauthAccountId;
+    }
+
+    /**
+     * Restores the mode after the activity (and maybe the process) was recreated: reloads the
+     * account's settings but starts nothing, since a sign-in may already be under way.
+     */
+    public void restoreReauth(final long accountId) {
+        loadReauthAccount(accountId, false);
+    }
+
+    /**
+     * The server rejected an account's saved login: ask for it again (Google/Microsoft sign-in, or
+     * the password) and replace it.
+     */
+    public void startReauth(final long accountId) {
+        loadReauthAccount(accountId, true);
+    }
+
+    private void loadReauthAccount(final long accountId, final boolean start) {
+        this.reauthAccountId = accountId;
+        if (start) {
+            this.loading.postValue(true);
+        }
+        Futures.addCallback(
+                AppDatabase.getInstance(getApplication()).accountDao().getAccountFuture(accountId),
+                new FutureCallback<>() {
+                    @Override
+                    public void onSuccess(final AccountWithCredentials account) {
+                        if (start) {
+                            loading.postValue(false);
+                        }
+                        if (account == null) {
+                            reauthAccountId = null;
+                            return;
+                        }
+                        final AccountWithCredentials.Credentials c = account.getCredentials();
+                        emailAddress.postValue(account.getName());
+                        pop3.postValue(c.isPop3());
+                        incomingHost.postValue(c.incomingHost);
+                        incomingPort.postValue(String.valueOf(c.incomingPort));
+                        incomingSecurity.postValue(c.incomingSecurity);
+                        smtpHost.postValue(c.smtpHost);
+                        smtpPort.postValue(String.valueOf(c.smtpPort));
+                        smtpSecurity.postValue(c.smtpSecurity);
+                        username.postValue(c.username);
+                        if (!start) {
+                            return;
+                        }
+                        final OAuthProvider provider = OAuthProvider.of(c.oauthProvider);
+                        if (provider != null && provider.isConfigured()) {
+                            oauthRequest.postValue(new Event<>(provider));
+                        } else {
+                            preparePasswordStep(
+                                    OAuthProvider.forHost(c.incomingHost), c.incomingHost);
+                            redirection.postValue(new Event<>(Target.ENTER_PASSWORD));
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull final Throwable throwable) {
+                        if (start) {
+                            loading.postValue(false);
+                        }
+                        LOGGER.warn("Unable to load account {}", accountId, throwable);
+                    }
+                },
+                MoreExecutors.directExecutor());
+    }
+
     // ------------------------------------------------------------------ step 1: email address
 
     public boolean checkEmailAddress() {
@@ -220,7 +299,8 @@ public class SetupViewModel extends AndroidViewModel {
         }
         final String emailAddress = getEmailAddressValue();
         if (AppDatabase.getInstance(getApplication()).accountDao().hasAccount(emailAddress)) {
-            emailAddressError.postValue(getApplication().getString(R.string.account_already_exists));
+            emailAddressError.postValue(
+                    getApplication().getString(R.string.account_already_exists));
             return;
         }
         this.loading.postValue(true);
@@ -238,7 +318,7 @@ public class SetupViewModel extends AndroidViewModel {
                         if (provider != null && provider.isConfigured()) {
                             oauthRequest.postValue(new Event<>(provider));
                         } else if (settings.getDiscovered()) {
-                            preparePasswordStep(provider);
+                            preparePasswordStep(provider, settings.getIncomingHost());
                             redirection.postValue(new Event<>(Target.ENTER_PASSWORD));
                         } else {
                             serverSettingsError.postValue(null);
@@ -280,9 +360,13 @@ public class SetupViewModel extends AndroidViewModel {
         username.postValue(settings.getUsername());
     }
 
-    private void preparePasswordStep(final OAuthProvider provider) {
+    private void preparePasswordStep(final OAuthProvider provider, final String host) {
         passwordError.postValue(null);
-        if (provider != null) {
+        final Integer appPasswordExplanation = appPasswordExplanation(host);
+        if (provider == null && appPasswordExplanation != null) {
+            passwordHint.postValue(getApplication().getString(R.string.app_password));
+            passwordExplanation.postValue(getApplication().getString(appPasswordExplanation));
+        } else if (provider != null) {
             passwordHint.postValue(getApplication().getString(R.string.app_password));
             passwordExplanation.postValue(
                     getApplication()
@@ -294,6 +378,21 @@ public class SetupViewModel extends AndroidViewModel {
             passwordHint.postValue(getApplication().getString(R.string.password));
             passwordExplanation.postValue(null);
         }
+    }
+
+    /** Providers that refuse the account password in mail apps and want an app password. */
+    private static Integer appPasswordExplanation(final String host) {
+        final String h = Strings.nullToEmpty(host).toLowerCase(java.util.Locale.ROOT);
+        if (h.equals("imap.mail.yahoo.com")
+                || h.equals("pop.mail.yahoo.com")
+                || h.equals("imap.aol.com")
+                || h.equals("pop.aol.com")) {
+            return R.string.app_password_explanation_yahoo;
+        }
+        if (h.equals("imap.mail.me.com")) {
+            return R.string.app_password_explanation_icloud;
+        }
+        return null;
     }
 
     // ------------------------------------------------------------------ step 2a: password
@@ -320,7 +419,8 @@ public class SetupViewModel extends AndroidViewModel {
     public boolean enterServerSettings() {
         final String password = Strings.nullToEmpty(this.password.getValue());
         if (password.isEmpty()) {
-            this.serverSettingsError.postValue(getApplication().getString(R.string.enter_a_password));
+            this.serverSettingsError.postValue(
+                    getApplication().getString(R.string.enter_a_password));
             return true;
         }
         final CredentialsEntity credentials;
@@ -351,8 +451,24 @@ public class SetupViewModel extends AndroidViewModel {
         final String entered = getEmailAddressValue();
         final String fromToken = emails.isEmpty() ? null : emails.iterator().next();
         // The server wants the account's primary address as login name.
+        final boolean matches =
+                emails.stream().anyMatch(address -> address.equalsIgnoreCase(entered));
+        // Signing in again: the account may have been added under an alias, its login being the
+        // primary address the token names.
+        final String savedLogin = Strings.nullToEmpty(username.getValue()).trim();
+        final boolean matchesSavedLogin =
+                reauthAccountId != null
+                        && emails.stream()
+                                .anyMatch(address -> address.equalsIgnoreCase(savedLogin));
+        if (reauthAccountId != null && fromToken != null && !matches && !matchesSavedLogin) {
+            loading.postValue(false);
+            showWarningMessage(
+                    getApplication()
+                            .getString(R.string.signed_in_as_other_account, fromToken, entered));
+            return;
+        }
         final String login =
-                emails.contains(entered) || fromToken == null ? entered : fromToken;
+                matchesSavedLogin ? savedLogin : matches || fromToken == null ? entered : fromToken;
         final String email = EmailAddressUtil.isValid(entered) ? entered : login;
         if (Strings.isNullOrEmpty(email) || Strings.isNullOrEmpty(login)) {
             loading.postValue(false);
@@ -361,11 +477,14 @@ public class SetupViewModel extends AndroidViewModel {
         }
         emailAddress.setValue(email);
         final MailSettings defaults =
-                provider == OAuthProvider.GOOGLE ? Autoconfig.google(email) : Autoconfig.microsoft(email);
+                provider == OAuthProvider.GOOGLE
+                        ? Autoconfig.google(email)
+                        : Autoconfig.microsoft(email);
         final CredentialsEntity credentials = new CredentialsEntity();
         credentials.incomingProtocol = "imap";
         credentials.incomingHost = valueOr(incomingHost, defaults.getIncomingHost());
-        credentials.incomingPort = parsePort(valueOr(incomingPort, String.valueOf(defaults.getIncomingPort())));
+        credentials.incomingPort =
+                parsePort(valueOr(incomingPort, String.valueOf(defaults.getIncomingPort())));
         credentials.incomingSecurity = valueOr(incomingSecurity, defaults.getIncomingSecurity());
         credentials.smtpHost = valueOr(smtpHost, defaults.getSmtpHost());
         credentials.smtpPort = parsePort(valueOr(smtpPort, String.valueOf(defaults.getSmtpPort())));
@@ -422,19 +541,40 @@ public class SetupViewModel extends AndroidViewModel {
         this.loading.postValue(true);
         this.passwordError.postValue(null);
         this.serverSettingsError.postValue(null);
-        final String email = getEmailAddressValue().isEmpty() ? credentials.username : getEmailAddressValue();
+        final String email =
+                getEmailAddressValue().isEmpty() ? credentials.username : getEmailAddressValue();
         final ListenableFuture<Void> check =
                 NETWORK.submit(
                         () -> {
-                            Mua.checkSettings(getApplication(), toCredentials(credentials), tokenProvider);
+                            Mua.checkSettings(
+                                    getApplication(), toCredentials(credentials), tokenProvider);
                             return null;
                         });
         this.networkFuture = check;
+        final Long reauth = this.reauthAccountId;
         final ListenableFuture<Long> insert =
-                Futures.transformAsync(
-                        check,
-                        v -> mainRepository.insertAccount(credentials, email, null),
-                        MoreExecutors.directExecutor());
+                reauth == null
+                        ? Futures.transformAsync(
+                                check,
+                                v -> mainRepository.insertAccount(credentials, email, null),
+                                MoreExecutors.directExecutor())
+                        : Futures.transform(
+                                check,
+                                v -> {
+                                    AppDatabase.getInstance(getApplication())
+                                            .accountDao()
+                                            .updateLogin(
+                                                    reauth,
+                                                    credentials.authType,
+                                                    credentials.username,
+                                                    credentials.password,
+                                                    credentials.oauthProvider,
+                                                    credentials.oauthState);
+                                    SignInProblems.clear(getApplication(), reauth);
+                                    PushController.onLoginChanged(getApplication(), reauth);
+                                    return reauth;
+                                },
+                                NETWORK);
         Futures.addCallback(
                 insert,
                 new FutureCallback<>() {
@@ -461,11 +601,14 @@ public class SetupViewModel extends AndroidViewModel {
     }
 
     private void onCheckFailed(
-            final Throwable throwable, final Target errorTarget, final CredentialsEntity credentials) {
+            final Throwable throwable,
+            final Target errorTarget,
+            final CredentialsEntity credentials) {
         final String message = describe(throwable);
-        if (throwable instanceof AuthenticationFailedException && errorTarget == Target.ENTER_PASSWORD) {
+        if (throwable instanceof AuthenticationFailedException
+                && errorTarget == Target.ENTER_PASSWORD) {
             final OAuthProvider provider = OAuthProvider.forHost(credentials.incomingHost);
-            preparePasswordStep(provider);
+            preparePasswordStep(provider, credentials.incomingHost);
             passwordError.postValue(getApplication().getString(R.string.wrong_password));
             return;
         }
@@ -481,11 +624,13 @@ public class SetupViewModel extends AndroidViewModel {
 
     private String describe(final Throwable throwable) {
         if (throwable instanceof AuthenticationFailedException) {
-            final String server = ((AuthenticationFailedException) throwable).getMessageFromServer();
+            final String server =
+                    ((AuthenticationFailedException) throwable).getMessageFromServer();
             return getApplication().getString(R.string.wrong_password)
                     + (server == null ? "" : " (" + server + ")");
         }
-        if (throwable instanceof CertificateValidationException || rootCause(throwable) instanceof SSLException) {
+        if (throwable instanceof CertificateValidationException
+                || rootCause(throwable) instanceof SSLException) {
             return getApplication().getString(R.string.unable_to_establish_secure_connection);
         }
         final Throwable root = rootCause(throwable);
@@ -531,7 +676,8 @@ public class SetupViewModel extends AndroidViewModel {
     private String requireHost(final String host) {
         final String value = Strings.nullToEmpty(host).trim();
         if (value.isEmpty() || value.contains(" ") || value.contains("/")) {
-            throw new IllegalArgumentException(getApplication().getString(R.string.enter_a_server_name));
+            throw new IllegalArgumentException(
+                    getApplication().getString(R.string.enter_a_server_name));
         }
         return value;
     }
