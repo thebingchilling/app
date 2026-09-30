@@ -4,14 +4,12 @@ import android.app.ActivityManager
 import android.app.Application
 import android.os.Build
 import android.util.Log
-import com.google.firebase.FirebaseApp
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
 object GlobalState : CoroutineScope by CoroutineScope(SupervisorJob() + Dispatchers.Default) {
-    const val NOTIFICATION_CHANNEL = "FlClash"
+    const val NOTIFICATION_CHANNEL = "Pebble"
     const val NOTIFICATION_ID = 1
     private const val ANY_PID = 0
     private const val EVERY_EXIT_RECORD = 0
@@ -33,21 +31,14 @@ object GlobalState : CoroutineScope by CoroutineScope(SupervisorJob() + Dispatch
     }
 
     fun log(text: String) {
-        Log.d("FlClash", text)
+        Log.d("Pebble", text)
     }
 
-    fun setCrashlytics(enable: Boolean) {
-        FirebaseApp.initializeApp(application)
-        FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = enable
-        if (enable) {
-            log("Crashlytics enabled")
-        }
-    }
+    // Pebble ships without Firebase: crash reports never leave the phone.
+    @Suppress("UNUSED_PARAMETER")
+    fun setCrashlytics(enable: Boolean) = Unit
 
-    fun didCrashOnPreviousExecution(): Boolean {
-        FirebaseApp.initializeApp(application)
-        return FirebaseCrashlytics.getInstance().didCrashOnPreviousExecution()
-    }
+    fun didCrashOnPreviousExecution(): Boolean = false
 
     fun lastExitInfo(): Map<String, Any?>? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null

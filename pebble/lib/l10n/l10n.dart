@@ -3740,30 +3740,30 @@ class AppLocalizations {
     );
   }
 
-  /// `Helper service unavailable; TUN mode cannot be enabled. Reinstall FlClash to restore it.`
+  /// `Helper service unavailable; TUN mode cannot be enabled. Reinstall Pebble to restore it.`
   String get helperCorruptTip {
     return Intl.message(
-      'Helper service unavailable; TUN mode cannot be enabled. Reinstall FlClash to restore it.',
+      'Helper service unavailable; TUN mode cannot be enabled. Reinstall Pebble to restore it.',
       name: 'helperCorruptTip',
       desc: '',
       args: [],
     );
   }
 
-  /// `Windows refused to run FlClashCore.exe (error {code}). An app control policy such as Smart App Control or AppLocker blocks unsigned programs; allow FlClash in that policy or turn it off, then try again.`
+  /// `Windows refused to run PebbleCore.exe (error {code}). An app control policy such as Smart App Control or AppLocker blocks unsigned programs; allow Pebble in that policy or turn it off, then try again.`
   String coreBlockedByPolicyTip(Object code) {
     return Intl.message(
-      'Windows refused to run FlClashCore.exe (error $code). An app control policy such as Smart App Control or AppLocker blocks unsigned programs; allow FlClash in that policy or turn it off, then try again.',
+      'Windows refused to run PebbleCore.exe (error $code). An app control policy such as Smart App Control or AppLocker blocks unsigned programs; allow Pebble in that policy or turn it off, then try again.',
       name: 'coreBlockedByPolicyTip',
       desc: '',
       args: [code],
     );
   }
 
-  /// `Windows Smart App Control blocked FlClashCore.exe because it is not signed. Open Windows Security → App & browser control → Smart App Control settings, choose Off, then start FlClash again. Smart App Control cannot be turned back on without reinstalling Windows.`
+  /// `Windows Smart App Control blocked PebbleCore.exe because it is not signed. Open Windows Security → App & browser control → Smart App Control settings, choose Off, then start Pebble again. Smart App Control cannot be turned back on without reinstalling Windows.`
   String get coreBlockedBySmartAppControlTip {
     return Intl.message(
-      'Windows Smart App Control blocked FlClashCore.exe because it is not signed. Open Windows Security → App & browser control → Smart App Control settings, choose Off, then start FlClash again. Smart App Control cannot be turned back on without reinstalling Windows.',
+      'Windows Smart App Control blocked PebbleCore.exe because it is not signed. Open Windows Security → App & browser control → Smart App Control settings, choose Off, then start Pebble again. Smart App Control cannot be turned back on without reinstalling Windows.',
       name: 'coreBlockedBySmartAppControlTip',
       desc: '',
       args: [],
@@ -5113,6 +5113,31 @@ class AppLocalizations {
       desc: '',
       args: [],
     );
+  }
+
+  /// `OpenVPN login`
+  String get openVpnLogin {
+    return Intl.message(
+      'OpenVPN login',
+      name: 'openVpnLogin',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `{server} asks for a username and password. VPN providers often issue separate OpenVPN (service or manual setup) credentials that differ from your website account; look for them in your provider's dashboard.`
+  String openVpnLoginTip(Object server) {
+    return Intl.message(
+      '$server asks for a username and password. VPN providers often issue separate OpenVPN (service or manual setup) credentials that differ from your website account; look for them in your provider\'s dashboard.',
+      name: 'openVpnLoginTip',
+      desc: '',
+      args: [server],
+    );
+  }
+
+  /// `Username`
+  String get username {
+    return Intl.message('Username', name: 'username', desc: '', args: []);
   }
 }
 

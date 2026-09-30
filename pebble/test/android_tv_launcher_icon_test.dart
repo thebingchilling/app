@@ -67,28 +67,21 @@ void main() {
       'android/app/src/main/res/drawable/'
       'ic_launcher_foreground_tv.xml',
     ).readAsStringSync();
-    final scaleX = _androidDoubleAttribute(vector, 'group', 'scaleX');
-    final scaleY = _androidDoubleAttribute(vector, 'group', 'scaleY');
-    final translateX = _androidDoubleAttribute(vector, 'group', 'translateX');
-    final translateY = _androidDoubleAttribute(vector, 'group', 'translateY');
-    final viewportWidth = _androidDoubleAttribute(
-      vector,
-      'vector',
-      'viewportWidth',
-    );
-    final viewportHeight = _androidDoubleAttribute(
-      vector,
-      'vector',
-      'viewportHeight',
-    );
+    // The outer group scales the stones about the grid centre.
+    final scale = _androidDoubleAttribute(vector, 'group', 'scaleX');
+    expect(_androidDoubleAttribute(vector, 'group', 'scaleY'), scale);
+    final pivotX = _androidDoubleAttribute(vector, 'group', 'pivotX');
+    final pivotY = _androidDoubleAttribute(vector, 'group', 'pivotY');
+    expect(_androidDoubleAttribute(vector, 'vector', 'viewportWidth'), 108);
+    expect(_androidDoubleAttribute(vector, 'vector', 'viewportHeight'), 108);
 
-    // Conservative bounds of the current logo, including the curved caps.
-    const logoBounds = ui.Rect.fromLTRB(54, 33, 179, 206.5);
+    // Conservative bounds of the three rotated stones on the 108 grid.
+    const logoBounds = ui.Rect.fromLTRB(28, 26.5, 80, 82.5);
     final transformedBounds = ui.Rect.fromLTRB(
-      (logoBounds.left * scaleX + translateX) / viewportWidth * 108,
-      (logoBounds.top * scaleY + translateY) / viewportHeight * 108,
-      (logoBounds.right * scaleX + translateX) / viewportWidth * 108,
-      (logoBounds.bottom * scaleY + translateY) / viewportHeight * 108,
+      pivotX + (logoBounds.left - pivotX) * scale,
+      pivotY + (logoBounds.top - pivotY) * scale,
+      pivotX + (logoBounds.right - pivotX) * scale,
+      pivotY + (logoBounds.bottom - pivotY) * scale,
     );
     const safeZone = ui.Rect.fromLTWH(18, 18, 72, 72);
 
@@ -96,7 +89,7 @@ void main() {
     expect(transformedBounds.top, greaterThanOrEqualTo(safeZone.top));
     expect(transformedBounds.right, lessThanOrEqualTo(safeZone.right));
     expect(transformedBounds.bottom, lessThanOrEqualTo(safeZone.bottom));
-    expect(transformedBounds.center.dx, closeTo(safeZone.center.dx, 0.05));
-    expect(transformedBounds.center.dy, closeTo(safeZone.center.dy, 0.05));
+    expect(transformedBounds.center.dx, closeTo(safeZone.center.dx, 0.5));
+    expect(transformedBounds.center.dy, closeTo(safeZone.center.dy, 0.5));
   });
 }

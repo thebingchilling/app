@@ -466,9 +466,9 @@
   "expectedStatus": "Expected status",
   "selectProxies": "Select proxies",
   "inputProxyGroupName": "Enter the proxy group name",
-  "helperCorruptTip": "Helper service unavailable; TUN mode cannot be enabled. Reinstall FlClash to restore it.",
-  "coreBlockedByPolicyTip": "Windows refused to run FlClashCore.exe (error {code}). An app control policy such as Smart App Control or AppLocker blocks unsigned programs; allow FlClash in that policy or turn it off, then try again.",
-  "coreBlockedBySmartAppControlTip": "Windows Smart App Control blocked FlClashCore.exe because it is not signed. Open Windows Security → App & browser control → Smart App Control settings, choose Off, then start FlClash again. Smart App Control cannot be turned back on without reinstalling Windows.",
+  "helperCorruptTip": "Helper service unavailable; TUN mode cannot be enabled. Reinstall Pebble to restore it.",
+  "coreBlockedByPolicyTip": "Windows refused to run PebbleCore.exe (error {code}). An app control policy such as Smart App Control or AppLocker blocks unsigned programs; allow Pebble in that policy or turn it off, then try again.",
+  "coreBlockedBySmartAppControlTip": "Windows Smart App Control blocked PebbleCore.exe because it is not signed. Open Windows Security → App & browser control → Smart App Control settings, choose Off, then start Pebble again. Smart App Control cannot be turned back on without reinstalling Windows.",
   "hideFromList": "Hide from list",
   "testWhenUsed": "Test when used",
   "disableUDP": "Disable UDP",
@@ -617,5 +617,8 @@
   "authorize": "Authorize",
   "installedAppsPermissionRequired": "App list permission required",
   "installedAppsPermissionDesc": "This system hides the installed app list until the permission is granted. Authorize it to configure the per-app proxy.",
-  "installedAppsPermissionDeniedMessage": "The app list permission was denied, so installed apps cannot be listed. Please grant it manually in system settings."
+  "installedAppsPermissionDeniedMessage": "The app list permission was denied, so installed apps cannot be listed. Please grant it manually in system settings.",
+  "openVpnLogin": "OpenVPN login",
+  "openVpnLoginTip": "{server} asks for a username and password. VPN providers often issue separate OpenVPN (service or manual setup) credentials that differ from your website account; look for them in your provider's dashboard.",
+  "username": "Username"
 }

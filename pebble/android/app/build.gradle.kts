@@ -4,8 +4,6 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
 }
 
 val localProperties = Properties().apply {
@@ -15,11 +13,13 @@ val localProperties = Properties().apply {
     }
 }
 
-val releaseStoreFile = file("keystore.jks")
-val releaseStorePassword = localProperties.getProperty("storePassword")
-val releaseKeyAlias = localProperties.getProperty("keyAlias")
-val releaseKeyPassword = localProperties.getProperty("keyPassword")
-val hasReleaseSigning = releaseStoreFile.exists() &&
+// Release signing: PEBBLE_KEYSTORE (path) + passwords from the environment,
+// as set by CI from repository secrets. Without them the debug key is used.
+val releaseStoreFile = System.getenv("PEBBLE_KEYSTORE")?.let(::file)
+val releaseStorePassword = System.getenv("PEBBLE_KEYSTORE_PASSWORD") ?: localProperties.getProperty("storePassword")
+val releaseKeyAlias = System.getenv("PEBBLE_KEY_ALIAS") ?: localProperties.getProperty("keyAlias")
+val releaseKeyPassword = System.getenv("PEBBLE_KEY_PASSWORD") ?: localProperties.getProperty("keyPassword")
+val hasReleaseSigning = releaseStoreFile?.exists() == true &&
     releaseStorePassword != null &&
     releaseKeyAlias != null &&
     releaseKeyPassword != null
@@ -35,7 +35,8 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.follow.clash"
+        // The installed app is Pebble; Kotlin packages keep FlClash's names.
+        applicationId = "app.pebble.android"
         minSdk = flutter.minSdkVersion
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = flutter.versionCode
@@ -72,7 +73,6 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             } else {
                 signingConfig = signingConfigs.getByName("debug")
-                applicationIdSuffix = ".dev"
             }
 
             proguardFiles(
@@ -107,9 +107,6 @@ dependencies {
     implementation(libs.smali.dexlib2) {
         exclude(group = "com.google.guava", module = "guava")
     }
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.crashlytics.ndk)
-    implementation(libs.firebase.analytics)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }
