@@ -2,3 +2,37 @@
 	path = pebble/core/Clash.Meta
 	url = https://github.com/chen08209/Clash.Meta.git
 	branch = FlClash
+[submodule "lychee/lib/fcitx5/src/main/cpp/fcitx5"]
+	path = lychee/lib/fcitx5/src/main/cpp/fcitx5
+	url = https://github.com/fcitx/fcitx5.git
+[submodule "lychee/lib/fcitx5/src/main/cpp/prebuilt"]
+	path = lychee/lib/fcitx5/src/main/cpp/prebuilt
+	url = https://github.com/fcitx5-android/prebuilt.git
+	shallow = true
+[submodule "lychee/lib/fcitx5-lua/src/main/cpp/fcitx5-lua"]
+	path = lychee/lib/fcitx5-lua/src/main/cpp/fcitx5-lua
+	url = https://github.com/fcitx/fcitx5-lua.git
+[submodule "lychee/lib/libime/src/main/cpp/libime"]
+	path = lychee/lib/libime/src/main/cpp/libime
+	url = https://github.com/fcitx/libime.git
+[submodule "lychee/lib/fcitx5-chinese-addons/src/main/cpp/fcitx5-chinese-addons"]
+	path = lychee/lib/fcitx5-chinese-addons/src/main/cpp/fcitx5-chinese-addons
+	url = https://github.com/fcitx/fcitx5-chinese-addons.git
+[submodule "lychee/plugin/rime/src/main/cpp/fcitx5-rime"]
+	path = lychee/plugin/rime/src/main/cpp/fcitx5-rime
+	url = https://github.com/fcitx/fcitx5-rime.git
+[submodule "lychee/plugin/rime/src/main/cpp/rime-prelude"]
+	path = lychee/plugin/rime/src/main/cpp/rime-prelude
+	url = https://github.com/rime/rime-prelude.git
+[submodule "lychee/plugin/rime/src/main/cpp/rime-essay"]
+	path = lychee/plugin/rime/src/main/cpp/rime-essay
+	url = https://github.com/rime/rime-essay.git
+[submodule "lychee/plugin/rime/src/main/cpp/rime-luna-pinyin"]
+	path = lychee/plugin/rime/src/main/cpp/rime-luna-pinyin
+	url = https://github.com/rime/rime-luna-pinyin.git
+[submodule "lychee/plugin/rime/src/main/cpp/rime-stroke"]
+	path = lychee/plugin/rime/src/main/cpp/rime-stroke
+	url = https://github.com/rime/rime-stroke.git
+[submodule "lychee/dictionary/typeduck"]
+	path = lychee/dictionary/typeduck
+	url = https://github.com/TypeDuck-HK/schema
