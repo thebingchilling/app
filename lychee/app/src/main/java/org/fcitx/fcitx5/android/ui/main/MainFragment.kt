@@ -66,6 +66,13 @@ class MainFragment : PaddingPreferenceFragment() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).apply {
+            addCategory("Lychee") {
+                addDestinationPreference(
+                    R.string.lychee_readings,
+                    R.drawable.ic_baseline_translate_24,
+                    SettingsRoute.Lychee
+                )
+            }
             addCategory("Fcitx") {
                 addDestinationPreference(
                     R.string.global_options,
@@ -108,11 +115,6 @@ class MainFragment : PaddingPreferenceFragment() {
                     R.string.emoji_and_symbols,
                     R.drawable.ic_baseline_emoji_symbols_24,
                     SettingsRoute.Symbol
-                )
-                addDestinationPreference(
-                    R.string.plugins,
-                    R.drawable.ic_baseline_android_24,
-                    SettingsRoute.Plugin
                 )
                 addDestinationPreference(
                     R.string.advanced,

@@ -31,6 +31,10 @@ add_subdirectory(androidfrontend)
 add_subdirectory(androidkeyboard)
 add_subdirectory(androidnotification)
 
+# Lychee: Rime is part of the app (upstream ships it as a plugin APK)
+find_package(ECM MODULE)
+add_subdirectory(rime)
+
 # prebuilt libuv
 set(libuv_DIR "${PREBUILT_DIR}/libuv/${ANDROID_ABI}/lib/cmake/libuv")
 find_package(libuv)

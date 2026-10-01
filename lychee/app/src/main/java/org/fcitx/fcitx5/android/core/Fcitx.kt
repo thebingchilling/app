@@ -404,7 +404,13 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
         // will be called in fcitx main thread
         private fun onFirstRun() {
             Timber.i("onFirstRun")
+            // Lychee: English, Mandarin (Pinyin) and Cantonese (Rime), in that order
+            val available = availableInputMethods()?.map { it.uniqueName }?.toSet() ?: return
+            val ims = LYCHEE_DEFAULT_IMS.filter { it in available }
+            if (ims.isNotEmpty()) setEnabledInputMethods(ims.toTypedArray())
         }
+
+        private val LYCHEE_DEFAULT_IMS = listOf("keyboard-us", "pinyin", "rime")
 
         /**
          * register a [FcitxEvent] handler that will fire before events go into [eventFlow_]

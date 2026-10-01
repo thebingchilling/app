@@ -1,3 +1,5 @@
+import javax.inject.Inject
+
 plugins {
     id("org.fcitx.fcitx5.android.app-convention")
     id("org.fcitx.fcitx5.android.native-app-convention")
@@ -13,7 +15,7 @@ android {
     namespace = "org.fcitx.fcitx5.android"
 
     defaultConfig {
-        applicationId = "org.fcitx.fcitx5.android"
+        applicationId = "app.lychee.android"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         @Suppress("UnstableApiUsage")
@@ -27,7 +29,9 @@ android {
                     // android specific modules
                     "androidfrontend",
                     "androidkeyboard",
-                    "androidnotification"
+                    "androidnotification",
+                    // Lychee: fcitx5-rime addon
+                    "rime"
                 )
             }
         }
@@ -70,6 +74,10 @@ fcitxComponent {
         "usr/share/fcitx5/inputmethod/$it.conf"
     }
     installPrebuiltAssets = true
+}
+
+generateDataDescriptor {
+    symlinks.put("usr/share/rime-data/opencc", "usr/share/opencc")
 }
 
 ksp {
@@ -124,6 +132,9 @@ dependencies {
     implementation(libs.splitties.views.dsl.recyclerview)
     implementation(libs.splitties.views.recyclerview)
     implementation(libs.aboutlibraries.core)
+    // Lychee: handwriting
+    implementation("com.google.mlkit:digital-ink-recognition:19.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.11.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.rules)
@@ -138,5 +149,42 @@ configurations {
         // remove unwanted splitties libraries...
         exclude(group = "com.louiscad.splitties", module = "splitties-appctx")
         exclude(group = "com.louiscad.splitties", module = "splitties-systemservices")
+    }
+}
+
+// Lychee: build the reading/meaning dictionary (dictionary/build_dict.py)
+// into a generated asset, lychee/dict.db.
+abstract class LycheeDictionaryTask : DefaultTask() {
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sourceDir: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @get:Inject
+    abstract val exec: ExecOperations
+
+    @TaskAction
+    fun build() {
+        val src = sourceDir.get().asFile
+        val out = outputDir.get().dir("lychee").asFile.apply { mkdirs() }
+        exec.exec {
+            commandLine(
+                "python3", "-B", File(src, "build_dict.py").path,
+                "--luna", File(src, "rime-luna-pinyin/luna_pinyin.dict.yaml").path,
+                "--out", File(out, "dict.db").path
+            )
+        }
+    }
+}
+
+val lycheeDictionary by tasks.registering(LycheeDictionaryTask::class) {
+    sourceDir.set(rootProject.layout.projectDirectory.dir("dictionary"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(lycheeDictionary, LycheeDictionaryTask::outputDir)
     }
 }

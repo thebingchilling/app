@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name_release">Fcitx5</string>
-    <string name="app_name_debug">Fcitx5 (Debug)</string>
+    <string name="app_name_release">Lychee</string>
+    <string name="app_name_debug">Lychee (Debug)</string>
     <string name="save">Save</string>
     <string name="input_methods">Input Methods</string>
     <string name="add_input_method">Add Input Method</string>
@@ -321,4 +321,15 @@
     <string name="keyboard_height_percent_base">Keyboard height percent base</string>
     <string name="display_metrics">Display metrics (Resources.getDisplayMetrics)</string>
     <string name="real_size">Real size (Display.getRealSize)</string>
+    <!-- Lychee -->
+    <string name="lychee_readings">Readings &amp; meanings</string>
+    <string name="lychee_show_yale">Show Cantonese (Yale)</string>
+    <string name="lychee_show_pinyin">Show Mandarin (pinyin)</string>
+    <string name="lychee_show_english">Show English meaning</string>
+    <string name="lychee_trad_simp">Traditional / Simplified</string>
+    <string name="lychee_handwriting">Handwriting 手寫</string>
+    <string name="lychee_handwriting_hint">Write here</string>
+    <string name="lychee_handwriting_downloading">Downloading handwriting model…</string>
+    <string name="lychee_handwriting_download_failed">Couldn\'t download the handwriting model. Check your connection.</string>
+    <string name="lychee_handwriting_unavailable">Handwriting isn\'t available for this language</string>
 </resources>

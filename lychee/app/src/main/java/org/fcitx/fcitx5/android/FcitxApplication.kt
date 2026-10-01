@@ -15,6 +15,7 @@ import android.os.Process
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
+import app.lychee.dict.LycheeDictionary
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.plus
@@ -134,6 +135,8 @@ class FcitxApplication : Application() {
             setValue(currentPid)
         }
         ClipboardManager.init(ctx)
+        // Lychee: readings and meanings under candidates
+        LycheeDictionary.init(ctx)
         ThemeManager.init(resources.configuration)
         Locales.onLocaleChange(resources.configuration)
         registerReceiver(shutdownReceiver, IntentFilter(Intent.ACTION_SHUTDOWN))

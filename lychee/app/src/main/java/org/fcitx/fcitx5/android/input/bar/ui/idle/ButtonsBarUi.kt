@@ -28,6 +28,16 @@ class ButtonsBarUi(override val ctx: Context, private val theme: Theme) : Ui {
         root.addView(it, FlexboxLayout.LayoutParams(size, size))
     }
 
+    /** Lychee: Traditional/Simplified output of the current Chinese input method */
+    val tradSimpButton = toolButton(R.drawable.ic_fcitx_status_chttrans_trad).apply {
+        contentDescription = ctx.getString(R.string.lychee_trad_simp)
+        visibility = android.view.View.GONE
+    }
+
+    val handwritingButton = toolButton(R.drawable.ic_baseline_edit_24).apply {
+        contentDescription = ctx.getString(R.string.lychee_handwriting)
+    }
+
     val undoButton = toolButton(R.drawable.ic_baseline_undo_24).apply {
         contentDescription = ctx.getString(R.string.undo)
     }

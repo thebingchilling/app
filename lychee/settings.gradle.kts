@@ -16,7 +16,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "fcitx5-android"
+rootProject.name = "lychee"
 
 include(":lib:common")
 include(":lib:fcitx5")
@@ -25,5 +25,3 @@ include(":lib:libime")
 include(":lib:fcitx5-chinese-addons")
 include(":codegen")
 include(":app")
-include(":lib:plugin-base")
-include(":plugin:rime")

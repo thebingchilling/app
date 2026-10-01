@@ -5,6 +5,7 @@
 
 package org.fcitx.fcitx5.android.input.candidates.expanded
 
+import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
 import android.graphics.Paint
 import android.graphics.Rect
 import android.util.LruCache
@@ -40,7 +41,7 @@ abstract class GridPagingCandidateViewAdapter(theme: Theme) : PagingCandidateVie
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
         return super.onCreateViewHolder(parent, viewType).apply {
             itemView.apply {
-                layoutParams = GridLayoutManager.LayoutParams(matchParent, dp(40))
+                layoutParams = GridLayoutManager.LayoutParams(matchParent, dp(KawaiiBarComponent.HEIGHT))
             }
         }
     }

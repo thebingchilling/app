@@ -27,6 +27,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.core.Action
 import org.fcitx.fcitx5.android.core.CapabilityFlag
 import org.fcitx.fcitx5.android.core.CapabilityFlags
 import org.fcitx.fcitx5.android.core.FcitxEvent.CandidateListEvent
@@ -59,6 +60,7 @@ import org.fcitx.fcitx5.android.input.dependency.context
 import org.fcitx.fcitx5.android.input.dependency.inputMethodService
 import org.fcitx.fcitx5.android.input.dependency.theme
 import org.fcitx.fcitx5.android.input.editing.TextEditingWindow
+import org.fcitx.fcitx5.android.input.handwriting.HandwritingWindow
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
@@ -291,6 +293,14 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 onGestureListener = swipeHideKeyboardCallback
             }
             buttonsUi.apply {
+                tradSimpButton.setOnClickListener {
+                    service.postFcitxJob {
+                        statusArea().firstOrNull(::isTradSimpAction)?.let { activateAction(it.id) }
+                    }
+                }
+                handwritingButton.setOnClickListener {
+                    windowManager.attachWindow(HandwritingWindow())
+                }
                 undoButton.setOnClickListener {
                     service.sendCombinationKeyEvents(KeyEvent.KEYCODE_Z, ctrl = true)
                 }
@@ -455,6 +465,28 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         barStateMachine.push(PreeditUpdated, PreeditEmpty to empty)
     }
 
+    override fun onStatusAreaUpdate(actions: Array<Action>) {
+        val action = actions.firstOrNull(::isTradSimpAction)
+        idleUi.buttonsUi.tradSimpButton.apply {
+            visibility = if (action == null) View.GONE else View.VISIBLE
+            if (action != null) {
+                setIcon(
+                    if (isTraditionalOutput(action)) R.drawable.ic_fcitx_status_chttrans_trad
+                    else R.drawable.ic_fcitx_status_chttrans_simp
+                )
+            }
+        }
+    }
+
+    /** Pinyin's chttrans addon, or the Cantonese Rime scheme's "simplification" switch */
+    private fun isTradSimpAction(action: Action) = action.name == "chttrans" ||
+            (action.name.startsWith("fcitx-rime-") && action.name.endsWith("-simplification"))
+
+    private fun isTraditionalOutput(action: Action) =
+        if (action.name == "chttrans") action.icon == "fcitx-chttrans-active"
+        // fcitx5-rime: "<current> → <other>", switch states [ 繁體, 简体 ]
+        else !action.shortText.startsWith("简")
+
     override fun onCandidateUpdate(data: CandidateListEvent.Data) {
         barStateMachine.push(CandidatesUpdated, CandidateEmpty to data.candidates.isEmpty())
     }
@@ -537,7 +569,9 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     companion object {
-        const val HEIGHT = 40
+        /** dp; Lychee makes it taller when candidates show readings/meanings */
+        val HEIGHT: Int
+            get() = if (AppPrefs.getInstance().lychee.showsAnything) 60 else 40
     }
 
     fun onKeyboardLayoutSwitched(isNumber: Boolean) {

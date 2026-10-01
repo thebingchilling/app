@@ -137,7 +137,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val focusChangeResetKeyboard =
             switch(R.string.reset_keyboard_on_focus_change, "reset_keyboard_on_focus_change", true)
         val expandToolbarByDefault =
-            switch(R.string.expand_toolbar_by_default, "expand_toolbar_by_default", false)
+            switch(R.string.expand_toolbar_by_default, "expand_toolbar_by_default", true)
         val inlineSuggestions = switch(R.string.inline_suggestions, "inline_suggestions", true)
         val toolbarNumRowOnPassword =
             switch(R.string.toolbar_num_row_on_password, "toolbar_num_row_on_password", true)
@@ -331,6 +331,15 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         }
     }
 
+    /** Lychee: what the candidate bar shows under each word. */
+    inner class Lychee : ManagedPreferenceCategory(R.string.lychee_readings, sharedPreferences) {
+        val showYale = switch(R.string.lychee_show_yale, "lychee_show_yale", true)
+        val showPinyin = switch(R.string.lychee_show_pinyin, "lychee_show_pinyin", true)
+        val showEnglish = switch(R.string.lychee_show_english, "lychee_show_english", true)
+
+        val showsAnything get() = showYale.getValue() || showPinyin.getValue() || showEnglish.getValue()
+    }
+
     inner class Clipboard : ManagedPreferenceCategory(R.string.clipboard, sharedPreferences) {
         val clipboardListening = switch(R.string.clipboard_listening, "clipboard_enable", true)
         val clipboardHistoryLimit = int(
@@ -388,6 +397,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
     val internal = Internal().register()
     val keyboard = Keyboard().register()
     val candidates = Candidates().register()
+    val lychee = Lychee().register()
     val clipboard = Clipboard().register()
     val symbols = Symbols().register()
     val advanced = Advanced().register()
