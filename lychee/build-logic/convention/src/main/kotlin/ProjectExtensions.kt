@@ -100,6 +100,10 @@ val Project.signKeyPwd: String?
 val Project.signKeyAlias: String?
     get() = epn("SIGN_KEY_ALIAS", "signKeyAlias")
 
+// Lychee: the key's own password, when it differs from the keystore's
+val Project.signKeyKeyPwd: String?
+    get() = epn("SIGN_KEY_KEY_PWD", "signKeyKeyPwd")
+
 fun NamedDomainObjectContainer<out ApkSigningConfig>.fromProjectEnv(project: Project): ApkSigningConfig? {
     val keyFile = project.signKey ?: return null
     val name = "release"
@@ -107,6 +111,6 @@ fun NamedDomainObjectContainer<out ApkSigningConfig>.fromProjectEnv(project: Pro
         storeFile = keyFile
         storePassword = project.signKeyPwd
         keyAlias = project.signKeyAlias
-        keyPassword = project.signKeyPwd
+        keyPassword = project.signKeyKeyPwd ?: project.signKeyPwd
     }
 }

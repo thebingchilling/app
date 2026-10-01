@@ -1,0 +1,11 @@
+{
+    "uniqueId": "CC-Canto and CC-CEDICT Cantonese readings",
+    "artifactVersion": "2017-02-02",
+    "description": "Cantonese words, Jyutping and English meanings. Copyright (c) 2015-17 Pleco Inc.",
+    "name": "CC-Canto and CC-CEDICT Cantonese readings",
+    "website": "https://cantonese.org/",
+    "tag": "data",
+    "licenses": [
+        "CC-BY-SA-3.0"
+    ]
+}

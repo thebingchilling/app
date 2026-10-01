@@ -1,0 +1,90 @@
+name: Build Lychee
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lychee/**'
+      - '.github/workflows/build-lychee.yml'
+  workflow_dispatch: {}
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: lychee
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch submodules
+        working-directory: .
+        run: |
+          paths=$(git config -f .gitmodules --get-regexp '^submodule\.lychee/.*\.path$' | awk '{print $2}')
+          git submodule update --init --recursive --depth 1 $paths
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # The action's default package list includes the removed "tools" package,
+      # so name the packages explicitly.
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-36 build-tools;36.1.0 ndk;28.0.13004108 cmake;3.31.6
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q extra-cmake-modules gettext librime-dev
+
+      - name: Cantonese scheme test (host librime)
+        run: app/src/main/cpp/rime/test/run.sh
+
+      - name: Restore release signing key
+        env:
+          LYCHEE_KEYSTORE_BASE64: ${{ secrets.LYCHEE_KEYSTORE_BASE64 }}
+          LYCHEE_KEYSTORE_PASSWORD: ${{ secrets.LYCHEE_KEYSTORE_PASSWORD }}
+          LYCHEE_KEY_ALIAS: ${{ secrets.LYCHEE_KEY_ALIAS }}
+          LYCHEE_KEY_PASSWORD: ${{ secrets.LYCHEE_KEY_PASSWORD }}
+          PEBBLE_KEYSTORE_BASE64: ${{ secrets.PEBBLE_KEYSTORE_BASE64 }}
+          PEBBLE_KEYSTORE_PASSWORD: ${{ secrets.PEBBLE_KEYSTORE_PASSWORD }}
+          PEBBLE_KEY_ALIAS: ${{ secrets.PEBBLE_KEY_ALIAS }}
+          PEBBLE_KEY_PASSWORD: ${{ secrets.PEBBLE_KEY_PASSWORD }}
+        run: |
+          if [ -n "$LYCHEE_KEYSTORE_BASE64" ]; then
+            prefix=LYCHEE
+          elif [ -n "$PEBBLE_KEYSTORE_BASE64" ]; then
+            echo "::notice::No LYCHEE_KEYSTORE_BASE64 secret: signing with Pebble's key."
+            prefix=PEBBLE
+          else
+            echo "::warning::No signing secrets: the APK is signed with a throwaway debug key (see lychee/HANDOFF.md)."
+            exit 0
+          fi
+          eval "keystore=\$${prefix}_KEYSTORE_BASE64 storepass=\$${prefix}_KEYSTORE_PASSWORD alias=\$${prefix}_KEY_ALIAS keypass=\$${prefix}_KEY_PASSWORD"
+          keystore=$(printf %s "$keystore" | tr -d ' \r\n')  # one line for GITHUB_ENV
+          {
+            echo "SIGN_KEY_BASE64=$keystore"
+            echo "SIGN_KEY_PWD=$storepass"
+            echo "SIGN_KEY_ALIAS=$alias"
+            echo "SIGN_KEY_KEY_PWD=$keypass"
+          } >> "$GITHUB_ENV"
+
+      - name: Build APK and run tests
+        env:
+          BUILD_ABI: arm64-v8a
+        run: |
+          # ThemeSerializationTest.version2 fails upstream too (stale test), so
+          # only Lychee's own unit tests run here.
+          ./gradlew --no-daemon :app:assembleRelease :app:testDebugUnitTest --tests 'app.lychee.*'
+          mkdir -p "$RUNNER_TEMP/out"
+          cp app/build/outputs/apk/release/*-arm64-v8a-release.apk \
+            "$RUNNER_TEMP/out/Lychee-${{ github.run_number }}-arm64-v8a.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Lychee-apk
+          path: ${{ runner.temp }}/out/*.apk
+          if-no-files-found: error

@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2021-2023 Fcitx5 for Android Contributors
  */
+#include <tuple>
+
 #include <fcitx-utils/utf8.h>
 #include <fcitx-utils/charutils.h>
 #include <fcitx/instance.h>
@@ -168,6 +170,19 @@ std::vector<InputMethodEntry> AndroidKeyboardEngine::listInputMethods() {
                     .setLabel("En")
                     .setIcon("input-keyboard")
                     .setConfigurable(true)));
+    // Lychee: same keyboard, spell dictionary spell/en_<region>_dict.fscd
+    const std::tuple<const char *, const char *, const char *> variants[] = {
+            {"keyboard-gb", N_("English (UK)"), "en_GB"},
+            {"keyboard-ca", N_("English (Canada)"), "en_CA"},
+            {"keyboard-au", N_("English (Australia)"), "en_AU"},
+    };
+    for (const auto &[id, name, language] : variants) {
+        result.emplace_back(std::move(
+                InputMethodEntry(id, _(name), language, "androidkeyboard")
+                        .setLabel("En")
+                        .setIcon("input-keyboard")
+                        .setConfigurable(true)));
+    }
     return result;
 }
 

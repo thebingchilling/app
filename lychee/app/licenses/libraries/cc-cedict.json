@@ -1,0 +1,11 @@
+{
+    "uniqueId": "CC-CEDICT",
+    "artifactVersion": "2026-09-30",
+    "description": "Mandarin pinyin and English meanings. Published by MDBG.",
+    "name": "CC-CEDICT",
+    "website": "https://www.mdbg.net/chinese/dictionary?page=cc-cedict",
+    "tag": "data",
+    "licenses": [
+        "CC-BY-SA-4.0"
+    ]
+}

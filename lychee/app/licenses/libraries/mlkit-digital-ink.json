@@ -1,0 +1,9 @@
+{
+    "uniqueId": "Google ML Kit Digital Ink Recognition",
+    "artifactVersion": "19.0.0",
+    "description": "On-device handwriting recognition. Models are downloaded from Google. Use is subject to the ML Kit terms.",
+    "name": "Google ML Kit Digital Ink Recognition",
+    "website": "https://developers.google.com/ml-kit/terms",
+    "tag": "native",
+    "licenses": []
+}

@@ -43,7 +43,9 @@ class AndroidAppConventionPlugin : AndroidBaseConventionPlugin() {
                 release {
                     isMinifyEnabled = true
                     isShrinkResources = true
+                    // Lychee: without a release key, sign with the debug key so the APK installs
                     signingConfig = signingConfigs.fromProjectEnv(target)
+                        ?: signingConfigs.getByName("debug")
                     proguardFile(getDefaultProguardFile("proguard-android-optimize.txt"))
                 }
                 debug {

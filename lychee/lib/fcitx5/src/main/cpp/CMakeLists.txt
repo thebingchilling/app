@@ -47,5 +47,11 @@ option(ENABLE_XDGAUTOSTART "" OFF)
 option(ENABLE_EMOJI "" OFF)
 option(ENABLE_LIBUUID "" OFF)
 add_subdirectory(fcitx5)
+# Lychee: regional English spell dictionaries (lychee/spell-custom-dict.cpp is
+# upstream's file with SpellCustomDictEn taking the language)
+get_target_property(SPELL_SOURCES spell SOURCES)
+list(TRANSFORM SPELL_SOURCES REPLACE "^spell-custom-dict\\.cpp$" "${CMAKE_CURRENT_SOURCE_DIR}/lychee/spell-custom-dict.cpp")
+set_property(TARGET spell PROPERTY SOURCES ${SPELL_SOURCES})
+target_include_directories(spell PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/fcitx5/src/modules/spell")
 # for std::osyncstream
 target_compile_options(Fcitx5Utils PRIVATE "-fexperimental-library")

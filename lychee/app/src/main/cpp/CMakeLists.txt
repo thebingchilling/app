@@ -87,6 +87,25 @@ add_custom_target(copy-fcitx5-modules
 
 # install prebuilt assets
 install(FILES "${PREBUILT_DIR}/spell-dict/en_dict.fscd" DESTINATION "${FCITX_INSTALL_PKGDATADIR}/spell" COMPONENT prebuilt-assets)
+
+# Lychee: UK, Canadian and Australian spelling dictionaries derived from the US one
+set(LYCHEE_ENGLISH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../dictionary/english")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${LYCHEE_ENGLISH_DIR}/build_spell.py" "${LYCHEE_ENGLISH_DIR}/variants.tsv")
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+execute_process(
+        COMMAND "${Python3_EXECUTABLE}" -B "${LYCHEE_ENGLISH_DIR}/build_spell.py"
+                "${PREBUILT_DIR}/spell-dict/en_dict.fscd" "${CMAKE_CURRENT_BINARY_DIR}/spell"
+        RESULT_VARIABLE LYCHEE_SPELL_RESULT
+        )
+if (NOT LYCHEE_SPELL_RESULT EQUAL 0)
+    message(FATAL_ERROR "building English spelling variants failed")
+endif ()
+install(FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/spell/en_GB_dict.fscd"
+        "${CMAKE_CURRENT_BINARY_DIR}/spell/en_CA_dict.fscd"
+        "${CMAKE_CURRENT_BINARY_DIR}/spell/en_AU_dict.fscd"
+        DESTINATION "${FCITX_INSTALL_PKGDATADIR}/spell" COMPONENT prebuilt-assets)
 install(FILES "${PREBUILT_DIR}/chinese-addons-data/pinyin/chaizi.dict" DESTINATION "${FCITX_INSTALL_PKGDATADIR}/pinyin" COMPONENT prebuilt-assets)
 install(DIRECTORY "${PREBUILT_DIR}/chinese-addons-data/pinyinhelper" DESTINATION "${FCITX_INSTALL_PKGDATADIR}" COMPONENT prebuilt-assets)
 install(DIRECTORY "${PREBUILT_DIR}/libime/table" DESTINATION "${FCITX_INSTALL_PKGDATADIR}" COMPONENT prebuilt-assets)
