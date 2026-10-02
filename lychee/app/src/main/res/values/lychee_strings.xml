@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lychee's own strings. SPDX-License-Identifier: GPL-3.0-only -->
+<resources>
+    <string name="lychee_language_mandarin">Mandarin 普通话</string>
+    <string name="lychee_language_cantonese">Cantonese 廣東話</string>
+</resources>

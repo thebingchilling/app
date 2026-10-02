@@ -2,3 +2,15 @@
 	path = pebble/core/Clash.Meta
 	url = https://github.com/chen08209/Clash.Meta.git
 	branch = FlClash
+[submodule "lychee/rime/rime-ice"]
+	path = lychee/rime/rime-ice
+	url = https://github.com/iDvel/rime-ice.git
+[submodule "lychee/rime/typeduck"]
+	path = lychee/rime/typeduck
+	url = https://github.com/TypeDuck-HK/schema.git
+[submodule "lychee/rime/rime-prelude"]
+	path = lychee/rime/rime-prelude
+	url = https://github.com/rime/rime-prelude.git
+[submodule "lychee/rime/prebuilt"]
+	path = lychee/rime/prebuilt
+	url = https://github.com/fcitx5-android/prebuilt.git

@@ -1,3 +1,4 @@
+import java.util.Base64
 import com.android.build.api.variant.ApplicationVariant
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -12,20 +13,38 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "helium314.keyboard"
-        minSdk = 21
+        // Lychee: own app ID; version codes continue above the fcitx5-based Lychee (112)
+        applicationId = "app.lychee.android"
+        minSdk = 23
         targetSdk = 36
-        versionCode = 4101
-        versionName = "4.1"
+        versionCode = 200
+        versionName = "2.0 (HeliBoard 4.1)"
         ndk {
             abiFilters.clear()
-            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+            abiFilters.addAll(listOf("arm64-v8a"))
         }
         proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
     }
 
+    // Lychee: release key from the environment (CI secrets), else the debug key so the APK installs
+    signingConfigs {
+        val keyBase64 = System.getenv("SIGN_KEY_BASE64")
+        if (!keyBase64.isNullOrBlank()) {
+            create("lychee") {
+                val file = layout.buildDirectory.file("signing/release.jks").get().asFile
+                file.parentFile.mkdirs()
+                file.writeBytes(Base64.getMimeDecoder().decode(keyBase64))
+                storeFile = file
+                storePassword = System.getenv("SIGN_KEY_PWD")
+                keyAlias = System.getenv("SIGN_KEY_ALIAS")
+                keyPassword = System.getenv("SIGN_KEY_KEY_PWD")?.takeIf { it.isNotEmpty() } ?: storePassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("lychee") ?: signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = false
             isDebuggable = false
@@ -67,7 +86,7 @@ android {
             }
             variant.outputs.forEach { output ->
                 if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
-                    output.outputFileName = "HeliBoard_${defaultConfig.versionName}-${variant.buildType}.apk"
+                    output.outputFileName = "Lychee-${variant.buildType}.apk"
                 }
             }
         }

@@ -103,6 +103,11 @@ object SubtypeLocaleUtils {
             // "No language" subtype should be displayed in system locale.
             return resources.getString(R.string.subtype_no_language)
         }
+        // Lychee: Mandarin and Cantonese are named by spoken language, not "Chinese (China)"
+        when (locale.language) {
+            "zh" -> return resources.getString(R.string.lychee_language_mandarin)
+            "yue" -> return resources.getString(R.string.lychee_language_cantonese)
+        }
         val displayName = if (displayLocale == Locale.ROOT && exceptionalLocaleDisplayedInRootLocale.containsKey(languageTag)) {
             exceptionalLocaleDisplayedInRootLocale[languageTag]!!
         } else {

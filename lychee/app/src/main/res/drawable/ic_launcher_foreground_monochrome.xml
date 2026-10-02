@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lychee launcher icon (adaptive foreground, 108dp canvas). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#000000" android:pathData="M34,58a20,20 0,1 1,40 0a20,20 0,1 1,-40 0z" />
+    <path android:fillColor="#000000" android:pathData="M55.5,38.5C59,29 69,27.5 75,30C71.5,37.5 63,41 55.5,38.5z" />
+    <path android:strokeColor="#000000" android:strokeWidth="2.5" android:strokeLineCap="round" android:pathData="M53.5,39C53.5,35.5 54.5,33 56.5,31" />
+</vector>

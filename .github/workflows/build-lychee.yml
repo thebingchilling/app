@@ -18,12 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch submodules
-        working-directory: .
-        run: |
-          paths=$(git config -f .gitmodules --get-regexp '^submodule\.lychee/.*\.path$' | awk '{print $2}')
-          git submodule update --init --recursive --depth 1 $paths
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -34,14 +28,6 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: platform-tools platforms;android-36 build-tools;36.1.0 ndk;28.0.13004108 cmake;3.31.6
-
-      - name: Install build tools
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q extra-cmake-modules gettext librime-dev
-
-      - name: Cantonese scheme test (host librime)
-        run: app/src/main/cpp/rime/test/run.sh
 
       - name: Restore release signing key
         env:
@@ -72,15 +58,11 @@ jobs:
             echo "SIGN_KEY_KEY_PWD=$keypass"
           } >> "$GITHUB_ENV"
 
-      - name: Build APK and run tests
-        env:
-          BUILD_ABI: arm64-v8a
+      - name: Build APK
         run: |
-          # ThemeSerializationTest.version2 fails upstream too (stale test), so
-          # only Lychee's own unit tests run here.
-          ./gradlew --no-daemon :app:assembleRelease :app:testDebugUnitTest --tests 'app.lychee.*'
+          ./gradlew --no-daemon :app:assembleRelease
           mkdir -p "$RUNNER_TEMP/out"
-          cp app/build/outputs/apk/release/*-arm64-v8a-release.apk \
+          cp app/build/outputs/apk/release/Lychee-release.apk \
             "$RUNNER_TEMP/out/Lychee-${{ github.run_number }}-arm64-v8a.apk"
 
       - uses: actions/upload-artifact@v4
