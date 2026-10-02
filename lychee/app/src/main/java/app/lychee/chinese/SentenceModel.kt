@@ -23,14 +23,18 @@ object SentenceModel {
             patch.writeText(
                 """
                 |# Written by Lychee: the Mandarin sentence model is installed.
+                |# Values from rime-ice's grammar recipe (others/recipes/grammar.recipe.yaml).
                 |patch:
                 |  grammar:
                 |    language: $LANGUAGE
-                |    collocation_max_length: 5
-                |    collocation_min_length: 2
-                |  translator/contextual_suggestions: true
-                |  translator/max_homophones: 7
-                |  translator/max_homographs: 7
+                |    collocation_max_length: 6
+                |    collocation_min_length: 3
+                |    collocation_penalty: -14
+                |    non_collocation_penalty: -6
+                |    weak_collocation_penalty: -100
+                |    rear_penalty: -20
+                |  translator/contextual_suggestions: false
+                |  translator/max_homophones: 8
                 |""".trimMargin()
             )
         } else {

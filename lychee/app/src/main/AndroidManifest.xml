@@ -13,6 +13,10 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WRITE_USER_DICTIONARY" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- Lychee: voice typing, and downloading the optional models -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application android:label="@string/english_ime_name"
             android:name="helium314.keyboard.latin.App"
@@ -129,6 +133,11 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/gesture_data_path"/>
         </provider>
+        <!-- Lychee: asks for the microphone on behalf of the keyboard -->
+        <activity android:name="app.lychee.voice.MicPermissionActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:exported="false" />
     </application>
 
     <queries>

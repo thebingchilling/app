@@ -1,3 +1,4 @@
+import java.security.MessageDigest
 import java.util.Base64
 import javax.inject.Inject
 import com.android.build.api.variant.ApplicationVariant
@@ -169,6 +170,27 @@ android {
     }
 }
 
+/**
+ * Lychee: sherpa-onnx (offline speech recognition, Apache-2.0) is not on Maven Central; its
+ * official Android library is fetched once from its GitHub release and checked against a fixed
+ * SHA-256.
+ */
+fun sherpaOnnxAar(): File {
+    val version = "1.13.8"
+    val sha256 = "633c24321e06b1fe79feafa03ea16cbc0f8a286641e2da3559bac91bdb13bd96"
+    val file = rootProject.file(".cache/sherpa-onnx-$version.aar")
+    fun hash(f: File) = MessageDigest.getInstance("SHA-256").digest(f.readBytes()).joinToString("") { "%02x".format(it) }
+    if (!file.exists() || hash(file) != sha256) {
+        file.parentFile.mkdirs()
+        val part = File(file.path + ".part")
+        uri("https://github.com/k2-fsa/sherpa-onnx/releases/download/v$version/sherpa-onnx-$version.aar").toURL()
+            .openStream().use { input -> part.outputStream().use { input.copyTo(it) } }
+        check(hash(part) == sha256) { "sherpa-onnx $version: unexpected checksum" }
+        part.renameTo(file)
+    }
+    return file
+}
+
 val lycheeData = tasks.register<LycheeDataTask>("lycheeData") {
     val root = rootProject.projectDir
     lycheeDir.set(root)
@@ -185,6 +207,8 @@ val lycheeData = tasks.register<LycheeDataTask>("lycheeData") {
 
 dependencies {
     implementation(project(":rime"))
+    implementation(files(sherpaOnnxAar()))
+    implementation("com.google.mlkit:digital-ink-recognition:19.0.0")
     // androidx
     implementation("androidx.core:core-ktx:1.17.0") // 1.18.0 requires minSdk 23
     implementation("androidx.recyclerview:recyclerview:1.4.0")

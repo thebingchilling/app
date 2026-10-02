@@ -78,8 +78,12 @@ fun SettingsNavHost(
                 onClickLanguage = { navController.navigate(SettingsDestination.Languages) },
                 onClickLayouts = { navController.navigate(SettingsDestination.Layouts) },
                 onClickDictionaries = { navController.navigate(SettingsDestination.Dictionaries) },
+                onClickLychee = { navController.navigate(SettingsDestination.Lychee) },
                 onClickBack = ::goBack,
             )
+        }
+        composable(SettingsDestination.Lychee) {
+            app.lychee.settings.LycheeScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.About) {
             AboutScreen(onClickBack = ::goBack)
@@ -164,6 +168,7 @@ object SettingsDestination {
     const val Subtype = "subtype/"
     const val Layouts = "layouts"
     const val Dictionaries = "dictionaries"
+    const val Lychee = "lychee"
     val navTarget = MutableStateFlow(Settings)
 
     private val navScope = CoroutineScope(Dispatchers.Default)

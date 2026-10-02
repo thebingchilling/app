@@ -12,9 +12,10 @@ A collection of small standalone apps, each in its own folder.
 - [`pebble/`](pebble/) — FlClash v0.8.98 (Android) rebranded as Pebble; imports
   WireGuard/AmneziaWG `.conf` and OpenVPN `.ovpn` into FlClash's own engine.
   Read [`pebble/HANDOFF.md`](pebble/HANDOFF.md) first.
-- [`lychee/`](lychee/) — Lychee 荔枝, an Android keyboard (fcitx5-android + Rime)
+- [`lychee/`](lychee/) — Lychee 荔枝, an Android keyboard (HeliBoard + Rime)
   for English, Mandarin and Cantonese that shows Yale, pinyin and English under
-  every Chinese candidate. Read [`lychee/HANDOFF.md`](lychee/HANDOFF.md) first.
+  every Chinese candidate; optional offline voice and handwriting downloads.
+  Read [`lychee/HANDOFF.md`](lychee/HANDOFF.md) first.
 
 ## Purpose
 

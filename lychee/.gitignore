@@ -19,3 +19,4 @@ rime/.host-librime
 .cxx
 !rime/*.sh
 !rime/test/*.sh
+.cache

@@ -12,6 +12,7 @@ set_target_properties(Rime_static PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${PREBUILT_DIR}/librime/${ANDROID_ABI}/include")
 
 add_library(lychee_rime SHARED rime_jni.cpp)
+target_include_directories(lychee_rime PRIVATE "${PREBUILT_DIR}/opencc/${ANDROID_ABI}/include")
 # Rime's modules (including lua and octagram) register themselves from static
 # constructors, so the whole archive must be linked.
 target_link_libraries(lychee_rime

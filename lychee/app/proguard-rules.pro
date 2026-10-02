@@ -12,3 +12,6 @@
 # after upgrading to gradle 8, stack traces contain "unknown source"
 -keepattributes SourceFile,LineNumberTable
 -dontobfuscate
+
+# Lychee: sherpa-onnx's native code reads its config classes' fields by name
+-keep class com.k2fsa.sherpa.onnx.** { *; }

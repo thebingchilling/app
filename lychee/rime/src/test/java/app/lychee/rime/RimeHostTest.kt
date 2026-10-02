@@ -82,6 +82,13 @@ class RimeHostTest {
     }
 
     @Test
+    fun opencc() {
+        val opencc = File(hostDir, "data/rime/opencc")
+        assertEquals("香港電腦", Rime.openccConvert(File(opencc, "s2hk.json").path, "香港电脑"))
+        assertEquals("这里", Rime.openccConvert(File(opencc, "t2s.json").path, "這裡"))
+    }
+
+    @Test
     fun backspaceAndClear() {
         val s = session("lychee_mandarin")
         type(s, "ni")

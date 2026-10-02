@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package app.lychee.rime
 
-/** Thin wrapper over librime's C API (see rime_jni.cpp). Call [startup] once before using sessions. */
+import java.util.concurrent.locks.ReentrantReadWriteLock
+
+/**
+ * Thin wrapper over librime's C API (see rime_jni.cpp). Call [startup] once before using
+ * sessions. A redeploy ends all sessions: session calls made meanwhile do nothing (they never
+ * wait for it), and sessions from before it report [Session.isValid] false.
+ */
 object Rime {
     init {
         System.loadLibrary("lychee_rime")
@@ -23,54 +29,89 @@ object Rime {
     var isReady = false
         private set
 
+    private val lock = ReentrantReadWriteLock()
+    @Volatile
+    private var generation = 0
+
     /** Initializes Rime and deploys anything out of date. Blocking: run off the main thread. */
-    @Synchronized
     fun startup(sharedDir: String, userDir: String, fullCheck: Boolean) {
-        nativeStartup(sharedDir, userDir, fullCheck)
-        isReady = true
+        lock.writeLock().lock()
+        try {
+            nativeStartup(sharedDir, userDir, fullCheck)
+            generation++
+            isReady = true
+        } finally {
+            lock.writeLock().unlock()
+        }
     }
 
     /** Re-deploys after a change to the configuration (e.g. a downloaded sentence model). Blocking. */
-    @Synchronized
     fun redeploy() {
         isReady = false
-        nativeRedeploy()
-        isReady = true
+        lock.writeLock().lock()
+        try {
+            nativeRedeploy()
+            generation++
+            isReady = true
+        } finally {
+            lock.writeLock().unlock()
+        }
     }
 
-    fun syncUserData() = nativeSyncUserData()
+    fun syncUserData() = guarded(Unit) { nativeSyncUserData() }
+
+    /** Runs [block] unless a startup or redeploy is under way (then returns [default] at once). */
+    private inline fun <T> guarded(default: T, block: () -> T): T {
+        if (!lock.readLock().tryLock()) return default
+        try {
+            return if (isReady) block() else default
+        } finally {
+            lock.readLock().unlock()
+        }
+    }
 
     class Session {
-        private var id = nativeCreateSession()
-        val isValid get() = id != 0L
+        private val sessionGeneration = generation
+        private var id = guarded(0L) { nativeCreateSession() }
+        val isValid get() = id != 0L && sessionGeneration == generation
+
+        private inline fun <T> call(default: T, block: (Long) -> T): T =
+            guarded(default) { if (isValid) block(id) else default }
 
         fun destroy() {
-            if (id != 0L) nativeDestroySession(id)
+            call(Unit) { nativeDestroySession(it) }
             id = 0
         }
 
-        fun selectSchema(schemaId: String) = nativeSelectSchema(id, schemaId)
-        val currentSchema: String? get() = nativeCurrentSchema(id)
-        fun processKey(keycode: Int, mask: Int = 0) = nativeProcessKey(id, keycode, mask)
-        fun setInput(input: String) = nativeSetInput(id, input)
-        fun clearComposition() = nativeClearComposition(id)
-        fun commitComposition() = nativeCommitComposition(id)
-        fun getCommit(): String? = nativeGetCommit(id)
-        val input: String get() = nativeGetInput(id) ?: ""
+        fun selectSchema(schemaId: String) = call(false) { nativeSelectSchema(it, schemaId) }
+        val currentSchema: String? get() = call(null) { nativeCurrentSchema(it) }
+        fun processKey(keycode: Int, mask: Int = 0) = call(false) { nativeProcessKey(it, keycode, mask) }
+        fun setInput(input: String) = call(false) { nativeSetInput(it, input) }
+        fun clearComposition() = call(Unit) { nativeClearComposition(it) }
+        fun commitComposition() = call(false) { nativeCommitComposition(it) }
+        fun getCommit(): String? = call(null) { nativeGetCommit(it) }
+        val input: String get() = call(null) { nativeGetInput(it) } ?: ""
         val composition: Composition?
-            get() = nativeGetComposition(id)?.let { Composition(it[0] ?: "", it[1]) }
+            get() = call(null) { nativeGetComposition(it) }?.let { Composition(it[0] ?: "", it[1]) }
 
         fun candidates(start: Int = 0, max: Int = 50): List<Candidate> {
-            val raw = nativeGetCandidates(id, start, max)
+            val raw = call(emptyArray()) { nativeGetCandidates(it, start, max) }
             return List(raw.size / 2) { Candidate(raw[2 * it] ?: "", raw[2 * it + 1] ?: "") }
         }
 
-        fun selectCandidate(index: Int) = nativeSelectCandidate(id, index)
-        fun deleteCandidate(index: Int) = nativeDeleteCandidate(id, index)
-        fun setOption(name: String, value: Boolean) = nativeSetOption(id, name, value)
-        fun getOption(name: String) = nativeGetOption(id, name)
+        fun selectCandidate(index: Int) = call(false) { nativeSelectCandidate(it, index) }
+        fun deleteCandidate(index: Int) = call(false) { nativeDeleteCandidate(it, index) }
+        fun setOption(name: String, value: Boolean) = call(Unit) { nativeSetOption(it, name, value) }
+        fun getOption(name: String) = call(false) { nativeGetOption(it, name) }
     }
 
+    /**
+     * Converts [text] with an OpenCC config (a path such as shared/opencc/s2hk.json).
+     * Works without Rime being started; returns null when the config cannot be opened.
+     */
+    fun openccConvert(configPath: String, text: String): String? = nativeOpenccConvert(configPath, text)
+
+    @JvmStatic private external fun nativeOpenccConvert(config: String, text: String): String?
     @JvmStatic private external fun nativeStartup(shared: String, user: String, fullCheck: Boolean)
     @JvmStatic private external fun nativeRedeploy()
     @JvmStatic private external fun nativeShutdown()

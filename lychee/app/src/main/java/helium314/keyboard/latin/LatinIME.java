@@ -1347,6 +1347,8 @@ public class LatinIME extends InputMethodService implements
     }
 
     public int getCurrentAutoCapsState() {
+        // Lychee: no automatic capitals in Mandarin and Cantonese (letters there are pinyin / Yale)
+        if (mLychee.getChinese().isActive()) return Constants.TextUtils.CAP_MODE_OFF;
         return mInputLogic.getCurrentAutoCapsState(mSettings.getCurrent());
     }
 

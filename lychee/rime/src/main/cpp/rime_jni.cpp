@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include <jni.h>
+#include <opencc/opencc.h>
 #include <rime_api.h>
 
 #include <cstdint>
@@ -223,6 +224,20 @@ Java_app_lychee_rime_Rime_nativeSetOption(JNIEnv *env, jclass, jlong s, jstring 
 JNIEXPORT jboolean JNICALL
 Java_app_lychee_rime_Rime_nativeGetOption(JNIEnv *env, jclass, jlong s, jstring name) {
     return rime->get_option(static_cast<RimeSessionId>(s), toStd(env, name).c_str());
+}
+
+// OpenCC (built into librime) for text that does not come from Rime, e.g. voice typing.
+// config is the path of an OpenCC config such as <shared>/opencc/s2hk.json.
+JNIEXPORT jstring JNICALL
+Java_app_lychee_rime_Rime_nativeOpenccConvert(JNIEnv *env, jclass, jstring config, jstring text) {
+    std::string cfg = toStd(env, config), in = toStd(env, text);
+    opencc_t cc = opencc_open(cfg.c_str());
+    if (cc == reinterpret_cast<opencc_t>(-1)) return nullptr;
+    char *out = opencc_convert_utf8(cc, in.c_str(), in.size());
+    jstring result = out ? toJava(env, out) : nullptr;
+    if (out) opencc_convert_utf8_free(out);
+    opencc_close(cc);
+    return result;
 }
 
 }  // extern "C"

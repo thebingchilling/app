@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.utils.JniUtils
+import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.SubtypeLocaleUtils.displayName
 import helium314.keyboard.latin.utils.SubtypeSettings
 import helium314.keyboard.latin.utils.NextScreenIcon
@@ -42,6 +43,7 @@ fun MainSettingsScreen(
     onClickLanguage: () -> Unit,
     onClickLayouts: () -> Unit,
     onClickDictionaries: () -> Unit,
+    onClickLychee: () -> Unit,
     onClickBack: () -> Unit,
 ) {
     SearchSettingsScreen(
@@ -54,6 +56,18 @@ fun MainSettingsScreen(
             Column(
                 Modifier.verticalScroll(rememberScrollState()).then(Modifier.padding(innerPadding))
             ) {
+                // Lychee: its own settings first; until opened once, point at the optional downloads
+                val context = LocalContext.current
+                val setupShown = context.prefs().getBoolean(app.lychee.LycheePrefs.SETUP_SHOWN, false)
+                Preference(
+                    name = stringResource(if (setupShown) R.string.lychee_settings_title else R.string.lychee_setup_entry),
+                    description = stringResource(if (setupShown) R.string.lychee_settings_entry_summary else R.string.lychee_setup_entry_summary),
+                    onClick = {
+                        context.prefs().edit().putBoolean(app.lychee.LycheePrefs.SETUP_SHOWN, true).apply()
+                        onClickLychee()
+                    },
+                    icon = R.drawable.ic_lychee_trad_simp
+                ) { NextScreenIcon() }
                 Preference(
                     name = stringResource(R.string.language_and_layouts_title),
                     description = enabledSubtypes.joinToString(", ") { it.displayName() },
@@ -124,7 +138,7 @@ private fun PreviewScreen() {
     initPreview(LocalContext.current)
     Theme(previewDark) {
         Surface {
-            MainSettingsScreen({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+            MainSettingsScreen({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
         }
     }
 }

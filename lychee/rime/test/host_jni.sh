@@ -12,6 +12,6 @@ java_home=${JAVA_HOME:-$(dirname "$(dirname "$(readlink -f "$(command -v javac)"
 mkdir -p "$out"
 c++ -std=c++17 -O1 -shared -fPIC -o "$out/liblychee_rime.so" "$here/../src/main/cpp/rime_jni.cpp" \
     -I"$java_home/include" -I"$java_home/include/linux" -I"$librime/src" -I"$librime/build/src" \
-    -L"$librime/build/lib" -lrime -Wl,-rpath,"$librime/build/lib" >&2
+    -L"$librime/build/lib" -lrime -lopencc -Wl,-rpath,"$librime/build/lib" >&2
 "$here/../build_rime_data.sh" "$out/data" >&2
 echo "$out"

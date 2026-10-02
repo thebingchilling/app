@@ -147,19 +147,19 @@ class ChineseInput(private val context: Context, private val connection: RichInp
 
     /** Picks candidate [index] (0 = first of all candidates). */
     fun selectCandidate(index: Int) {
-        val s = session ?: return
         if (!composing) return
+        val s = session() ?: return
         s.selectCandidate(index)
         update(s)
     }
 
     /** Fetches candidates beyond the first page, for the expanded candidate view. */
     fun candidates(start: Int, max: Int): List<Rime.Candidate> =
-        if (composing) session?.candidates(start, max) ?: emptyList() else emptyList()
+        if (composing) session()?.candidates(start, max) ?: emptyList() else emptyList()
 
     /** Removes a learned word (only words Rime learned can be removed). */
     fun forgetCandidate(index: Int) {
-        val s = session ?: return
+        val s = session() ?: return
         if (s.deleteCandidate(index)) update(s)
     }
 
