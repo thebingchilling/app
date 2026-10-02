@@ -1,32 +1,14 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
-
-# disable obfuscation
--dontobfuscate
-
-# Keep JNI interface
--keep class org.fcitx.fcitx5.android.core.* { *; }
--keep class org.fcitx.fcitx5.android.data.pinyin.customphrase.PinyinCustomPhrase {
-    public <init>(...);
+# Keep native methods
+-keepclassmembers class * {
+    native <methods>;
 }
 
-# Keep dependency magic
--keep class ** extends org.mechdancer.dependency.Component {
-    int hashCode();
-    boolean equals(java.lang.Object);
-}
+# Keep classes that are used as a parameter type of methods that are also marked as keep
+# to preserve changing those methods' signature.
+-keep class helium314.keyboard.latin.dictionary.Dictionary
+-keep class helium314.keyboard.latin.NgramContext
+-keep class helium314.keyboard.latin.makedict.ProbabilityInfo
 
-# remove kotlin null checks
--processkotlinnullchecks remove
-
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
+# after upgrading to gradle 8, stack traces contain "unknown source"
 -keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+-dontobfuscate

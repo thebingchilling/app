@@ -1,190 +1,157 @@
-import javax.inject.Inject
+import com.android.build.api.variant.ApplicationVariant
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id("org.fcitx.fcitx5.android.app-convention")
-    id("org.fcitx.fcitx5.android.native-app-convention")
-    id("org.fcitx.fcitx5.android.build-metadata")
-    id("org.fcitx.fcitx5.android.data-descriptor")
-    id("org.fcitx.fcitx5.android.fcitx-component")
-    alias(libs.plugins.kotlin.parcelize)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
+    id("com.android.application")
+    kotlin("android")
+    kotlin("plugin.serialization") version "2.3.20"
+    kotlin("plugin.compose") version "2.3.20"
 }
 
 android {
-    namespace = "org.fcitx.fcitx5.android"
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "app.lychee.android"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        applicationId = "helium314.keyboard"
+        minSdk = 21
+        targetSdk = 36
+        versionCode = 4101
+        versionName = "4.1"
+        ndk {
+            abiFilters.clear()
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+        }
+        proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+    }
 
-        @Suppress("UnstableApiUsage")
-        externalNativeBuild {
-            cmake {
-                targets(
-                    // jni
-                    "native-lib",
-                    // copy fcitx5 built-in addon libraries
-                    "copy-fcitx5-modules",
-                    // android specific modules
-                    "androidfrontend",
-                    "androidkeyboard",
-                    "androidnotification",
-                    // Lychee: fcitx5-rime addon
-                    "rime"
-                )
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = false
+            isDebuggable = false
+            isJniDebuggable = false
+        }
+        create("nouserlib") { // same as release, but does not allow the user to provide a library
+            isMinifyEnabled = true
+            isShrinkResources = false
+            isDebuggable = false
+            isJniDebuggable = false
+        }
+        debug {
+            // "normal" debug has minify for smaller APK to fit the GitHub 25 MB limit when zipped
+            // and for better performance in case users want to install a debug APK
+            isMinifyEnabled = true
+            isJniDebuggable = false
+            applicationIdSuffix = ".debug"
+        }
+        create("runTests") { // build variant for running tests on CI that skips tests known to fail
+            isMinifyEnabled = false
+            isJniDebuggable = false
+        }
+        create("debugNoMinify") { // for faster builds in IDE
+            isDebuggable = true
+            isMinifyEnabled = false
+            isJniDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
+            applicationIdSuffix = ".debug"
+        }
+
+        androidComponents.onVariants { variant: ApplicationVariant ->
+            if (variant.buildType == "debug") {
+                // got a little too big for GitHub after some dependency upgrades, so we remove the largest dictionary
+                variant.androidResources.ignoreAssetsPatterns = listOf("main_ro.dict")
+                variant.proguardFiles = emptyList()
+                //noinspection ProguardAndroidTxtUsage we intentionally use the "normal" file here
+                variant.proguardFiles.add(project.layout.buildDirectory.file(project.buildFile.parent + "/dontoptimize.pro"))
+                variant.proguardFiles.add(project.layout.buildDirectory.file(project.buildFile.parent + "/proguard-rules.pro"))
+            }
+            variant.outputs.forEach { output ->
+                if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
+                    output.outputFileName = "HeliBoard_${defaultConfig.versionName}-${variant.buildType}.apk"
+                }
             }
         }
     }
 
     buildFeatures {
         viewBinding = true
-        resValues = true
+        buildConfig = true
+        compose = true
     }
 
-    buildTypes {
-        release {
-            resValue("mipmap", "app_icon", "@mipmap/ic_launcher")
-            resValue("mipmap", "app_icon_round", "@mipmap/ic_launcher_round")
-            resValue("string", "app_name", "@string/app_name_release")
-            proguardFile("proguard-rules.pro")
-        }
-        debug {
-            resValue("mipmap", "app_icon", "@mipmap/ic_launcher_debug")
-            resValue("mipmap", "app_icon_round", "@mipmap/ic_launcher_round_debug")
-            resValue("string", "app_name", "@string/app_name_debug")
+    externalNativeBuild {
+        ndkBuild {
+            path = File("src/main/jni/Android.mk")
         }
     }
+    ndkVersion = "28.0.13004108"
 
-    androidResources {
-        @Suppress("UnstableApiUsage")
-        generateLocaleConfig = true
+    packaging {
+        jniLibs {
+            // shrinks APK by 3 MB, zipped size unchanged
+            useLegacyPackaging = true
+        }
     }
-}
 
-fcitxComponent {
-    includeLibs = listOf(
-        "fcitx5",
-        "fcitx5-lua",
-        "libime",
-        "fcitx5-chinese-addons"
-    )
-    // exclude (delete immediately after install) tables that nobody would use
-    excludeFiles = listOf("cangjie", "erbi", "qxm", "wanfeng").map {
-        "usr/share/fcitx5/inputmethod/$it.conf"
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
     }
-    installPrebuiltAssets = true
-}
 
-generateDataDescriptor {
-    symlinks.put("usr/share/rime-data/opencc", "usr/share/opencc")
-}
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
+    kotlin {
+        target {
+            compilerOptions {
+                jvmTarget.set(JvmTarget.JVM_17)
+            }
+        }
+    }
+
+    // see https://github.com/HeliBorg/HeliBoard/issues/477
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
+    namespace = "helium314.keyboard.latin"
+    lint {
+        abortOnError = true
+    }
 }
 
 dependencies {
-    ksp(project(":codegen"))
-    implementation(project(":lib:fcitx5"))
-    implementation(project(":lib:fcitx5-lua"))
-    implementation(project(":lib:libime"))
-    implementation(project(":lib:fcitx5-chinese-addons"))
-    implementation(project(":lib:common"))
-    implementation(libs.kotlinx.coroutines)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.androidx.activity)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.autofill)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.coordinatorlayout)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel)
-    implementation(libs.androidx.lifecycle.livedata)
-    implementation(libs.androidx.lifecycle.runtime)
-    implementation(libs.androidx.lifecycle.common)
-    implementation(libs.androidx.lifecycle.service)
-    implementation(libs.androidx.navigation.fragment)
-    implementation(libs.androidx.navigation.ui)
-    implementation(libs.androidx.paging)
-    implementation(libs.androidx.preference)
-    implementation(libs.androidx.recyclerview)
-    ksp(libs.androidx.room.compiler)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.paging)
-    implementation(libs.androidx.startup)
-    implementation(libs.androidx.viewpager2)
-    implementation(libs.material)
-    implementation(libs.arrow.core)
-    implementation(libs.arrow.functions)
-    implementation(libs.imagecropper)
-    implementation(libs.flexbox)
-    implementation(libs.dependency)
-    implementation(libs.timber)
-    implementation(libs.splitties.bitflags)
-    implementation(libs.splitties.dimensions)
-    implementation(libs.splitties.resources)
-    implementation(libs.splitties.views.dsl)
-    implementation(libs.splitties.views.dsl.appcompat)
-    implementation(libs.splitties.views.dsl.constraintlayout)
-    implementation(libs.splitties.views.dsl.coordinatorlayout)
-    implementation(libs.splitties.views.dsl.recyclerview)
-    implementation(libs.splitties.views.recyclerview)
-    implementation(libs.aboutlibraries.core)
-    // Lychee: handwriting
-    implementation("com.google.mlkit:digital-ink-recognition:19.0.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.11.0")
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.test.runner)
-    androidTestImplementation(libs.androidx.test.rules)
-    androidTestImplementation(libs.androidx.lifecycle.testing)
-    androidTestImplementation(libs.junit)
-}
+    // androidx
+    implementation("androidx.core:core-ktx:1.17.0") // 1.18.0 requires minSdk 23
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
+    implementation("androidx.autofill:autofill:1.3.0")
+    implementation("androidx.viewpager2:viewpager2:1.1.0")
 
-configurations {
-    all {
-        // remove Baseline Profile Installer or whatever it is...
-        exclude(group = "androidx.profileinstaller", module = "profileinstaller")
-        // remove unwanted splitties libraries...
-        exclude(group = "com.louiscad.splitties", module = "splitties-appctx")
-        exclude(group = "com.louiscad.splitties", module = "splitties-systemservices")
-    }
-}
+    // kotlin
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
-// Lychee: build the reading/meaning dictionary (dictionary/build_dict.py)
-// into a generated asset, lychee/dict.db.
-abstract class LycheeDictionaryTask : DefaultTask() {
-    @get:InputDirectory
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val sourceDir: DirectoryProperty
+    // compose
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    // newer than 2025.11.01 contains androidx.compose.material:material-android:1.10.0, which requires minSdk 23
+    // maybe it's possible to use tools:overrideLibrary="androidx.compose.material" as it's not used explicitly, but probably this is just going to crash
+    implementation(platform("androidx.compose:compose-bom:2025.11.01"))
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    "debugNoMinifyImplementation"("androidx.compose.ui:ui-tooling")
+    implementation("androidx.navigation:navigation-compose:2.9.8")
+    implementation("sh.calvin.reorderable:reorderable:3.1.0") // for easier re-ordering
+    implementation("com.github.skydoves:colorpicker-compose:1.1.3") // for user-defined colors
 
-    @get:OutputDirectory
-    abstract val outputDir: DirectoryProperty
-
-    @get:Inject
-    abstract val exec: ExecOperations
-
-    @TaskAction
-    fun build() {
-        val src = sourceDir.get().asFile
-        val out = outputDir.get().dir("lychee").asFile.apply { mkdirs() }
-        exec.exec {
-            commandLine(
-                "python3", "-B", File(src, "build_dict.py").path,
-                "--luna", File(src, "rime-luna-pinyin/luna_pinyin.dict.yaml").path,
-                "--out", File(out, "dict.db").path
-            )
-        }
-    }
-}
-
-val lycheeDictionary by tasks.registering(LycheeDictionaryTask::class) {
-    sourceDir.set(rootProject.layout.projectDirectory.dir("dictionary"))
-}
-
-androidComponents {
-    onVariants { variant ->
-        variant.sources.assets?.addGeneratedSourceDirectory(lycheeDictionary, LycheeDictionaryTask::outputDir)
-    }
+    // test
+    testImplementation(kotlin("test"))
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:5.23.0")
+    testImplementation("org.robolectric:robolectric:4.16.1")
+    testImplementation("androidx.test:runner:1.7.0")
+    testImplementation("androidx.test:core:1.7.0")
 }
