@@ -18,6 +18,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch submodules
+        working-directory: .
+        run: |
+          paths=$(git config -f .gitmodules --get-regexp '^submodule\.lychee/.*\.path$' | awk '{print $2}')
+          git submodule update --init --depth 1 $paths
+
+      - name: Install host build tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ninja-build libboost-dev libboost-regex-dev libboost-locale-dev \
+            libgoogle-glog-dev libleveldb-dev libmarisa-dev libopencc-dev libyaml-cpp-dev
+
+      # rime_deployer (librime 1.16.1) compiles the dictionaries at build time
+      - uses: actions/cache@v4
+        with:
+          path: lychee/rime/.host-librime
+          key: host-librime-1.16.1-${{ runner.os }}-v1
+
+      - name: Rime scheme test (host librime)
+        run: |
+          rime/test/run.sh
+          echo "LYCHEE_HOST_RIME=$(rime/test/host_jni.sh)" >> "$GITHUB_ENV"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -60,7 +83,7 @@ jobs:
 
       - name: Build APK
         run: |
-          ./gradlew --no-daemon :app:assembleRelease
+          ./gradlew --no-daemon :app:assembleRelease :app:testDebugUnitTest --tests 'app.lychee.*' :rime:testDebugUnitTest
           mkdir -p "$RUNNER_TEMP/out"
           cp app/build/outputs/apk/release/Lychee-release.apk \
             "$RUNNER_TEMP/out/Lychee-${{ github.run_number }}-arm64-v8a.apk"

@@ -1,0 +1,53 @@
+# Rime default settings for Lychee
+# encoding: utf-8
+#
+# The app talks to Rime directly: letters go to Rime, punctuation and
+# paging are handled by the keyboard, and the candidate list is read in
+# full (not page by page).
+
+config_version: '1.0'
+
+schema_list:
+  - schema: lychee_mandarin
+  - schema: lychee_cantonese
+
+menu:
+  page_size: 10
+
+switcher:
+  caption: 〔方案選單〕
+  hotkeys: []
+  save_options:
+    - traditionalization
+    - simplification
+    - emoji
+  fold_options: true
+  abbreviate_options: true
+
+punctuator:
+  digit_separators: ",.:"
+  full_shape:
+    __include: punctuation:/full_shape
+  half_shape:
+    __include: punctuation:/half_shape
+
+key_binder:
+  bindings:
+    __patch:
+      # No paging on , . - = : on a touch keyboard those are punctuation.
+      - key_bindings:/numbered_mode_switch
+
+recognizer:
+  patterns:
+    email: "^[A-Za-z][-_.0-9A-Za-z]*@.*$"
+    url: "^(www[.]|https?:|ftp[.:]|mailto:|file:).*$|^[a-z]+[.].+$"
+
+ascii_composer:
+  good_old_caps_lock: true
+  switch_key:
+    Shift_L: noop
+    Shift_R: noop
+    Control_L: noop
+    Control_R: noop
+    Caps_Lock: noop
+    Eisu_toggle: clear

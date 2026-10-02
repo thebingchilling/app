@@ -1,0 +1,104 @@
+# Rime schema
+# encoding: utf-8
+#
+# Lychee Cantonese: TypeDuck's Jyutping dictionary (CC BY 4.0,
+# https://github.com/TypeDuck-HK/schema), typed in Yale or Jyutping.
+# Yale is written without tone marks on a phone ("sik faan" or "sihk faahn"
+# both work); Jyutping spellings keep working too. The candidate bar shows
+# readings and meanings from Lychee's own dictionary.
+
+schema:
+  schema_id: lychee_cantonese
+  name: 粵語
+  version: "2.0"
+  author:
+    - TypeDuck Team (dictionary)
+    - Lychee
+  description: |-
+    Cantonese in Yale or Jyutping.
+
+switches:
+  - name: ascii_mode
+    reset: 0
+    states: [ 中文, 英文 ]
+  - name: full_shape
+    states: [ 半形, 全形 ]
+  - name: simplification
+    states: [ 繁體, 简体 ]
+  - name: ascii_punct
+    states: [ 。，, ．， ]
+
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - abc_segmentor
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - punct_translator
+    - script_translator
+  filters:
+    - simplifier
+    - uniquifier
+
+speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcba
+  delimiter: " '"
+  algebra:
+    # Tones are not typed.
+    - xform/[1-6]$//
+    # Yale spellings, derived from Jyutping (both stay valid).
+    # j -> y first, so the z -> j that follows only touches real z.
+    - derive/^jyu/yu/
+    - derive/^j(?=[aeiou])/y/
+    - derive/^z/j/
+    - derive/^c/ch/
+    - derive/oe/eu/
+    - derive/eo/eu/
+    - derive/^([bpmfdtnlgkhwsjcy]|ng|gw|kw|ch)?aa$/$1a/
+    # Yale tones 4-6 add an "h" after the vowels: allow it.
+    - derive/^([^aeiou]*[aeiou]+)(?=[mnptk]|ng|$)/$1h/
+    - derive/^(m|ng)$/$1h/
+    # Common slips (from TypeDuck's fuzzy rules).
+    - derive/^ng(?=[aeiou])//
+    - derive/^(?=[aeiou])/ng/
+    - derive/^n(?!g)/l/
+    - derive/^(g|k)w(?=o)/$1/
+    - derive/eu/oe/
+    - derive/oe/eo/
+    # Initials only: "sf" for 食飯.
+    - abbrev/^([a-z]).+$/$1/
+
+translator:
+  dictionary: jyut6ping3
+  enable_completion: true
+  enable_sentence: true
+  enable_user_dict: true
+  # The matched Jyutping ("sik6 faan6") is the comment; the app turns it
+  # into Yale and does not show it raw.
+  always_show_comments: true
+  spelling_hints: 8
+
+simplifier:
+  option_name: simplification
+  opencc_config: hk2s.json
+  tips: none
+
+punctuator:
+  import_preset: default
+
+key_binder:
+  import_preset: default
+
+recognizer:
+  import_preset: default

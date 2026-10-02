@@ -1,0 +1,14 @@
+# keys	expected candidate (in the first page)
+nihao	你好
+zhongguo	中国
+xiexie	谢谢
+woaini	我爱你
+beijing	北京
+diannao	电脑
+# abbreviations
+nh	你好
+zg	中国
+# fuzzy slips that rime-ice accepts
+zhognguo	中国
+# sentence
+jintiantianqizhenhao	今天天气真好

@@ -1,6 +1,31 @@
 import java.util.Base64
+import javax.inject.Inject
 import com.android.build.api.variant.ApplicationVariant
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+/**
+ * Lychee: generated assets: Rime's data with its dictionaries compiled on the build machine
+ * (rime/build_rime_data.sh) and the readings-and-meanings database (readings/build_readings.py).
+ */
+abstract class LycheeDataTask @Inject constructor(private val exec: ExecOperations) : DefaultTask() {
+    @get:InputFiles @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sources: ConfigurableFileCollection
+
+    @get:Internal
+    abstract val lycheeDir: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun run() {
+        val out = outputDir.get().asFile
+        out.deleteRecursively()
+        val root = lycheeDir.get().asFile
+        exec.exec { commandLine(File(root, "rime/build_rime_data.sh").path, out.path) }
+        exec.exec { commandLine("python3", File(root, "readings/build_readings.py").path, File(out, "lychee/readings.db").path) }
+    }
+}
 
 plugins {
     id("com.android.application")
@@ -76,6 +101,7 @@ android {
         }
 
         androidComponents.onVariants { variant: ApplicationVariant ->
+            variant.sources.assets?.addGeneratedSourceDirectory(lycheeData, LycheeDataTask::outputDir)
             if (variant.buildType == "debug") {
                 // got a little too big for GitHub after some dependency upgrades, so we remove the largest dictionary
                 variant.androidResources.ignoreAssetsPatterns = listOf("main_ro.dict")
@@ -143,7 +169,22 @@ android {
     }
 }
 
+val lycheeData = tasks.register<LycheeDataTask>("lycheeData") {
+    val root = rootProject.projectDir
+    lycheeDir.set(root)
+    sources.from(
+        fileTree(root.resolve("rime")) {
+            include("data/**", "*.sh", "rime-prelude/*.yaml", "typeduck/*.yaml", "typeduck/*.txt",
+                "rime-ice/*.yaml", "rime-ice/*.txt", "rime-ice/cn_dicts/**", "rime-ice/en_dicts/**",
+                "rime-ice/lua/*", "rime-ice/opencc/**", "prebuilt/opencc/data/**")
+            exclude(".host-librime/**")
+        },
+        fileTree(root.resolve("readings")) { include("*.py", "sources/**") },
+    )
+}
+
 dependencies {
+    implementation(project(":rime"))
     // androidx
     implementation("androidx.core:core-ktx:1.17.0") // 1.18.0 requires minSdk 23
     implementation("androidx.recyclerview:recyclerview:1.4.0")

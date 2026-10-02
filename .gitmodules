@@ -5,12 +5,16 @@
 [submodule "lychee/rime/rime-ice"]
 	path = lychee/rime/rime-ice
 	url = https://github.com/iDvel/rime-ice.git
+	shallow = true
 [submodule "lychee/rime/typeduck"]
 	path = lychee/rime/typeduck
 	url = https://github.com/TypeDuck-HK/schema.git
+	shallow = true
 [submodule "lychee/rime/rime-prelude"]
 	path = lychee/rime/rime-prelude
 	url = https://github.com/rime/rime-prelude.git
+	shallow = true
 [submodule "lychee/rime/prebuilt"]
 	path = lychee/rime/prebuilt
 	url = https://github.com/fcitx5-android/prebuilt.git
+	shallow = true

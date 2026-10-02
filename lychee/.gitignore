@@ -16,3 +16,6 @@ tools/*.txt
 *.diff
 *.sh
 rime/.host-librime
+.cxx
+!rime/*.sh
+!rime/test/*.sh

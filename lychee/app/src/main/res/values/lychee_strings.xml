@@ -3,4 +3,5 @@
 <resources>
     <string name="lychee_language_mandarin">Mandarin 普通话</string>
     <string name="lychee_language_cantonese">Cantonese 廣東話</string>
+    <string name="lychee_preparing_chinese">Chinese input is getting ready…</string>
 </resources>

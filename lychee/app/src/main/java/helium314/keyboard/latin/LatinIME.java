@@ -34,6 +34,7 @@ import android.view.inputmethod.InlineSuggestionsRequest;
 import android.view.inputmethod.InlineSuggestionsResponse;
 import android.view.inputmethod.InputMethodSubtype;
 
+import app.lychee.LycheeKeyboard;
 import helium314.keyboard.accessibility.AccessibilityUtils;
 import helium314.keyboard.compat.ConfigurationCompatKt;
 import helium314.keyboard.compat.EditorInfoCompatUtils;
@@ -135,6 +136,8 @@ public class LatinIME extends InputMethodService implements
             DictionaryFacilitatorProvider.getDictionaryFacilitator(false);
     private final DictionaryFacilitator mOriginalDictionaryFacilitator = mDictionaryFacilitator;
     final InputLogic mInputLogic = new InputLogic(this, this, mDictionaryFacilitator);
+    // Lychee: Mandarin and Cantonese through Rime, readings and meanings under the candidates
+    final LycheeKeyboard mLychee = new LycheeKeyboard(this, mInputLogic.mConnection);
 
     // TODO: Move these {@link View}s to {@link KeyboardSwitcher}.
     private View mInputView;
@@ -761,6 +764,8 @@ public class LatinIME extends InputMethodService implements
         mInsetsUpdater = ViewOutlineProviderUtilsKt.setInsetsOutlineProvider(view);
         KtxKt.updateSoftInputWindowLayoutParameters(this, mInputView);
         updateSuggestionStripView(view);
+        mLychee.attach(view);
+        mLychee.onLanguageChanged(mRichImm.getCurrentSubtypeLocale());
     }
 
     public void updateSuggestionStripView(View view) {
@@ -821,6 +826,7 @@ public class LatinIME extends InputMethodService implements
         mSubtypeState.onSubtypeChanged(oldSubtype, subtype);
         StatsUtils.onSubtypeChanged(oldSubtype, subtype);
         mRichImm.onSubtypeChanged(subtype);
+        mLychee.onLanguageChanged(mRichImm.getCurrentSubtypeLocale());
         mInputLogic.onSubtypeChanged(SubtypeLocaleUtils.getCombiningRulesExtraValue(subtype),
                 mSettings.getCurrent());
         loadKeyboard();
@@ -930,6 +936,8 @@ public class LatinIME extends InputMethodService implements
             // We also tell the input logic about the combining rules for the current subtype, so
             // it can adjust its combiners if needed.
             mInputLogic.startInput(mRichImm.getCombiningRulesExtraValueOfCurrentSubtype(), currentSettingsValues);
+            mLychee.onLanguageChanged(mRichImm.getCurrentSubtypeLocale());
+            mLychee.onStartInput();
 
             resetDictionaryFacilitatorIfNecessary();
 
@@ -1041,6 +1049,7 @@ public class LatinIME extends InputMethodService implements
     private void cleanupInternalStateForFinishInput() {
         // Remove pending messages related to update suggestions
         mHandler.cancelUpdateSuggestionStrip();
+        mLychee.onFinishInput();
         // Should do the following in onFinishInputInternal but until JB MR2 it's not called :(
         mInputLogic.finishInput();
         mKeyboardActionListener.resetMetaState();
@@ -1066,6 +1075,15 @@ public class LatinIME extends InputMethodService implements
         // not attempt recorrection. This is true even with a hardware keyboard connected: if the
         // view is not displayed we have no means of showing suggestions anyway, and if it is then
         // we want to show suggestions anyway.
+        // Lychee: while Chinese is being composed, HeliBoard's word logic stays out of it
+        if (mLychee.getChinese().isComposing()) {
+            if (!mInputLogic.mConnection.isBelatedExpectedUpdate(oldSelStart, newSelStart, oldSelEnd, newSelEnd,
+                    composingSpanStart, composingSpanEnd)) {
+                mLychee.getChinese().onCursorMovedByUser();
+                mInputLogic.mConnection.resetCachesUponCursorMoveAndReturnSuccess(newSelStart, newSelEnd, false);
+            }
+            return;
+        }
         final SettingsValues settingsValues = mSettings.getCurrent();
         if (isInputViewShown()
                 && mInputLogic.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
@@ -1410,6 +1428,10 @@ public class LatinIME extends InputMethodService implements
     // This method is public for testability of LatinIME, but also in the future it should
     // completely replace #onCodeInput.
     public void onEvent(@NonNull final Event event) {
+        if (!mSettings.getCurrent().mInputAttributes.mIsPasswordField && mLychee.onEvent(event)) {
+            mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+            return;
+        }
         if (KeyCode.VOICE_INPUT == event.getKeyCode()) {
             mRichImm.switchToShortcutIme(this);
         }
@@ -1423,6 +1445,7 @@ public class LatinIME extends InputMethodService implements
 
     public void onTextInput(@Nullable String rawText) {
         if (rawText == null) return;
+        mLychee.onTextInput();
         // TODO: have the keyboard pass the correct key code when we need it.
         Event event = Event.createSoftwareTextEvent(rawText, KeyCode.MULTIPLE_CODE_POINTS, null);
         InputTransaction completeInputTransaction = mInputLogic.onTextInput(mSettings.getCurrent(),
