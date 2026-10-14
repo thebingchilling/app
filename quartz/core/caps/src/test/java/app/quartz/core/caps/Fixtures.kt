@@ -99,7 +99,7 @@ object Fixtures {
             back("0", 6.9f, 9.8f, 7.4f, zoom = FloatSpan(0.5f, 30f), physical = listOf("2", "3", "4"), extraCaps = listOf(C2.CAP_LOGICAL_MULTI_CAMERA, C2.CAP_DYNAMIC_RANGE_TEN_BIT, C2.CAP_CONSTRAINED_HIGH_SPEED_VIDEO)).copy(dynamicRangeProfiles = listOf(C2.DR_STANDARD, C2.DR_HLG10)),
             back("2", 6.9f, 9.8f, 7.4f, openable = false, parent = "0"),
             back("3", 2.0f, 5.6f, 4.2f, openable = false, parent = "0"),
-            back("4", 18f, 5.6f, 4.2f, openable = false, parent = "0", video = sizes(3840 to 2160, 1920 to 1080, frameNs = 33_333_333L)),
+            back("4", 19.7f, 5.6f, 4.2f, openable = false, parent = "0", video = sizes(3840 to 2160, 1920 to 1080, frameNs = 33_333_333L)),
             back("1", 2.7f, 4.6f, 3.4f).copy(facing = C2.FACING_FRONT, sensorOrientation = 270),
         ),
         encoders = encoders,

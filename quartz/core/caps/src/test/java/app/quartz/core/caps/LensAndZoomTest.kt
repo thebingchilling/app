@@ -19,11 +19,11 @@ class LensAndZoomTest {
         assertEquals(3, set.lenses.size)
         assertEquals(0.5f, set.widest.ratio, 0.001f) // HAL range wins for the widest lens
         assertEquals(1f, set.main.ratio, 0.01f)
-        assertEquals(18f / 6.9f, set.longest.ratio, 0.1f)
+        assertEquals(5f, set.longest.ratio, 0.05f) // 122 mm vs 24 mm equivalent
         // Physical lenses that can't be opened alone are streamed through the logical camera.
         assertEquals("0", set.longest.openId)
         assertEquals("4", set.longest.physicalId)
-        assertEquals(listOf("0.5", "1×", "2", "2.5"), ZoomMath.pills(set, emptyList(), 10f).map { LensMap.ratioLabel(it) })
+        assertEquals(listOf("0.5", "1×", "2", "5"), ZoomMath.pills(set, emptyList(), 10f).map { LensMap.ratioLabel(it) })
     }
 
     @Test
