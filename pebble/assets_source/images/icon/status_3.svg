@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Pebble tray icon (status_3). Render with: dart run tool/generate_status_icons.dart -->
-<svg width="108" height="108" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
-  <title>status_3</title>
-  <circle cx="54" cy="54" r="49" fill="none" stroke="#E0A030" stroke-width="7"/>
-  <g transform="translate(54 54) scale(1.2) translate(-54 -53)"><ellipse cx="54" cy="71" rx="26" ry="11" transform="rotate(-4 54 71)" fill="#2F5D50"/><ellipse cx="53" cy="50.5" rx="19" ry="8.5" transform="rotate(5 53 50.5)" fill="#4F8A76"/><ellipse cx="55" cy="34" rx="12" ry="7" transform="rotate(-7 55 34)" fill="#86BBA5"/></g>
-</svg>
