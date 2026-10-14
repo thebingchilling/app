@@ -185,14 +185,7 @@ fun CameraScreen(vm: CameraViewModel, levelRoll: Float) {
                 }
 
                 // Settings panel slides up over the lower viewfinder.
-                AnimatedVisibility(
-                    ui.panel != null,
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    enter = slideInVertically { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut(),
-                ) {
-                    SettingsPanel(vm)
-                }
+                PanelHost(vm, ui.panel != null, Modifier.align(Alignment.BottomCenter))
             }
 
             ModeCarousel(
@@ -208,6 +201,19 @@ fun CameraScreen(vm: CameraViewModel, levelRoll: Float) {
     }
 
     SheetHost(vm)
+}
+
+/** Kept outside the Column so AnimatedVisibility isn't resolved against ColumnScope. */
+@Composable
+private fun PanelHost(vm: CameraViewModel, visible: Boolean, modifier: Modifier) {
+    AnimatedVisibility(
+        visible,
+        modifier = modifier,
+        enter = slideInVertically { it } + fadeIn(),
+        exit = slideOutVertically { it } + fadeOut(),
+    ) {
+        SettingsPanel(vm)
+    }
 }
 
 @Composable

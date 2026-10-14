@@ -1,6 +1,10 @@
 # Quartz — plan
 
 > Working name. Rename freely (folder, app ID `app.quartz.camera`, strings).
+>
+> **Status: M0–M7 implemented** (see `HANDOFF.md` for what is built, what is
+> verified and what still needs a real phone). Where the build differs from
+> this plan, the plan has been updated and the change is marked *(built: …)*.
 
 An Android camera app that **looks and feels like Google's Pixel Camera**
 (GCam) but runs on the phone's **own camera stack through the public Camera2
@@ -10,9 +14,7 @@ resolution, frame rate, format and lens in every mode and at every zoom, and it
 beautification, no sharpening, no denoising, no "scene optimiser". What the
 sensor saw is what you get.
 
-Status: **plan only, no code yet.** This file is both the design and the
-handoff. A code agent starting the project should read all of it, then
-`/CLAUDE.md` (commit straight to `main`, no branches, no PRs).
+This file is the design. `HANDOFF.md` is the current state of the code.
 
 ---
 
@@ -64,7 +66,7 @@ for capture, no ported GCam, no fork of an existing app.
 | Option | Verdict |
 | --- | --- |
 | **Camera2 directly** | ✅ Full control of every request key, every stream size, physical lenses, high-speed sessions, RAW, max-resolution mode, 10-bit. The only option that meets contract rules 1 and 3 together. |
-| CameraX (+ `Camera2Interop`) | ❌ Good for simple apps, but it chooses stream sizes and combinations for you, doesn't expose constrained high-speed sessions, max-resolution sensor mode or physical-lens streams well, and tends to fall back silently. Our "show only what really works" rule needs the raw API. We still use the **`androidx.camera:camera-viewfinder`** library, which is made for Camera2 users. |
+| CameraX (+ `Camera2Interop`) | ❌ Good for simple apps, but it chooses stream sizes and combinations for you, doesn't expose constrained high-speed sessions, max-resolution sensor mode or physical-lens streams well, and tends to fall back silently. Our "show only what really works" rule needs the raw API. *(built: the preview is a plain SurfaceView sized to the session's preview stream, as in Google's Camera2Basic sample, which avoids depending on the viewfinder library's changing API.)* |
 | GCam ports (BSG, Arnova, etc.) | ❌ Proprietary Google code, redistributed without permission, tied to specific SoCs, and the whole point of GCam is HDR+ processing, which we're removing. |
 | Fork Open Camera | ❌ GPL-3, Views-based UI from 2013, its own UI idioms. Read it for Camera2 device quirks (it is the best record of them), but don't copy its code if we stay Apache-2.0. |
 | Fork Aperture (LineageOS) / GrapheneOS Camera | ❌ Both are CameraX-based, so they have the same limits. Useful references for UI structure, intents, MediaStore and lock-screen handling. |
@@ -159,10 +161,10 @@ tested against captured characteristics from real devices (§13).
 `ComplianceMonitor` reads each `TotalCaptureResult` and compares the result keys
 (`NOISE_REDUCTION_MODE`, `EDGE_MODE`, `TONEMAP_MODE`, `CONTROL_SCENE_MODE`,
 `CONTROL_VIDEO_STABILIZATION_MODE`, `DISTORTION_CORRECTION_MODE`…) with what
-the policy asked for. Mismatches go into a per-camera report and, for still
-captures, into a small sidecar entry in the app's database keyed by MediaStore
-URI. The review screen can then show "noise reduction: requested OFF, device
-used FAST" for that photo.
+the policy asked for. Mismatches go into the Natural report, and each still
+capture records what the camera reported in its EXIF UserComment, which the
+review screen's details sheet shows ("noise reduction Off, sharpening Off,
+tone sRGB").
 
 ### 3.4 The honest limit
 
@@ -204,7 +206,7 @@ What we do:
 | 10-bit HLG / HDR10 video | `DYNAMIC_RANGE_TEN_BIT` (API 33+) + encoder support | 8-bit SDR |
 | Display P3 stills | `REQUEST_AVAILABLE_COLOR_SPACE_PROFILES` (API 34+) | sRGB |
 | Native shutter/ISO priority | `CONTROL_AE_PRIORITY_MODE` (API 36+) | emulated in the app (§7.6) |
-| Kelvin white balance | `COLOR_CORRECTION_MODE_CCT` (API 36+) | gains computed from sensor calibration (§7.6) |
+| Kelvin white balance | `COLOR_CORRECTION_MODE_CCT` (API 36+) | AWB presets plus a warm/cool shift on the camera's own AWB gains (§7.6) *(built: absolute Kelvin below API 36 needs per-sensor calibration that can't be verified without devices, so it isn't offered)* |
 | Slow motion | `CONSTRAINED_HIGH_SPEED_VIDEO` | "high frame rate" = normal session at the highest listed fps |
 | HEIC stills | `ImageFormat.HEIC` output (API 29+) | JPEG only |
 | Unprocessed microphone | `AudioSource.UNPROCESSED` + `PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED` | `CAMCORDER`, reported |
@@ -279,8 +281,7 @@ Material tokens.
   XML in `core/ui/src/main/res/drawable/`), each in two variants: outlined
   (`FILL 0`) and filled (`FILL 1`), weight 400, grade 0, optical size 24.
   Selected or "on" states use the filled variant, as Material does.
-- The viewfinder uses grade `-25` variants (slightly thinner) for icons on the
-  dark scrim, and 20 dp optical size for status chips.
+- *(built: one weight/grade for everything; the Android XML exports only exist at grade 0.)*
 - Starter list: `photo_camera`, `videocam`, `cameraswitch`, `settings`,
   `flash_on/off/auto`, `timer`, `timer_3`, `timer_10`, `aspect_ratio`,
   `grid_on`, `straighten`, `raw_on`, `hdr_on` (10-bit video only), `slow_motion_video`,
@@ -467,7 +468,7 @@ Settings
           lapse:  size, capture interval, playback fps
 ```
 
-Stored with **Proto DataStore** (typed, migratable). Defaults per lens are
+Stored in a typed **DataStore** *(built: kotlinx.serialization JSON rather than protobuf; same typing and migration story)*. Defaults per lens are
 computed from `DeviceCaps`: highest binned 4:3 still size, 1080p30 or
 4K30 video if supported, HEVC if a hardware encoder exists, else H.264.
 
@@ -509,7 +510,7 @@ Example: 4K60 is set and the user taps the 5× pill, but the telephoto only does
   setting for that lens and flash a chip saying "Telephoto: 4K 30".
 - **Keep settings, crop on current lens**: stay on the current lens and crop
   digitally.
-- **Ask**.
+- ~~Ask~~ *(built: not in v1; Adapt and Crop only)*.
 
 The same rule applies to photo sizes and formats (e.g. no RAW on the
 ultrawide).
@@ -534,14 +535,16 @@ and pick the crop output (§8.4).
   slider. Focus peaking draws on the preview only.
 - **White balance**: AWB presets (`AUTO, INCANDESCENT, FLUORESCENT, DAYLIGHT,
   CLOUDY, SHADE`), plus Kelvin 2000–10000 K and tint. API 36+ uses
-  `COLOR_CORRECTION_MODE_CCT`. Below that, compute `COLOR_CORRECTION_GAINS`
-  and the transform from the sensor's two reference illuminants
-  (`SENSOR_REFERENCE_ILLUMINANT1/2`, `SENSOR_COLOR_TRANSFORM1/2`,
-  `SENSOR_FORWARD_MATRIX1/2`), interpolating between them like DNG does.
+  `COLOR_CORRECTION_MODE_CCT`. *(built: below API 36, presets plus a
+  warm/cool shift applied to the camera's own AWB gains; the sensor's
+  reference illuminant matrices are recorded in DeviceCaps so absolute
+  Kelvin can be added once it can be checked on real devices.)*
 - **Metering**: `CONTROL_AE_REGIONS` / `CONTROL_AF_REGIONS` from tap points
   (centre-weighted default, spot on tap). Face metering is off by default.
-- Viewfinder aids (preview-only, GPU overlay on a separate low-res `YUV`
-  analysis stream): histogram (luma/RGB), focus peaking, zebras, level, grid.
+- Viewfinder aids (preview-only, overlay from a separate low-res `YUV`
+  analysis stream): luma histogram, focus peaking, zebras, level, grid.
+- *(built: shutter/ISO priority below API 36 keeps the exposure metered at the
+  moment the priority was set; set Auto and back to re-meter.)*
 
 ---
 
@@ -690,7 +693,7 @@ the Interval mode.
 | Colour | sRGB default; Display P3 option on API 34+ where listed |
 | Video | MP4: H.264 High, HEVC Main/Main10, AV1 Main/Main10 (where hardware encoders exist) |
 | Audio | AAC-LC 48 kHz |
-| Metadata | Full EXIF (no fake values); XMP field `quartz:natural=true/false` + summary of requested/actual modes; video `location` atom only if location is on |
+| Metadata | Full EXIF (no fake values); EXIF UserComment with a summary of the processing the camera reported for that frame *(built: instead of XMP, so every EXIF viewer shows it)*; video `location` atom only if location is on |
 
 ---
 
@@ -713,8 +716,8 @@ quartz/
 │    VideoRecorder         MediaCodec/MediaMuxer/AudioRecord, pause, snapshot, thermal
 │    HighSpeedRecorder, TimelapseRecorder
 ├─ core/caps/              capability probe, DeviceCaps model + JSON, quirks table
-├─ core/media/             MediaStore writer, EXIF/XMP, naming, sidecar DB (Room)
-├─ core/settings/          Proto DataStore schema + defaults derived from DeviceCaps
+├─ core/media/             MediaStore writer, EXIF, naming
+├─ core/settings/          typed DataStore settings + Resolver (saved choice → what a camera can do)
 └─ tools/                  natural_check.py (§13.3), caps fixtures importer
 ```
 
@@ -818,7 +821,7 @@ The result per device goes into its Natural report entry and quirk notes.
 
 - Kotlin 2.3, AGP latest stable, Java 21 toolchain, Compose BOM latest,
   Compose Material 3 (Expressive) + `material3-adaptive`, Material Symbols as
-  generated vector drawables, `camera-viewfinder-compose`, DataStore, Room,
+  generated vector drawables, DataStore,
   kotlinx.serialization, Coroutines. No Play Services, no Firebase.
 - `.github/workflows/build-quartz.yml`, same shape as `build-lychee.yml`:
   on push to `main` under `quartz/**`, run unit tests, lint (including the
