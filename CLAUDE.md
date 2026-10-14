@@ -16,6 +16,10 @@ A collection of small standalone apps, each in its own folder.
   for English, Mandarin and Cantonese that shows Yale, pinyin and English under
   every Chinese candidate; optional offline voice and handwriting downloads.
   Read [`lychee/HANDOFF.md`](lychee/HANDOFF.md) first.
+- [`quartz/`](quartz/) — Quartz (working name), an Android camera with a
+  Pixel Camera-style UI on the phone's own Camera2 engine: full resolution/
+  frame-rate/lens control in every mode, no image enhancement ever. Plan only
+  so far; read [`quartz/PLAN.md`](quartz/PLAN.md) first.
 
 ## Purpose
 
