@@ -20,6 +20,9 @@ A collection of small standalone apps, each in its own folder.
   Pixel Camera-style UI on the phone's own Camera2 engine: full resolution/
   frame-rate/lens control in every mode, no image enhancement ever. Plan only
   so far; read [`quartz/PLAN.md`](quartz/PLAN.md) first.
+- [`wren/`](wren/) — Wren (working name), a Gmail-style Material 3 email app with instant
+  push for Outlook.com and Gmail, forked from Thunderbird for Android. Read
+  [`wren/PLAN.md`](wren/PLAN.md) first. Plan only so far.
 
 ## Purpose
 
