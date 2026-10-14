@@ -15,10 +15,19 @@ index a533be65..27c90f8b 100644
              val actions = fcitx.runOnReady { getCandidateActions(idx) }
              if (actions.isEmpty()) return@launch
 diff --git a/app/src/main/java/org/fcitx/fcitx5/android/input/bar/KawaiiBarComponent.kt b/app/src/main/java/org/fcitx/fcitx5/android/input/bar/KawaiiBarComponent.kt
-index fe90eda6..cfa32840 100644
+index fe90eda6..de83ab2c 100644
 --- a/app/src/main/java/org/fcitx/fcitx5/android/input/bar/KawaiiBarComponent.kt
 +++ b/app/src/main/java/org/fcitx/fcitx5/android/input/bar/KawaiiBarComponent.kt
-@@ -537,7 +537,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
+@@ -306,6 +306,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
+                 moreButton.setOnClickListener {
+                     windowManager.attachWindow(StatusAreaWindow())
+                 }
++                // BumBoard: Gboard-style movable tools (reuses the buttons above)
++                app.bumboard.toolbar.BumToolbar.bind(this, theme, windowManager)
+             }
+             clipboardUi.suggestionView.apply {
+                 setOnClickListener {
+@@ -537,7 +539,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
      }
  
      companion object {
@@ -28,20 +37,20 @@ index fe90eda6..cfa32840 100644
      }
  
      fun onKeyboardLayoutSwitched(isNumber: Boolean) {
-diff --git a/app/src/main/java/org/fcitx/fcitx5/android/input/bar/ui/idle/ButtonsBarUi.kt b/app/src/main/java/org/fcitx/fcitx5/android/input/bar/ui/idle/ButtonsBarUi.kt
-index 3170536f..a6101be7 100644
---- a/app/src/main/java/org/fcitx/fcitx5/android/input/bar/ui/idle/ButtonsBarUi.kt
-+++ b/app/src/main/java/org/fcitx/fcitx5/android/input/bar/ui/idle/ButtonsBarUi.kt
-@@ -48,4 +48,9 @@ class ButtonsBarUi(override val ctx: Context, private val theme: Theme) : Ui {
-         contentDescription = ctx.getString(R.string.status_area)
+diff --git a/app/src/main/java/org/fcitx/fcitx5/android/input/bar/ui/IdleUi.kt b/app/src/main/java/org/fcitx/fcitx5/android/input/bar/ui/IdleUi.kt
+index 14c09e6e..8b93c006 100644
+--- a/app/src/main/java/org/fcitx/fcitx5/android/input/bar/ui/IdleUi.kt
++++ b/app/src/main/java/org/fcitx/fcitx5/android/input/bar/ui/IdleUi.kt
+@@ -114,7 +114,8 @@ class IdleUi(
      }
  
-+    init {
-+        // BumBoard: language, English->Chinese and Traditional/Simplified buttons
-+        app.bumboard.toolbar.BumToolbar.attach(this, ctx, theme)
-+    }
-+
- }
+     private val idleBody = constraintLayout {
+-        val size = dp(KawaiiBarComponent.HEIGHT)
++        // BumBoard: the bar is taller (readings under candidates); keep these buttons button-sized
++        val size = dp(minOf(KawaiiBarComponent.HEIGHT, 48))
+         add(menuButton, lParams(size, size) {
+             startOfParent()
+             centerVertically()
 diff --git a/app/src/main/java/org/fcitx/fcitx5/android/input/candidates/CandidateItemUi.kt b/app/src/main/java/org/fcitx/fcitx5/android/input/candidates/CandidateItemUi.kt
 index 5dbfb804..101955de 100644
 --- a/app/src/main/java/org/fcitx/fcitx5/android/input/candidates/CandidateItemUi.kt

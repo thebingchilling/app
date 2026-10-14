@@ -17,6 +17,7 @@ import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.FcitxDaemon
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.utils.appContext
 import timber.log.Timber
 import java.io.File
@@ -33,7 +34,7 @@ object BumBoard {
     const val RIME = "rime"
     const val KEYBOARD_US = "keyboard-us"
 
-    /** Rime schema names (schema/name in bumboard/data/rime/*.schema.yaml). */
+    /** Rime schema names (schema/name in the schema files under bumboard/data/rime). */
     object Schemas {
         const val CANTONESE = "粵語"
         const val CANTONESE_YALE = "粵語 (Yale)"
@@ -222,6 +223,8 @@ object BumBoard {
             setEnabledIme((listOf(RIME, KEYBOARD_US) + (enabled - setOf(RIME, KEYBOARD_US))).toTypedArray())
         }
         activateIme(RIME)
+        // Gboard-like: tools visible on the bar by default
+        AppPrefs.getInstance().keyboard.expandToolbarByDefault.setValue(true)
         prefs.edit().putBoolean(Keys.DEFAULT_IMS_DONE, true).apply()
     }
 
