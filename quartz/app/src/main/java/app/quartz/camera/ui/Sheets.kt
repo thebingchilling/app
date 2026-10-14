@@ -88,11 +88,13 @@ private fun VideoGridSheet(vm: CameraViewModel) {
     val key = selection.settingsKey
     val cfg = settings.video[key] ?: VideoConfig()
     SheetTitle("Resolution and frame rate", "Only what this camera and its encoders can really record")
+    val ui by vm.ui.collectAsState()
     val fpsColumns = cells.map { it.fps }.distinct().sorted()
-    cells.map { it.size }.distinct().forEach { size ->
+    cells.map { it.size }.distinct().filter { it !in ui.refusedVideoSizes || settings.showUnsupported }.forEach { size ->
+        val refused = size in ui.refusedVideoSizes
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                "${VideoOptions.sizeLabel(size)}  ·  ${size.w}×${size.h}",
+                "${VideoOptions.sizeLabel(size)}  ·  ${size.w}×${size.h}" + if (refused) "  ·  camera refuses this size" else "",
                 style = MaterialTheme.typography.titleSmall.tabular,
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -106,7 +108,7 @@ private fun VideoGridSheet(vm: CameraViewModel) {
                                 vm.setSheet(null)
                             },
                             label = "$fps",
-                            enabled = cell != null,
+                            enabled = cell != null && !refused,
                             onScrim = false,
                         )
                     }

@@ -103,6 +103,8 @@ data class UiState(
     val pinching: Boolean = false,
     val captureIntent: CaptureIntent? = null,
     val secure: Boolean = false,
+    /** Video sizes the open camera refused in a combination check. */
+    val refusedVideoSizes: Set<Size> = emptySet(),
 )
 
 /** A camera intent from another app (ACTION_IMAGE_CAPTURE / ACTION_VIDEO_CAPTURE). */
@@ -247,6 +249,24 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
             engineState.collect { st -> if (st is EngineState.Error) _notices.tryEmit(st.message) }
         }
         viewModelScope.launch { loadLatestThumbnail() }
+        watchThermal()
+    }
+
+    /** Plan §10.1: warn when the phone is hot; stop and save cleanly before it shuts the camera down. */
+    private fun watchThermal() {
+        if (Build.VERSION.SDK_INT < 29) return
+        val pm = getApplication<Application>().getSystemService(android.os.PowerManager::class.java) ?: return
+        val listener = android.os.PowerManager.OnThermalStatusChangedListener { status ->
+            when {
+                status >= android.os.PowerManager.THERMAL_STATUS_CRITICAL && recording.value.active -> {
+                    _notices.tryEmit("Phone too hot: recording stopped and saved")
+                    viewModelScope.launch { engine.stopRecording() }
+                }
+                status >= android.os.PowerManager.THERMAL_STATUS_SEVERE -> _notices.tryEmit("Phone is getting hot")
+            }
+        }
+        pm.addThermalStatusListener(getApplication<Application>().mainExecutor, listener)
+        addCloseable { pm.removeThermalStatusListener(listener) }
     }
 
     // ------------------------------------------------------------------
@@ -364,7 +384,22 @@ class CameraViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setPanel(panel: Panel?) = _ui.update { it.copy(panel = panel) }
-    fun setSheet(sheet: Sheet?) = _ui.update { it.copy(sheet = sheet) }
+    fun setSheet(sheet: Sheet?) {
+        _ui.update { it.copy(sheet = sheet) }
+        if (sheet == Sheet.VIDEO_GRID) checkVideoSizes()
+    }
+
+    private fun checkVideoSizes() {
+        val sel = selection.value ?: return
+        val c = _caps.value ?: return
+        if (sel.spec.kind != SessionKind.VIDEO) return
+        val info = sel.spec.lensInfo.takeIf { sel.spec.physicalId != null } ?: sel.spec.info
+        val sizes = app.quartz.core.caps.options.VideoOptions.cells(info, c.encoders).map { it.size }.distinct()
+        viewModelScope.launch {
+            val refused = runCatching { engine.unsupportedVideoSizes(sizes) { SpecBuilder.previewSize(info, it) } }.getOrDefault(emptySet())
+            _ui.update { it.copy(refusedVideoSizes = refused) }
+        }
+    }
     fun setScreen(screen: Screen) = _ui.update { it.copy(screen = screen, panel = null, sheet = null) }
 
     // ------------------------------------------------------------------

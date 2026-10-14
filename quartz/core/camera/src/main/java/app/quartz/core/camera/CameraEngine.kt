@@ -544,6 +544,48 @@ class CameraEngine(private val context: Context, private val media: MediaWriter)
     }
 
     // ------------------------------------------------------------------
+    // Stream combination check (plan §4.1 step 4)
+    // ------------------------------------------------------------------
+
+    /**
+     * Asks the open camera whether preview + a video encoder stream at each
+     * size can be configured together (API 29+). Returns the sizes it
+     * refuses; empty when the check isn't available.
+     */
+    suspend fun unsupportedVideoSizes(sizes: List<Size>, previewFor: (Size) -> Size?): Set<Size> = lock.withLock {
+        withContext(cameraDispatcher) {
+            val d = device ?: return@withContext emptySet()
+            if (Build.VERSION.SDK_INT < 29) return@withContext emptySet()
+            val bad = mutableSetOf<Size>()
+            for (size in sizes) {
+                val p = previewFor(size) ?: continue
+                val texture = android.graphics.SurfaceTexture(false).apply { setDefaultBufferSize(p.w, p.h) }
+                val previewSurface = Surface(texture)
+                val encoder = ImageReader.newInstance(size.w, size.h, ImageFormat.PRIVATE, 2, android.hardware.HardwareBuffer.USAGE_VIDEO_ENCODE)
+                try {
+                    val config = SessionConfiguration(
+                        SessionConfiguration.SESSION_REGULAR,
+                        listOf(OutputConfiguration(previewSurface), OutputConfiguration(encoder.surface)),
+                        executor,
+                        object : CameraCaptureSession.StateCallback() {
+                            override fun onConfigured(session: CameraCaptureSession) = Unit
+                            override fun onConfigureFailed(session: CameraCaptureSession) = Unit
+                        },
+                    )
+                    if (!d.isSessionConfigurationSupported(config)) bad += size
+                } catch (e: Exception) {
+                    Log.w(TAG, "combination check $size", e)
+                } finally {
+                    encoder.close()
+                    previewSurface.release()
+                    texture.release()
+                }
+            }
+            bad
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Focus
     // ------------------------------------------------------------------
 

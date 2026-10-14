@@ -78,12 +78,13 @@ Nothing has run on a device yet. In rough order of risk:
 ## Not built yet (from the plan)
 
 - Landscape-native layout for tablets/foldables (§5.3).
-- Combination checking with `isSessionConfigurationSupported` before
-  showing grid cells (§4.1 step 4). Today the grid comes from the static
-  tables, and the engine falls back by dropping optional streams
-  (analysis, snapshot) if a session fails.
+- Full combination checking (§4.1 step 4). Built: on API 29+ the video grid
+  asks the open camera (`isSessionConfigurationSupported`, preview + encoder
+  surface) and greys out sizes it refuses. Not built: photo/RAW combinations
+  and the API 35 `CameraDeviceSetup` path. The engine also falls back by
+  dropping optional streams (analysis, snapshot) if a session fails.
 - "Ask" lens-switch policy; absolute Kelvin below API 36; 4 GB file split
-  on FAT cards; thermal listener (§10.1); quirks table (§12.4);
+  on FAT cards; quirks table (§12.4);
   performance benchmarks (§13.4); F-Droid metadata.
 
 ## Pitfalls
