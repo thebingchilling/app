@@ -44,14 +44,14 @@ jobs:
           fi
 
       - name: Unit tests
-        run: ./gradlew --stacktrace testDebugUnitTest
+        run: ./gradlew --continue testDebugUnitTest
 
       - name: Build APKs
         env:
           QUARTZ_KEYSTORE_PASSWORD: ${{ secrets.QUARTZ_KEYSTORE_PASSWORD }}
           QUARTZ_KEY_ALIAS: ${{ secrets.QUARTZ_KEY_ALIAS }}
           QUARTZ_KEY_PASSWORD: ${{ secrets.QUARTZ_KEY_PASSWORD }}
-        run: ./gradlew --stacktrace :app:assembleDebug :app:assembleRelease
+        run: ./gradlew --continue :app:assembleDebug :app:assembleRelease
 
       - name: Lint
         run: ./gradlew :app:lintDebug

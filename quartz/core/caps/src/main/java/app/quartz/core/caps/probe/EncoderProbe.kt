@@ -40,7 +40,7 @@ object EncoderProbe {
                     MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CQ,
                     MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_VBR,
                     MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR,
-                ).filter { runCatching { enc.isBitrateModeSupported(it) }.getOrDefault(false) }
+                ).filter { runCatching { enc?.isBitrateModeSupported(it) == true }.getOrDefault(false) }
                 out += EncoderInfo(
                     mime = codec.mime,
                     name = info.name,

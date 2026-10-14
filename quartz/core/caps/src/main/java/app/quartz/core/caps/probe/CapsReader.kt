@@ -115,7 +115,7 @@ object CapsReader {
         val out = mutableMapOf<String, List<StreamSize>>()
         fun byFormat(key: String, format: Int) {
             if (!map.isOutputSupportedFor(format)) return
-            val sizes = map.getOutputSizes(format).orEmpty() + map.getHighResolutionOutputSizes(format).orEmpty()
+            val sizes = map.getOutputSizes(format)?.toList().orEmpty() + map.getHighResolutionOutputSizes(format)?.toList().orEmpty()
             out[key] = sizes.distinct().map {
                 StreamSize(
                     it.width, it.height,
