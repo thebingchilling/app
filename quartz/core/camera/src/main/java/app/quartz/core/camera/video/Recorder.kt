@@ -86,6 +86,10 @@ class Recorder(
             codec.createInputSurface()
         }
 
+    }
+
+    fun start(fd: FileDescriptor, orientationHint: Int, location: Location?) {
+        // The microphone opens only when recording starts, never while previewing.
         spec.audio?.let { a ->
             if (timing is Timing.Real) {
                 val enc = AudioEncoder(a, unprocessedAudioSupported)
@@ -94,9 +98,6 @@ class Recorder(
                     .onFailure { Log.w(TAG, "no audio", it); enc.release() }
             }
         }
-    }
-
-    fun start(fd: FileDescriptor, orientationHint: Int, location: Location?) {
         val offsetUs = if (cameraClockRealtime) (SystemClock.elapsedRealtimeNanos() - System.nanoTime()) / 1000 else 0L
         val tracks = if (hasAudio) setOf(Track.VIDEO, Track.AUDIO) else setOf(Track.VIDEO)
         val s = Mp4Sink(fd, tracks, timing, orientationHint, location, offsetUs)

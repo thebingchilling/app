@@ -176,6 +176,10 @@ class CameraEngine(private val context: Context, private val media: MediaWriter)
                 }
                 spec = newSpec
                 preview = surface
+                // Zoom and metering from another camera don't apply to this one.
+                if (controls.zoom?.cameraId != newSpec.cameraId || controls.zoom?.physicalId != newSpec.physicalId) {
+                    controls = controls.copy(zoom = null, meteringRegion = null)
+                }
                 natural = NaturalPolicy.resolve(newSpec.lensInfo, newSpec.natural, Build.VERSION.SDK_INT, video = newSpec.kind != SessionKind.PHOTO)
                 analyzer.histogram = false
                 session = createSessionWithFallback(newSpec)
@@ -297,7 +301,8 @@ class CameraEngine(private val context: Context, private val media: MediaWriter)
                     stillReader = reader(size, format, 4, stillImages)
                     outs += config(stillReader!!.surface, maxRes = still.fullSensor)
                 }
-                if (still.format.raw && s.lensInfo.raw) {
+                // DngCreator needs the characteristics of the camera that made the frame, so no RAW from a physical stream.
+                if (still.format.raw && s.lensInfo.raw && s.physicalId == null) {
                     val rawSize = s.info.sizes(Outputs.RAW).maxByOrNull { it.size.pixels }?.size
                     if (rawSize != null) {
                         rawReader = reader(rawSize, ImageFormat.RAW_SENSOR, 2, rawImages)
