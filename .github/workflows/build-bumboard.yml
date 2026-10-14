@@ -1,0 +1,96 @@
+name: Build BumBoard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bumboard/**'
+      - '.gitmodules'
+      - '.github/workflows/build-bumboard.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: bumboard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      BUILD_ABI: arm64-v8a
+      BUILD_VERSION_NAME: 0.1.0-dev.${{ github.run_number }}
+      HAS_SIGNING: ${{ secrets.BUMBOARD_SIGN_KEY_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch upstream fcitx5-android and its submodules
+        run: git submodule update --init --recursive --depth 1 bumboard/upstream/fcitx5-android
+
+      - name: Install host tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends \
+            extra-cmake-modules gettext librime-bin librime-dev libopencc-data
+          pip install --quiet opencc
+
+      # ---------------------------------------------------------------- data
+      - uses: actions/cache@v4
+        with:
+          path: bumboard/data/.cache
+          key: bumboard-sources-${{ hashFiles('bumboard/data/sources.json') }}
+
+      - name: Build dictionary data
+        run: python3 bumboard/data/build_data.py
+
+      - name: Rime schema tests (host librime)
+        run: bumboard/data/test/run.sh
+
+      # ---------------------------------------------------------------- app
+      - name: Apply BumBoard patches to upstream
+        run: bumboard/scripts/apply-patches.sh
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-36 build-tools;36.1.0 ndk;28.0.13004108 cmake;3.31.6
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Core unit tests
+        working-directory: bumboard/upstream/fcitx5-android
+        run: ./gradlew --no-daemon :bumboard-core:test
+
+      - name: Build debug APK
+        working-directory: bumboard/upstream/fcitx5-android
+        run: ./gradlew --no-daemon :app:assembleDebug
+
+      - name: Build signed release APK
+        if: env.HAS_SIGNING == 'true'
+        working-directory: bumboard/upstream/fcitx5-android
+        env:
+          SIGN_KEY_BASE64: ${{ secrets.BUMBOARD_SIGN_KEY_BASE64 }}
+          SIGN_KEY_PWD: ${{ secrets.BUMBOARD_SIGN_KEY_PWD }}
+          SIGN_KEY_ALIAS: ${{ secrets.BUMBOARD_SIGN_KEY_ALIAS }}
+        run: ./gradlew --no-daemon :app:assembleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bumboard-${{ env.BUILD_VERSION_NAME }}
+          path: |
+            bumboard/upstream/fcitx5-android/app/build/outputs/apk/debug/*.apk
+            bumboard/upstream/fcitx5-android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: bumboard-test-reports
+          path: bumboard/upstream/fcitx5-android/**/build/reports/
+          if-no-files-found: ignore

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="bumboard_close">Close</string>
+    <string name="bumboard_card_parts">Parts</string>
+    <string name="bumboard_card_cantonese">Cantonese</string>
+    <string name="bumboard_card_mandarin">Mandarin</string>
+    <string name="bumboard_card_character">Character</string>
+    <string name="bumboard_card_measure_word">Measure word:</string>
+    <string name="bumboard_card_written">Written Chinese:</string>
+    <string name="bumboard_card_vernacular">Cantonese:</string>
+</resources>

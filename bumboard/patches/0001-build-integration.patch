@@ -1,0 +1,77 @@
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+index 53f1eb8c..6cc5f2ef 100644
+--- a/app/build.gradle.kts
++++ b/app/build.gradle.kts
+@@ -140,3 +140,49 @@ configurations {
+         exclude(group = "com.louiscad.splitties", module = "splitties-systemservices")
+     }
+ }
++
++// ---------------------------------------------------------------- BumBoard
++// BumBoard's own code, resources and data live outside upstream (bumboard/app, bumboard/data)
++// and are added to the debug and release source sets, so their resources can override
++// upstream ones by name without touching upstream files.
++val bumboardDir = rootDir.resolve("../..")
++
++android {
++    defaultConfig {
++        applicationId = "app.bumboard.android"
++        @Suppress("UnstableApiUsage")
++        externalNativeBuild {
++            cmake {
++                // Rime is built into the app instead of shipping as a plugin APK
++                targets("rime")
++            }
++        }
++    }
++    buildTypes {
++        release {
++            resValue("mipmap", "app_icon", "@mipmap/bumboard_icon")
++            resValue("mipmap", "app_icon_round", "@mipmap/bumboard_icon")
++            resValue("string", "app_name", "BumBoard")
++        }
++        debug {
++            resValue("mipmap", "app_icon", "@mipmap/bumboard_icon")
++            resValue("mipmap", "app_icon_round", "@mipmap/bumboard_icon")
++            resValue("string", "app_name", "BumBoard Debug")
++        }
++    }
++    sourceSets.matching { it.name == "debug" || it.name == "release" }.configureEach {
++        kotlin.srcDir(bumboardDir.resolve("app/kotlin"))
++        res.srcDir(bumboardDir.resolve("app/res"))
++        assets.srcDir(bumboardDir.resolve("data/out/assets"))
++        manifest.srcFile(bumboardDir.resolve("app/AndroidManifest.xml"))
++    }
++}
++
++generateDataDescriptor {
++    // Rime finds OpenCC's tables through rime-data/opencc, as in the Rime plugin
++    symlinks.put("usr/share/rime-data/opencc", "usr/share/opencc")
++}
++
++dependencies {
++    implementation(project(":bumboard-core"))
++}
+diff --git a/app/src/main/cpp/CMakeLists.txt b/app/src/main/cpp/CMakeLists.txt
+index 96454f12..eb0208b0 100644
+--- a/app/src/main/cpp/CMakeLists.txt
++++ b/app/src/main/cpp/CMakeLists.txt
+@@ -88,3 +88,6 @@ install(DIRECTORY "${PREBUILT_DIR}/chinese-addons-data/pinyinhelper" DESTINATION
+ install(DIRECTORY "${PREBUILT_DIR}/libime/table" DESTINATION "${FCITX_INSTALL_PKGDATADIR}" COMPONENT prebuilt-assets)
+ install(DIRECTORY "${PREBUILT_DIR}/libime/data/" DESTINATION "${FCITX_INSTALL_DATADIR}/libime" COMPONENT prebuilt-assets)
+ install(DIRECTORY "${PREBUILT_DIR}/opencc/data/" DESTINATION "${FCITX_INSTALL_DATADIR}/opencc" COMPONENT prebuilt-assets)
++
++# BumBoard: build fcitx5-rime into the app and install BumBoard's Rime data
++include("${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../native/bumboard.cmake")
+diff --git a/settings.gradle.kts b/settings.gradle.kts
+index 7744dd60..5223f90c 100644
+--- a/settings.gradle.kts
++++ b/settings.gradle.kts
+@@ -35,3 +35,7 @@ include(":plugin:chewing")
+ include(":plugin:sayura")
+ include(":plugin:jyutping")
+ include(":plugin:thai")
++
++// BumBoard: pure-Kotlin logic shared by the keyboard (bumboard/core)
++include(":bumboard-core")
++project(":bumboard-core").projectDir = file("../../core")
