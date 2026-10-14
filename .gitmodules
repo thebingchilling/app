@@ -1,0 +1,4 @@
+[submodule "bumboard/upstream/fcitx5-android"]
+	path = bumboard/upstream/fcitx5-android
+	url = https://github.com/fcitx5-android/fcitx5-android
+	shallow = true
