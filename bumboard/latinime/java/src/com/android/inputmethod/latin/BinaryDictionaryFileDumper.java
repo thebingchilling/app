@@ -525,7 +525,7 @@ public final class BinaryDictionaryFileDumper {
         // Read from metadata file in resources to get the baseline dictionary info.
         // This ensures we start with a valid list of available dictionaries.
         final int metadataResourceId = context.getResources().getIdentifier("metadata",
-                "raw", DictionaryInfoUtils.RESOURCE_PACKAGE_NAME);
+                "raw", DictionaryInfoUtils.getResourcePackageName(context.getResources()));
         if (metadataResourceId == 0) {
             Log.w(TAG, "Missing metadata.json resource");
             return;
