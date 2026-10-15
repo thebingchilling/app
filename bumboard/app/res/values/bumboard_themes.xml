@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Window theme for the Compose settings; colours come from BumTheme. -->
-    <style name="Theme.BumBoard" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="android:windowBackground">@android:color/transparent</item>
-    </style>
-</resources>
