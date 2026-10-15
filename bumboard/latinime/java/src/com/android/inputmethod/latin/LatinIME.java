@@ -1450,11 +1450,8 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         if (isShowingOptionDialog()) return false;
         switch (requestCode) {
         case Constants.CUSTOM_CODE_SHOW_INPUT_METHOD_PICKER:
-            if (mRichImm.hasMultipleEnabledIMEsOrSubtypes(true /* include aux subtypes */)) {
-                mRichImm.getInputMethodManager().showInputMethodPicker();
-                return true;
-            }
-            return false;
+            showBumLanguagePicker();
+            return true;
         }
         return false;
     }
@@ -1470,12 +1467,45 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
 
     // TODO: Revise the language switch key behavior to make it much smarter and more reasonable.
     public void switchToNextSubtype() {
-        final IBinder token = getWindow().getWindow().getAttributes().token;
-        if (shouldSwitchToOtherInputMethods()) {
-            mRichImm.switchToNextInputMethod(token, false /* onlyCurrentIme */);
+        // BUMBOARD: the language key only cycles BumBoard's own keyboards, never other apps'.
+        final List<InputMethodSubtype> subtypes = mRichImm.getMyEnabledInputMethodSubtypeList(true);
+        if (subtypes.size() < 2) {
             return;
         }
-        mSubtypeState.switchSubtype(token, mRichImm);
+        final int index = subtypes.indexOf(mRichImm.getCurrentSubtype().getRawSubtype());
+        switchToBumSubtype(subtypes.get((index + 1) % subtypes.size()));
+    }
+
+    private void switchToBumSubtype(final InputMethodSubtype subtype) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            switchInputMethod(mRichImm.getInputMethodIdOfThisIme(), subtype);
+        } else {
+            mRichImm.setInputMethodAndSubtype(
+                    getWindow().getWindow().getAttributes().token, subtype);
+        }
+    }
+
+    // BUMBOARD: long-press on the language key lists BumBoard's keyboards, not the system picker.
+    private void showBumLanguagePicker() {
+        final List<InputMethodSubtype> subtypes = mRichImm.getMyEnabledInputMethodSubtypeList(true);
+        final CharSequence[] names = new CharSequence[subtypes.size()];
+        final InputMethodSubtype current = mRichImm.getCurrentSubtype().getRawSubtype();
+        int checked = -1;
+        for (int i = 0; i < names.length; i++) {
+            names[i] = new RichInputMethodSubtype(subtypes.get(i)).getFullDisplayName();
+            if (subtypes.get(i).equals(current)) checked = i;
+        }
+        final AlertDialog.Builder builder = new AlertDialog.Builder(
+                DialogUtils.getPlatformDialogThemeContext(this))
+                .setTitle(R.string.language_selection_title)
+                .setSingleChoiceItems(names, checked, (di, position) -> {
+                    di.dismiss();
+                    switchToBumSubtype(subtypes.get(position));
+                })
+                .setPositiveButton(R.string.english_ime_settings, (di, position) -> {
+                    launchSettings(null);
+                });
+        showOptionDialog(builder.create());
     }
 
     // TODO: Instead of checking for alphabetic keyboard here, separate keycodes for
@@ -2064,12 +2094,9 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         // TODO: Revisit here to reorganize the settings. Probably we can/should use different
         // strategy once the implementation of
         // {@link InputMethodManager#shouldOfferSwitchingToNextInputMethod} is defined well.
-        final boolean fallbackValue = mSettings.getCurrent().isLanguageSwitchKeyEnabled();
-        final IBinder token = getWindow().getWindow().getAttributes().token;
-        if (token == null) {
-            return fallbackValue;
-        }
-        return mRichImm.shouldOfferSwitchingToNextInputMethod(token, fallbackValue);
+        // BUMBOARD: show the key whenever BumBoard itself has more than one keyboard on; it
+        // never switches to other input methods, so the system's opinion does not matter.
+        return mSettings.getCurrent().isLanguageSwitchKeyEnabled();
     }
 
     private void setNavigationBarVisibility(final boolean visible) {

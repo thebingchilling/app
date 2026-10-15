@@ -2,7 +2,9 @@ package app.bumboard.chinese
 
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.text.SpannableStringBuilder
@@ -13,8 +15,8 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.ScrollView
 import android.widget.TextView
 import app.bumboard.core.Annotator
@@ -27,57 +29,67 @@ import app.bumboard.core.Sense
 import com.android.inputmethod.latin.R
 
 /**
- * The full dictionary entry for a candidate, shown over the keys on long-press.
- * Plain Views (this runs inside the input method window) in Material 3 colours:
- * the wallpaper-based system palette on Android 12+, BumBoard's teal palette before.
+ * The full dictionary entry for a candidate, in a small card that opens from the candidate
+ * on long-press. Plain Views in a PopupWindow (this runs inside the input method window) in
+ * Material 3 colours: the wallpaper-based system palette on Android 12+, BumBoard's teal
+ * palette before.
  */
-class DictionaryPanel(private val host: FrameLayout) {
-    private val ctx: Context = host.context
-    private var root: View? = null
-
-    val isShowing: Boolean
-        get() = root != null
+class DictionaryPopup(private val ctx: Context) {
+    private var window: PopupWindow? = null
 
     fun dismiss() {
-        root?.let { host.removeView(it) }
-        root = null
+        window?.dismiss()
+        window = null
     }
 
-    /** Shows [resolved] for [text] covering the bottom [height] pixels of [host]. */
-    fun show(text: String, resolved: Resolved, prefs: DisplayPrefs, height: Int, onType: () -> Unit) {
+    /** Shows [resolved] for [text] just below [anchor], at most [maxHeight] tall. */
+    fun show(anchor: View, text: String, resolved: Resolved, prefs: DisplayPrefs, maxHeight: Int, onType: () -> Unit) {
         dismiss()
         val c = Colors.of(ctx)
         val body = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(16), dp(20), dp(8))
+            setPadding(dp(18), dp(14), dp(18), dp(4))
         }
         Content(ctx, c, prefs, body).fill(text, resolved)
 
         val actions = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.END
-            setPadding(dp(16), dp(8), dp(16), dp(12))
-            addView(button(ctx.getString(R.string.bum_close), c, filled = false) { dismiss() })
-            addView(button(ctx.getString(R.string.bum_type_it), c, filled = true) {
-                dismiss()
-                onType()
-            })
+            setPadding(dp(12), dp(6), dp(12), dp(10))
         }
-        val panel = LinearLayout(ctx).apply {
+        val card = MaxHeightLayout(ctx, maxHeight).apply {
             orientation = LinearLayout.VERTICAL
             background = GradientDrawable().apply {
                 setColor(c.surface)
-                val r = dp(28).toFloat()
-                cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
+                cornerRadius = dp(24).toFloat()
             }
-            elevation = dp(6).toFloat()
-            isClickable = true // keep touches away from the keys underneath
+            elevation = dp(8).toFloat()
             addView(ScrollView(ctx).apply { addView(body) },
                 LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
             addView(actions)
         }
-        host.addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height, Gravity.BOTTOM))
-        root = panel
+        val screen = ctx.resources.displayMetrics.widthPixels
+        val popup = PopupWindow(card, minOf(dp(340), screen - dp(16)), ViewGroup.LayoutParams.WRAP_CONTENT, false).apply {
+            // tapping outside closes it; the keyboard underneath keeps working
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            isOutsideTouchable = true
+            elevation = dp(8).toFloat()
+            setOnDismissListener { if (window === this) window = null }
+        }
+        actions.addView(button(ctx.getString(R.string.bum_close), c, filled = false) { popup.dismiss() })
+        actions.addView(button(ctx.getString(R.string.bum_type_it), c, filled = true) {
+            popup.dismiss()
+            onType()
+        })
+        window = popup
+        popup.showAsDropDown(anchor, 0, dp(4))
+    }
+
+    /** A column that never grows taller than [maxHeight]. */
+    private class MaxHeightLayout(ctx: Context, private val maxHeight: Int) : LinearLayout(ctx) {
+        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+            super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(maxHeight, MeasureSpec.AT_MOST))
+        }
     }
 
     private fun button(label: String, c: Colors, filled: Boolean, onClick: () -> Unit) = TextView(ctx).apply {

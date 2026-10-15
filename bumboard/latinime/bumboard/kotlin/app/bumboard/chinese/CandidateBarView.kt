@@ -15,10 +15,12 @@ import androidx.core.graphics.ColorUtils
 import app.bumboard.core.Annotation
 import app.bumboard.rime.Candidate
 import com.android.inputmethod.latin.R
+import java.util.concurrent.Executors
 
 /**
  * A scrolling row of Chinese candidates shown in place of LatinIME's suggestion strip.
- * Each candidate can carry its reading(s) and a short English meaning underneath.
+ * Characters appear at once; readings and meanings are looked up off the main thread and
+ * filled in as they arrive, so typing never waits for the dictionary.
  * Colours come from the keyboard theme's suggestion strip style so it matches the keys.
  */
 class CandidateBarView @JvmOverloads constructor(
@@ -27,10 +29,7 @@ class CandidateBarView @JvmOverloads constructor(
 ) : HorizontalScrollView(context, attrs) {
 
     var onPick: (Int) -> Unit = {}
-    var onLongPick: (Int) -> Unit = {}
-
-    /** Reading and meaning for a candidate, or null when there is nothing to show. */
-    var annotate: (Candidate) -> Annotation? = { null }
+    var onLongPick: (Int, View) -> Unit = { _, _ -> }
 
     private val row = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
@@ -38,6 +37,10 @@ class CandidateBarView @JvmOverloads constructor(
     }
     private val textColor: Int
     private val firstColor: Int
+    private val cells = mutableListOf<LinearLayout>()
+
+    @Volatile
+    private var generation = 0
 
     init {
         isHorizontalScrollBarEnabled = false
@@ -60,40 +63,73 @@ class CandidateBarView @JvmOverloads constructor(
         }
     }
 
-    fun setCandidates(candidates: List<Candidate>) {
+    /**
+     * Shows [candidates]. [annotate], when given, runs on a background thread for each
+     * candidate in order; results for a superseded list are dropped.
+     */
+    fun setCandidates(candidates: List<Candidate>, annotate: ((Candidate) -> Annotation?)?) {
+        val gen = ++generation
         row.removeAllViews()
+        cells.clear()
         candidates.forEachIndexed { index, candidate ->
-            row.addView(cell(index, candidate, annotate(candidate)), LinearLayout.LayoutParams(
+            val cell = cell(index, candidate)
+            cells += cell
+            row.addView(cell, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT,
             ))
         }
         scrollTo(0, 0)
+        if (annotate == null || candidates.isEmpty()) return
+        annotator.execute {
+            val batch = ArrayList<Pair<Int, Annotation>>()
+            for ((index, candidate) in candidates.withIndex()) {
+                if (gen != generation) return@execute
+                val annotation = runCatching { annotate(candidate) }.getOrNull() ?: continue
+                batch += index to annotation
+                // the first few appear right away, the rest in larger groups
+                if (index < 4 || batch.size >= 8) {
+                    deliver(gen, ArrayList(batch))
+                    batch.clear()
+                }
+            }
+            if (batch.isNotEmpty()) deliver(gen, batch)
+        }
     }
 
-    private fun cell(index: Int, candidate: Candidate, annotation: Annotation?): View {
-        val color = if (index == 0) firstColor else textColor
-        val cell = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(dp(12), dp(4), dp(12), dp(4))
-            minimumWidth = dp(44)
-            background = selectableBackground()
-            setOnClickListener { onPick(index) }
-            setOnLongClickListener { onLongPick(index); true }
+    private fun deliver(gen: Int, results: List<Pair<Int, Annotation>>) {
+        post {
+            if (gen != generation) return@post
+            results.forEach { (index, annotation) -> cells.getOrNull(index)?.let { fill(it, index, annotation) } }
         }
-        cell.addView(text(candidate.text, 20f, color).apply { includeFontPadding = false }, wrap())
-        annotation?.lines?.forEach { line ->
+    }
+
+    private fun cell(index: Int, candidate: Candidate) = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        gravity = Gravity.CENTER
+        setPadding(dp(12), dp(4), dp(12), dp(4))
+        minimumWidth = dp(44)
+        background = selectableBackground()
+        setOnClickListener { onPick(index) }
+        setOnLongClickListener { view -> onLongPick(index, view); true }
+        addView(text(candidate.text, 20f, colorFor(index)).apply { includeFontPadding = false }, wrap())
+    }
+
+    private fun fill(cell: LinearLayout, index: Int, annotation: Annotation) {
+        val color = colorFor(index)
+        while (cell.childCount > 1) cell.removeViewAt(1)
+        annotation.lines.forEach { line ->
             cell.addView(text(line, 11.5f, ColorUtils.setAlphaComponent(color, 0xD0)).apply {
                 typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             }, wrap())
         }
-        annotation?.meaning?.let { meaning ->
+        annotation.meaning?.let { meaning ->
             cell.addView(text(meaning, 10.5f, ColorUtils.setAlphaComponent(color, 0xA0)).apply {
                 maxWidth = dp(132)
             }, wrap())
         }
-        return cell
     }
+
+    private fun colorFor(index: Int) = if (index == 0) firstColor else textColor
 
     private fun text(value: String, sp: Float, color: Int) = TextView(context).apply {
         text = value
@@ -114,4 +150,8 @@ class CandidateBarView @JvmOverloads constructor(
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+
+    companion object {
+        private val annotator = Executors.newSingleThreadExecutor()
+    }
 }

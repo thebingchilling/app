@@ -43,7 +43,7 @@ public final class LanguageOnSpacebarUtils {
 
     public static int getLanguageOnSpacebarFormatType(
             @Nonnull final RichInputMethodSubtype subtype) {
-        if (subtype.isNoLanguage()) {
+        if (subtype.isNoLanguage() || subtype.isBumChinese()) {
             return FORMAT_TYPE_FULL_LOCALE;
         }
         // Only this subtype is enabled and equals to the system locale.
