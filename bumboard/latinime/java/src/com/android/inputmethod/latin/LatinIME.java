@@ -1937,12 +1937,14 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
                 di.dismiss();
                 switch (position) {
                 case 0:
-                    final Intent intent = IntentUtils.getInputLanguageSelectionIntent(
-                            imeId,
-                            Intent.FLAG_ACTIVITY_NEW_TASK
-                                    | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
-                                    | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    intent.putExtra(Intent.EXTRA_TITLE, languageSelectionTitle);
+                    // BUMBOARD: languages are chosen in BumBoard's own settings.
+                    final Intent intent = new Intent(LatinIME.this,
+                            app.bumboard.settings.SettingsActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                            | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+                            | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    intent.putExtra(app.bumboard.settings.SettingsActivity.EXTRA_PAGE,
+                            "Languages");
                     startActivityOnTheSameDisplay(intent);
                     break;
                 case 1:

@@ -7,7 +7,7 @@
     <string name="bum_try_it">Try it here</string>
     <string name="bum_section_keyboard">Keyboard</string>
     <string name="bum_section_app">App</string>
-    <string name="bum_languages_summary">Choose which keyboards you can switch between</string>
+    <string name="bum_languages_summary">English, 粵語 Cantonese, 普通話 Mandarin</string>
     <string name="bum_preferences_summary">Capitals, sound, vibration, key popups</string>
     <string name="bum_theme_summary">Look of the keys</string>
     <string name="bum_correction_summary">Suggestions, auto-correct, personal dictionary</string>
@@ -34,7 +34,9 @@
     <string name="bum_cantonese_input">Cantonese romanisation you type</string>
     <string name="bum_jyutping">Jyutping</string>
     <string name="bum_yale">Yale</string>
-    <string name="bum_chinese_how">Turn on 粵語 Cantonese or 普通話 Mandarin under Languages, then switch to it with the globe or space bar.</string>
+    <string name="bum_chinese_how">Turn on 粵語 Cantonese or 普通話 Mandarin under Languages, then switch to it with the globe key or by sliding on the space bar.</string>
+    <string name="bum_languages_hint">Keyboards you turn on here are the ones the globe key switches between.</string>
+    <string name="bum_languages_enable_first">Turn on BumBoard first (see the set-up card on the main page), then choose its languages here.</string>
     <string name="bum_under_candidates">Under each candidate</string>
     <string name="bum_show_readings">Readings and meanings</string>
     <string name="bum_show_readings_summary">Show how each candidate is read and what it means</string>

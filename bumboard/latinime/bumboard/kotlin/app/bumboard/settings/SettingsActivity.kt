@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.preference.PreferenceManager
 import android.provider.Settings as SystemSettings
@@ -48,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,12 +72,14 @@ import com.android.inputmethod.latin.AudioAndHapticFeedbackManager
 import com.android.inputmethod.latin.R
 import com.android.inputmethod.latin.settings.Settings
 import com.android.inputmethod.latin.utils.IntentUtils
+import com.android.inputmethod.latin.utils.SubtypeLocaleUtils
 import com.android.inputmethod.latin.utils.UncachedInputMethodManagerUtils
 import kotlin.math.roundToInt
 
 /** The pages of the settings app. */
 enum class Page(@StringRes val title: Int) {
     Home(R.string.english_ime_name),
+    Languages(R.string.language_selection_title),
     Chinese(R.string.bum_chinese),
     Preferences(R.string.settings_screen_preferences),
     Theme(R.string.settings_screen_theme),
@@ -94,17 +98,28 @@ class SettingsActivity : ComponentActivity() {
 
     private val status = mutableStateOf(ImeStatus(enabled = false, current = false))
 
+    // A page asked for by a later intent (the activity is singleTask).
+    private val requested = mutableStateOf<Page?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         CrashLog.install(this)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         AudioAndHapticFeedbackManager.init(this)
-        val start = intent.getStringExtra(EXTRA_PAGE)
-            ?.let { name -> Page.entries.firstOrNull { it.name == name } } ?: Page.Home
+        SubtypeLocaleUtils.init(this)
+        val start = pageOf(intent) ?: Page.Home
         setContent {
-            BumTheme { SettingsApp(start, status) }
+            BumTheme { SettingsApp(start, status, requested) }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        requested.value = pageOf(intent)
+    }
+
+    private fun pageOf(intent: Intent?): Page? =
+        intent?.getStringExtra(EXTRA_PAGE)?.let { name -> Page.entries.firstOrNull { it.name == name } }
 
     override fun onResume() {
         super.onResume()
@@ -131,8 +146,15 @@ class SettingsActivity : ComponentActivity() {
 }
 
 @Composable
-private fun SettingsApp(start: Page, status: MutableState<ImeStatus>) {
+private fun SettingsApp(start: Page, status: MutableState<ImeStatus>, requested: MutableState<Page?>) {
     var page by rememberSaveable { mutableStateOf(start) }
+    val asked = requested.value
+    LaunchedEffect(asked) {
+        if (asked != null) {
+            page = asked
+            requested.value = null
+        }
+    }
     val back = { page = if (page == Page.Licences) Page.About else Page.Home }
     BackHandler(enabled = page != Page.Home) { back() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -163,6 +185,7 @@ private fun SettingsApp(start: Page, status: MutableState<ImeStatus>) {
             ) {
                 when (shown) {
                     Page.Home -> HomePage(status.value) { page = it }
+                    Page.Languages -> LanguagesPage()
                     Page.Chinese -> ChinesePage()
                     Page.Preferences -> PreferencesPage()
                     Page.Theme -> ThemePage()
@@ -253,7 +276,7 @@ private fun HomePage(status: ImeStatus, open: (Page) -> Unit) {
             NavRow(
                 it, stringResource(R.string.language_selection_title),
                 stringResource(R.string.bum_languages_summary), R.drawable.ic_sym_language,
-            ) { openLanguages(context) }
+            ) { open(Page.Languages) }
         }
         row {
             NavRow(
@@ -387,7 +410,72 @@ private fun SetupStep(
     }
 }
 
-private fun openLanguages(context: Context) {
+// ---------------------------------------------------------------- languages
+
+/**
+ * Turns BumBoard's keyboards on and off here instead of in system settings. Android 14 added
+ * InputMethodManager.setExplicitlyEnabledInputMethodSubtypes for an IME's own subtypes; older
+ * versions fall back to the system screen.
+ */
+@Composable
+private fun LanguagesPage() {
+    val context = LocalContext.current
+    val imm = remember { context.getSystemService(InputMethodManager::class.java) }
+    val imi = remember { UncachedInputMethodManagerUtils.getInputMethodInfoOf(context.packageName, imm) }
+    if (imi == null) {
+        Text(
+            stringResource(R.string.bum_languages_enable_first),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
+        )
+        return
+    }
+    val subtypes = remember { (0 until imi.subtypeCount).map { imi.getSubtypeAt(it) } }
+    var enabled by remember {
+        mutableStateOf(imm.getEnabledInputMethodSubtypeList(imi, true).map { it.hashCode() }.toSet())
+    }
+    val canSet = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+
+    Text(
+        stringResource(R.string.bum_languages_hint),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
+    )
+    Group {
+        subtypes.forEach { subtype ->
+            row { shape ->
+                val hash = subtype.hashCode()
+                val on = hash in enabled
+                SwitchRow(shape, SubtypeLocaleUtils.getSubtypeDisplayNameInSystemLocale(subtype), null, on) { checked ->
+                    val next = if (checked) enabled + hash else enabled - hash
+                    // Keep at least one keyboard on.
+                    if (next.isEmpty()) return@SwitchRow
+                    if (canSet && setEnabledSubtypes(imm, imi.id, next)) {
+                        enabled = next
+                    } else {
+                        openSystemLanguages(context)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun setEnabledSubtypes(imm: InputMethodManager, imeId: String, hashes: Set<Int>): Boolean =
+    try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            imm.setExplicitlyEnabledInputMethodSubtypes(imeId, hashes.toIntArray())
+            true
+        } else {
+            false
+        }
+    } catch (e: RuntimeException) {
+        false
+    }
+
+private fun openSystemLanguages(context: Context) {
     val imm = context.getSystemService(InputMethodManager::class.java)
     val imi = UncachedInputMethodManagerUtils.getInputMethodInfoOf(context.packageName, imm)
     context.startActivity(
