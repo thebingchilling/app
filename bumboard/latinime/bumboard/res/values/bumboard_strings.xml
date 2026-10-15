@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Strings for BumBoard's own screens. LatinIME's translated strings are reused where they fit. -->
+    <string name="bum_setup_card_title">Finish setting up</string>
+    <string name="bum_setup_done_title">BumBoard is on</string>
+    <string name="bum_setup_done_body">Type below to try it, or change how it works.</string>
+    <string name="bum_try_it">Try it here</string>
+    <string name="bum_section_keyboard">Keyboard</string>
+    <string name="bum_section_app">App</string>
+    <string name="bum_languages_summary">Choose which keyboards you can switch between</string>
+    <string name="bum_preferences_summary">Capitals, sound, vibration, key popups</string>
+    <string name="bum_theme_summary">Look of the keys</string>
+    <string name="bum_correction_summary">Suggestions, auto-correct, personal dictionary</string>
+    <string name="bum_gesture_summary">Glide over keys to type</string>
+    <string name="bum_advanced_summary">Timings, volume and other details</string>
+    <string name="bum_about">About</string>
+    <string name="bum_about_summary">Version, licences</string>
+    <string name="bum_version">Version %1$s</string>
+    <string name="bum_theme_note">These are the stock keyboard themes. A Material 3 keyboard design comes later.</string>
+    <string name="bum_about_base_title">Built on the Android keyboard</string>
+    <string name="bum_about_base_body">BumBoard is based on LatinIME from the Android Open Source Project, used under the Apache License 2.0.</string>
+    <string name="bum_back">Back</string>
+    <string name="bum_done">Done</string>
+    <string name="bum_percent">%1$d%%</string>
+</resources>

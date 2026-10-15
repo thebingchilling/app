@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -24,6 +25,9 @@ android {
             java.srcDir("java/src")
             java.srcDir("common/src")
             res.srcDir("java/res")
+            // BumBoard's own code and resources, kept apart from LatinIME's.
+            kotlin.srcDir("bumboard/kotlin")
+            res.srcDir("bumboard/res")
         }
     }
 
@@ -51,6 +55,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    buildFeatures {
+        compose = true
+    }
+
     lint {
         abortOnError = false
         checkReleaseBuilds = false
@@ -62,4 +70,10 @@ dependencies {
     implementation(libs.androidx.viewpager)
     implementation(libs.androidx.annotation)
     compileOnly(libs.jsr305)
+
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.material3)
+    implementation(libs.activity.compose)
 }

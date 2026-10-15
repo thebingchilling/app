@@ -85,17 +85,26 @@
         </service>
 
         <!-- Activities -->
+        <!-- BUMBOARD: Material 3 settings app; the launcher entry and the IME's settings screen. -->
+        <activity android:name="app.bumboard.settings.SettingsActivity"
+             android:theme="@style/Theme.BumBoard"
+             android:label="@string/english_ime_name"
+             android:icon="@mipmap/ic_launcher"
+             android:launchMode="singleTask"
+             android:windowSoftInputMode="adjustResize"
+             android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
         <activity android:name=".setup.SetupActivity"
              android:theme="@style/platformActivityTheme"
              android:label="@string/english_ime_name"
              android:icon="@mipmap/ic_launcher"
              android:launchMode="singleTask"
              android:noHistory="true"
-             android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
+             android:exported="false">
         </activity>
 
         <activity android:name=".permissions.PermissionsActivity"

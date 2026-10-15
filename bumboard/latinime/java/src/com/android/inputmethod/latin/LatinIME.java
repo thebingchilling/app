@@ -1866,7 +1866,8 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
             mainKeyboardView.closing();
         }
         final Intent intent = new Intent();
-        intent.setClass(LatinIME.this, SettingsActivity.class);
+        // BUMBOARD: open the Material 3 settings instead of LatinIME's PreferenceActivity.
+        intent.setClass(LatinIME.this, app.bumboard.settings.SettingsActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
                 | Intent.FLAG_ACTIVITY_CLEAR_TOP);
