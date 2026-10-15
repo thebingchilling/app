@@ -135,8 +135,9 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     /**
      * A custom permission for external apps to send {@link #ACTION_HIDE_SOFT_INPUT}.
      */
+    // BUMBOARD: own permission name so it never clashes with a stock LatinIME install.
     static final String PERMISSION_HIDE_SOFT_INPUT =
-            "com.android.inputmethod.latin.HIDE_SOFT_INPUT";
+            "app.bumboard.permission.HIDE_SOFT_INPUT";
 
     /**
      * The name of the scheme used by the Package Manager to warn of a new package installation,
