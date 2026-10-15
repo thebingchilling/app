@@ -34,6 +34,14 @@
         android:layout_height="@dimen/config_suggestions_strip_height"
         android:gravity="center_vertical"
         style="?attr/suggestionStripViewStyle" />
+    <!-- BUMBOARD: Chinese candidates; shown instead of the strip while Rime is composing. -->
+    <app.bumboard.chinese.CandidateBarView
+        android:id="@+id/bum_candidate_bar"
+        android:layoutDirection="ltr"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/config_suggestions_strip_height"
+        android:visibility="gone"
+        style="?attr/suggestionStripViewStyle" />
 
     <!-- To ensure that key preview popup is correctly placed when the current system locale is
          one of RTL locales, layoutDirection="ltr" is needed in the SDK version 17+. -->

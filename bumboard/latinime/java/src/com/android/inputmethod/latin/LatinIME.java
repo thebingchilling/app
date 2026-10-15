@@ -157,6 +157,8 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
 
     // TODO: Move these {@link View}s to {@link KeyboardSwitcher}.
     private View mInputView;
+    // BUMBOARD: Chinese input through Rime.
+    private app.bumboard.chinese.ChineseInput mBumChinese;
     private InsetsUpdater mInsetsUpdater;
     private SuggestionStripView mSuggestionStripView;
 
@@ -614,6 +616,8 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         // {@link #resetDictionaryFacilitatorIfNecessary()}.
         loadSettings();
         resetDictionaryFacilitatorIfNecessary();
+        mBumChinese = new app.bumboard.chinese.ChineseInput(this,
+                PreferenceManager.getDefaultSharedPreferences(this));
 
         // Register to receive ringer mode change.
         final IntentFilter filter = new IntentFilter();
@@ -862,6 +866,9 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         if (hasSuggestionStripView()) {
             mSuggestionStripView.setListener(this, view);
         }
+        mBumChinese.attachViews(
+                (app.bumboard.chinese.CandidateBarView) view.findViewById(R.id.bum_candidate_bar),
+                mSuggestionStripView);
     }
 
     @Override
@@ -900,6 +907,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         InputMethodSubtype oldSubtype = mRichImm.getCurrentSubtype().getRawSubtype();
         StatsUtils.onSubtypeChanged(oldSubtype, subtype);
         mRichImm.onSubtypeChanged(subtype);
+        if (mBumChinese != null) mBumChinese.onSubtypeChanged(subtype);
         mInputLogic.onSubtypeChanged(SubtypeLocaleUtils.getCombiningRulesExtraValue(subtype),
                 mSettings.getCurrent());
         loadKeyboard();
@@ -925,6 +933,9 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     @SuppressWarnings("deprecation")
     void onStartInputViewInternal(final EditorInfo editorInfo, final boolean restarting) {
         super.onStartInputView(editorInfo, restarting);
+        mBumChinese.reset();
+        mBumChinese.onSubtypeChanged(mRichImm.getCurrentSubtype().getRawSubtype());
+        mBumChinese.onSettingsChanged();
 
         mDictionaryFacilitator.onStartInput();
         // Switch to the null consumer to handle cases leading to early exit below, for which we
@@ -1121,6 +1132,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
 
     void onFinishInputViewInternal(final boolean finishingInput) {
         super.onFinishInputView(finishingInput);
+        mBumChinese.reset();
         cleanupInternalStateForFinishInput();
     }
 
@@ -1141,6 +1153,10 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
             final int composingSpanStart, final int composingSpanEnd) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
                 composingSpanStart, composingSpanEnd);
+        // BUMBOARD: the composing text belongs to Rime; LatinIME would otherwise reset it.
+        if (mBumChinese.isComposing()) {
+            return;
+        }
         if (DebugFlags.DEBUG_ENABLED) {
             Log.i(TAG, "onUpdateSelection: oss=" + oldSelStart + ", ose=" + oldSelEnd
                     + ", nss=" + newSelStart + ", nse=" + newSelEnd
@@ -1473,6 +1489,12 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     // This method is public for testability of LatinIME, but also in the future it should
     // completely replace #onCodeInput.
     public void onEvent(@Nonnull final Event event) {
+        // BUMBOARD: Chinese subtypes send keys to Rime first.
+        if (mBumChinese.onEvent(event)) {
+            mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(),
+                    getCurrentRecapitalizeState());
+            return;
+        }
         if (Constants.CODE_SHORTCUT == event.mKeyCode) {
             mRichImm.switchToShortcutIme(this);
         }
@@ -1505,6 +1527,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     // Called from PointerTracker through the KeyboardActionListener interface
     @Override
     public void onTextInput(final String rawText) {
+        mBumChinese.beforeExternalText();
         // TODO: have the keyboard pass the correct key code when we need it.
         final Event event = Event.createSoftwareTextEvent(rawText, Constants.CODE_OUTPUT_TEXT);
         final InputTransaction completeInputTransaction =

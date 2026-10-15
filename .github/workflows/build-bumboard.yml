@@ -24,6 +24,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install host tools
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends librime-bin librime-dev libopencc-data
+          pip install --quiet opencc
+
+      - name: Fetch prebuilt librime
+        run: scripts/fetch-prebuilt.sh
+
+      - uses: actions/cache@v4
+        with:
+          path: bumboard/data/.cache
+          key: bumboard-sources-${{ hashFiles('bumboard/data/sources.json') }}
+
+      - name: Build dictionary data
+        run: python3 data/build_data.py --opencc prebuilt/opencc/data
+
+      - name: Rime schema tests (host librime)
+        run: data/test/run.sh
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

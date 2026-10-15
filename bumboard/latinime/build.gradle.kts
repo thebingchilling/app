@@ -17,6 +17,14 @@ android {
         versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
         versionName = System.getenv("BUILD_VERSION_NAME") ?: "0.1.0-dev"
         vectorDrawables.useSupportLibrary = false
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
+        externalNativeBuild {
+            cmake {
+                arguments += "-DBUMBOARD_PREBUILT_DIR=${rootDir.path}/prebuilt"
+            }
+        }
     }
 
     sourceSets {
@@ -28,12 +36,14 @@ android {
             // BumBoard's own code and resources, kept apart from LatinIME's.
             kotlin.srcDir("bumboard/kotlin")
             res.srcDir("bumboard/res")
+            // Rime data and readings, built by bumboard/data/build_data.py.
+            assets.srcDir("../data/out/assets")
         }
     }
 
     externalNativeBuild {
         cmake {
-            path = file("native/jni/CMakeLists.txt")
+            path = file("CMakeLists.txt")
             version = "3.31.6"
         }
     }

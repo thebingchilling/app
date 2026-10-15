@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.bumboard.chinese.ChineseInput
 import com.android.inputmethod.keyboard.KeyboardTheme
 import com.android.inputmethod.latin.AudioAndHapticFeedbackManager
 import com.android.inputmethod.latin.R
@@ -69,6 +70,7 @@ import kotlin.math.roundToInt
 /** The pages of the settings app. */
 enum class Page(@StringRes val title: Int) {
     Home(R.string.english_ime_name),
+    Chinese(R.string.bum_chinese),
     Preferences(R.string.settings_screen_preferences),
     Theme(R.string.settings_screen_theme),
     Correction(R.string.settings_screen_correction),
@@ -152,6 +154,7 @@ private fun SettingsApp(start: Page, status: MutableState<ImeStatus>) {
             ) {
                 when (shown) {
                     Page.Home -> HomePage(status.value) { page = it }
+                    Page.Chinese -> ChinesePage()
                     Page.Preferences -> PreferencesPage()
                     Page.Theme -> ThemePage()
                     Page.Correction -> CorrectionPage()
@@ -233,6 +236,12 @@ private fun HomePage(status: ImeStatus, open: (Page) -> Unit) {
                 it, stringResource(R.string.language_selection_title),
                 stringResource(R.string.bum_languages_summary), R.drawable.ic_sym_language,
             ) { openLanguages(context) }
+        }
+        row {
+            NavRow(
+                it, stringResource(R.string.bum_chinese),
+                stringResource(R.string.bum_chinese_summary), R.drawable.ic_sym_translate,
+            ) { open(Page.Chinese) }
         }
         row {
             NavRow(
@@ -328,6 +337,49 @@ private fun openLanguages(context: Context) {
     context.startActivity(
         IntentUtils.getInputLanguageSelectionIntent(imi?.id, Intent.FLAG_ACTIVITY_NEW_TASK),
     )
+}
+
+// ---------------------------------------------------------------- Chinese
+
+@Composable
+private fun ChinesePage() {
+    val prefs = prefs()
+    val script = prefs.stringPref(ChineseInput.PREF_SCRIPT) {
+        prefs.getString(ChineseInput.PREF_SCRIPT, null) ?: "traditional"
+    }
+    val cantonese = prefs.stringPref(ChineseInput.PREF_CANTONESE_INPUT) {
+        prefs.getString(ChineseInput.PREF_CANTONESE_INPUT, null) ?: "jyutping"
+    }
+    Text(
+        stringResource(R.string.bum_chinese_how),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
+    )
+    Group {
+        row {
+            ChoiceRow(
+                it, stringResource(R.string.bum_script),
+                options = listOf(
+                    "traditional" to stringResource(R.string.bum_script_traditional),
+                    "simplified" to stringResource(R.string.bum_script_simplified),
+                ),
+                selected = script.value,
+                onSelect = script::set,
+            )
+        }
+        row {
+            ChoiceRow(
+                it, stringResource(R.string.bum_cantonese_input),
+                options = listOf(
+                    "jyutping" to stringResource(R.string.bum_jyutping),
+                    "yale" to stringResource(R.string.bum_yale),
+                ),
+                selected = cantonese.value,
+                onSelect = cantonese::set,
+            )
+        }
+    }
 }
 
 // ---------------------------------------------------------------- preferences
