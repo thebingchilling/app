@@ -10,6 +10,8 @@ Built on [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android) 0.1.
 
 ## Features
 
+✅ = implemented and building in CI. Nothing has been tried on a real device yet.
+
 | | Status |
 |---|---|
 | Cantonese (Jyutping or Yale input, tones optional or as digits) | ✅ |
@@ -19,8 +21,13 @@ Built on [fcitx5-android](https://github.com/fcitx5-android/fcitx5-android) 0.1.
 | EN→粵 / EN→普: type an English word, get Chinese words | ✅ |
 | 繁/简 toggle (per language: Cantonese defaults to Traditional, Mandarin to Simplified) | ✅ |
 | English typing | ✅ (upstream) |
-| Material 3 Expressive settings, Gboard-style movable toolbar, resize, number row… | in progress |
-| Handwriting, voice | planned (separate add-ons) |
+| Material 3 Expressive settings app (dynamic colour), Material Symbols icons, M3 keyboard theme | ✅ |
+| Gboard-style toolbar: pin tools, tools panel with drag to reorder | ✅ |
+| Resize from the keyboard, one-handed mode, number row, emoji key, emoji size, two-person skin tones | ✅ |
+| Globe key cycles 粵 → 普 → EN | ✅ |
+| Voice typing (system recogniser, Cantonese/Mandarin/English; on-device where supported) | ✅ |
+| Handwriting (separate add-on APK with ML Kit; candidates show readings and meanings) | ✅ |
+| Offline voice model download (sherpa-onnx) | planned |
 | Cantonese → Standard Written Chinese converter, Japanese, Korean | later |
 
 ## Building

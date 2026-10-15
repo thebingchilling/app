@@ -357,7 +357,8 @@ def gloss_keys(gloss: str) -> list[tuple[str, float]]:
         return []
     g = re.sub(r"\([^)]*\)|\[[^\]]*\]|\{[^}]*\}", " ", gloss)
     keys: dict[str, float] = {}
-    for alt in re.split(r"[;,]", g):
+    # alternatives are separated by ';' (commas usually list things inside one meaning)
+    for alt in g.split(";"):
         alt = alt.strip().lower()
         alt = re.sub(r"^(to|a|an|the|be|to be)\s+", "", alt)
         words = [w.replace("'", "") for w in WORD.findall(alt)]
@@ -368,23 +369,28 @@ def gloss_keys(gloss: str) -> list[tuple[str, float]]:
             keys[code] = max(keys.get(code, 0), 1.0 if len(words) == 1 else 0.9)
         content = [w for w in words if w not in STOP and len(w) > 1]
         if len(words) > 1:
+            # a word inside a longer gloss: weaker the longer the gloss
             for w in content:
-                keys[w] = max(keys.get(w, 0), 0.4 / len(content))
+                keys[w] = max(keys.get(w, 0), 0.3 / len(words))
     return [(k, v) for k, v in keys.items() if 1 <= len(k) <= 24]
 
 
 def build_en_dict(entries, freq_of, path: Path, name: str, per_code: int = 40):
     """entries: iterable of (text, [glosses], source_weight)."""
     best: dict[tuple[str, str], float] = {}
+    old_use = re.compile(r"^\((archaic|literary|old|classical|Classical Chinese|obsolete)\)", re.I)
     for text, glosses, src_w in entries:
         f = freq_of(text)
-        fscore = 1.0 + math.log10(1.0 + f)
+        # an entry whose meanings are marked archaic/literary should not outrank everyday words
+        if any(old_use.match(g) for g in glosses):
+            src_w *= 0.15
+        fscore = (1.0 + math.log10(1.0 + f)) ** 2
         idx = 0
         for gloss in glosses:
             ks = gloss_keys(gloss)
             if not ks:
                 continue
-            pos = 1.0 / (1.0 + 0.6 * idx)
+            pos = 1.0 / (1.0 + 0.3 * idx)
             idx += 1
             for code, match in ks:
                 score = match * pos * fscore * src_w / (1.0 + 0.15 * max(0, len(text) - 2))
@@ -682,8 +688,21 @@ def main():
     n = build_en_dict(yue_en_entries(), lambda t: yue_freq.get(t, 0),
                       rime_dir / "bum_en_yue.dict.yaml", "bum_en_yue")
     print(f"bum_en_yue: {n} entries", file=sys.stderr)
-    n = build_en_dict(((simp, g, 1.0) for _, simp, _, _, g in cedict),
-                      lambda t: cmn_freq.get(t, 0),
+    trad_of = {simp: trad for trad, simp, _, _, _ in cedict}
+
+    def cmn_en_freq(simp: str) -> float:
+        # jieba (news) undercounts conversation; the Cantonese corpus helps for shared words
+        f = cmn_freq.get(simp, 0)
+        # at most 3x what jieba says, so Cantonese usage cannot dominate Mandarin
+        return max(f, min(yue_freq.get(trad_of.get(simp, simp), 0) / 20, f * 3))
+
+    def cmn_en_entries():
+        for _, simp, _, _, g in cedict:
+            # Cantonese words belong in EN→粵, not EN→普
+            yield simp, g, 0.15 if any("Cantonese" in x for x in g) else 1.0
+
+    n = build_en_dict(cmn_en_entries(),
+                      cmn_en_freq,
                       rime_dir / "bum_en_cmn.dict.yaml", "bum_en_cmn")
     print(f"bum_en_cmn: {n} entries", file=sys.stderr)
 

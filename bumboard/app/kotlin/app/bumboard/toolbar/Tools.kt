@@ -13,11 +13,14 @@ enum class Tool(val id: String, val title: String, @DrawableRes val icon: Int) {
     EnglishLookup("en2zh", "EN→中", R.drawable.ms_translate),
     Script("script", "繁 / 简", R.drawable.ms_text_fields),
     Emoji("emoji", "Emoji", R.drawable.ms_emoji),
+    Voice("voice", "Voice", R.drawable.ms_mic),
+    Handwriting("handwriting", "Handwriting", R.drawable.ms_draw),
     Clipboard("clipboard", "Clipboard", R.drawable.ms_clipboard),
     Editing("editing", "Select & move", R.drawable.ms_text_select),
     Undo("undo", "Undo", R.drawable.ms_undo),
     Redo("redo", "Redo", R.drawable.ms_redo),
     Resize("resize", "Resize", R.drawable.ms_resize),
+    OneHanded("one_handed", "One-handed", R.drawable.ms_one_handed_right),
     Theme("theme", "Theme", R.drawable.ms_palette),
     Settings("settings", "Settings", R.drawable.ms_settings),
     More("more", "Input options", R.drawable.ms_more);
@@ -31,7 +34,7 @@ enum class Tool(val id: String, val title: String, @DrawableRes val icon: Int) {
 object ToolPrefs {
     private const val ORDER = "tool_order"
     private const val PINNED = "tool_pinned"
-    private val defaultPinned = listOf(Tool.Language, Tool.EnglishLookup, Tool.Script, Tool.Emoji, Tool.Clipboard, Tool.Editing)
+    private val defaultPinned = listOf(Tool.Language, Tool.EnglishLookup, Tool.Script, Tool.Emoji, Tool.Voice, Tool.Clipboard)
 
     var order: List<Tool>
         get() {

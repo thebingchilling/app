@@ -47,6 +47,16 @@ bumboard/
 | 0001-build-integration | `settings.gradle.kts` includes `:bumboard-core`; `app/build.gradle.kts` appends one block (app id, name, icon, `rime` CMake target, source sets, OpenCC symlink for Rime, core dependency); `app/src/main/cpp/CMakeLists.txt` includes `native/bumboard.cmake` |
 | 0002-ui-hooks | `CandidateItemUi` → `AnnotatedCandidateView`; `KawaiiBarComponent.HEIGHT` and expanded cells use `BumBoard.barHeightDp`; `BaseInputView.showCandidateActionMenu` → `WordCard`; `ButtonsBarUi` → `BumToolbar` |
 | 0003-plugin-signature-check | `DataManager.detectPlugins` only loads plugins signed with the app's key |
+| 0004-emoji | `EmojiModifier.produceSkinTones` → `emoji/SkinTones` (5×5 tones for two people); emoji-size densities in `PickerPageUi`, used by `PickerWindowPreset` |
+| 0006-globe-key | globe key (`LangSwitchBehavior.Enumerate`) cycles 粵 → 普 → EN via `LanguageControls` |
+| 0005-keyboard-layout | `TextKeyboard` layout passes through `keyboard/Layouts` (number row, emoji key); `InputView.updateKeyboardSize` uses `keyboard/OneHanded` padding |
+
+**Each patch owns its files.** When saving, list exactly that patch's files
+(`scripts/save-patch.sh 0002-ui-hooks.patch -- <files>`), otherwise one patch swallows another's
+changes. Current ownership: 0001 build files; 0002 `CandidateItemUi`, `BaseInputView`,
+`KawaiiBarComponent`, `IdleUi`, `GridPagingCandidateViewAdapter`, `FlexboxExpandedCandidateWindow`;
+0003 `DataManager`; 0004 `EmojiModifier`, `PickerPageUi`, `PickerWindowPreset`; 0005 `InputView`,
+`TextKeyboard`; 0006 `CommonKeyActionListener`.
 
 Resources in `app/res` override upstream resources with the same name (build-type source sets have
 priority over `main`), so restyling/icon swaps need no patches.
@@ -84,8 +94,11 @@ priority over `main`), so restyling/icon swaps need no patches.
 
 ## Next
 
-1. Material 3 Expressive: Compose settings (romanisation, meaning, Yale input, theme), onboarding,
-   Material Symbols icons replacing upstream drawables by name, M3 key shapes.
-2. Gboard-style: movable toolbar + tools panel, in-keyboard resize, one-handed, number row, emoji
-   key/language key show/hide/compact, emoji size and per-person skin tones, delete-swipe.
-3. Handwriting (ML Kit add-on APK + offline fallback) and voice (sherpa-onnx, downloadable model).
+Done: Compose M3 Expressive settings; Material Symbols icons; Gboard-style toolbar + tools panel
+(pin/reorder), Resize panel, one-handed, number row, emoji key, emoji size, two-person skin tones.
+Already upstream: swipe on backspace to select & delete, long-press/swipe symbols, key preview,
+haptics/sound with strength and volume, clipboard, text editing panel, space-bar cursor.
+
+1. Handwriting (ML Kit add-on APK + offline fallback) and voice (sherpa-onnx, downloadable model).
+2. M3 key shapes/colours for the keyboard itself (theme from dynamic colour), emoji search.
+3. Globe key cycling 粵 → 普 → EN like the toolbar button; settings search.

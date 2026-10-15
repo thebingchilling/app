@@ -3,6 +3,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- voice typing -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <!-- handwriting add-on (bumboard/addons/handwriting) -->
+        <intent>
+            <action android:name="app.bumboard.HANDWRITING" />
+        </intent>
+    </queries>
+
     <application>
         <!-- BumBoard's settings are the launcher; upstream's settings stay reachable from them -->
         <activity
@@ -15,6 +27,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name="app.bumboard.voice.MicPermissionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <activity android:name="org.fcitx.fcitx5.android.ui.main.MainActivity">
             <intent-filter tools:node="remove">

@@ -57,7 +57,7 @@ jobs:
 
       - uses: android-actions/setup-android@v3
         with:
-          packages: platform-tools platforms;android-36 build-tools;36.1.0 ndk;28.0.13004108 cmake;3.31.6
+          packages: platform-tools platforms;android-36 platforms;android-37.0 build-tools;36.1.0 ndk;28.0.13004108 cmake;3.31.6
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -69,7 +69,7 @@ jobs:
 
       - name: Build debug APK
         working-directory: bumboard/upstream/fcitx5-android
-        run: ./gradlew --no-daemon :app:assembleDebug
+        run: ./gradlew --no-daemon :app:assembleDebug :bumboard-handwriting:assembleDebug
 
       - name: Build signed release APK
         if: env.HAS_SIGNING == 'true'
@@ -78,7 +78,7 @@ jobs:
           SIGN_KEY_BASE64: ${{ secrets.BUMBOARD_SIGN_KEY_BASE64 }}
           SIGN_KEY_PWD: ${{ secrets.BUMBOARD_SIGN_KEY_PWD }}
           SIGN_KEY_ALIAS: ${{ secrets.BUMBOARD_SIGN_KEY_ALIAS }}
-        run: ./gradlew --no-daemon :app:assembleRelease
+        run: ./gradlew --no-daemon :app:assembleRelease :bumboard-handwriting:assembleRelease
 
       - uses: actions/upload-artifact@v4
         with:
@@ -86,6 +86,7 @@ jobs:
           path: |
             bumboard/upstream/fcitx5-android/app/build/outputs/apk/debug/*.apk
             bumboard/upstream/fcitx5-android/app/build/outputs/apk/release/*.apk
+            bumboard/addons/handwriting/build/outputs/apk/*/*.apk
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4

@@ -79,6 +79,7 @@ class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        app.bumboard.FirstRun.apply()
         BumBoard.openDictionary()
         setContent {
             BumTheme { SettingsApp(resumed.intValue) }
@@ -184,6 +185,8 @@ private fun HomeScreen(resumeTick: Int, open: (Screen) -> Unit) {
         )
     }
 
+    SettingsSearch(open)
+
     Group("Learning") {
         row { NavRow(it, "Readings & meanings", "Jyutping, Yale, pinyin and English under candidates", R.drawable.ms_school) { open(Screen.Readings) } }
         row { NavRow(it, "Languages & typing", "Cantonese, Mandarin, English; Jyutping or Yale input", R.drawable.ms_translate) { open(Screen.Typing) } }
@@ -199,6 +202,43 @@ private fun HomeScreen(resumeTick: Int, open: (Screen) -> Unit) {
     }
     Group {
         row { NavRow(it, "About & licences", null, R.drawable.ms_info) { open(Screen.About) } }
+    }
+}
+
+/** What each settings page contains, for search. */
+private val searchIndex: List<Pair<String, Screen>> = listOf(
+    "Jyutping Yale pinyin readings romanisation tone marks" to Screen.Readings,
+    "English meaning definition under candidates other language" to Screen.Readings,
+    "Cantonese input Jyutping Yale typing tones" to Screen.Typing,
+    "language switch globe key 粵 普 EN EN→中 繁 简 traditional simplified" to Screen.Typing,
+    "height size padding resize keyboard" to Screen.Layout,
+    "number row emoji key emoji size skin tone one-handed" to Screen.Layout,
+    "key preview long-press delay swipe symbols" to Screen.Layout,
+    "vibration haptic strength sound volume click" to Screen.Feedback,
+    "licences licenses about open source dictionary data version" to Screen.About,
+)
+
+@Composable
+private fun SettingsSearch(open: (Screen) -> Unit) {
+    var query by rememberSaveable { mutableStateOf("") }
+    OutlinedTextField(
+        value = query,
+        onValueChange = { query = it },
+        leadingIcon = { Icon(painterResource(R.drawable.ms_search), contentDescription = null) },
+        placeholder = { Text("Search settings") },
+        singleLine = true,
+        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+    )
+    val q = query.trim().lowercase()
+    if (q.isNotEmpty()) {
+        val hits = searchIndex.filter { (words, _) -> q.split(" ").all { it in words.lowercase() } }
+            .map { it.second }.distinct()
+        Group(if (hits.isEmpty()) "No matches" else "Results") {
+            hits.forEach { screen -> row { NavRow(it, screen.title) { open(screen) } } }
+        }
     }
 }
 
@@ -331,6 +371,16 @@ private fun TypingScreen() {
         row { TextRow(it, "EN→中", "Turn it on and type an English word (fridge, apple, to eat) to get Chinese words with that meaning.") }
         row { TextRow(it, "繁 / 简", "Switches between Traditional and Simplified characters. Cantonese starts in Traditional, Mandarin in Simplified.") }
     }
+    val ctx = LocalContext.current
+    val handwritingInstalled = remember { app.bumboard.handwriting.HandwritingClient(ctx).isInstalled() }
+    Group("Voice & handwriting") {
+        row { TextRow(it, "Voice", "Tap the microphone on the toolbar. Uses the phone's speech recogniser in the current language (粵語, 普通话 or English), on-device where the phone supports it.") }
+        row {
+            TextRow(it, "Handwriting",
+                if (handwritingInstalled) "Installed. Open it from the tools panel (the grid button)."
+                else "Needs the BumBoard Handwriting add-on (a separate app, so Google's handwriting engine stays out of the keyboard). Install it from the same place as BumBoard.")
+        }
+    }
     val keyboard = AppPrefs.getInstance().keyboard
     val langKey = rememberManaged(keyboard.showLangSwitchKey)
     Group("Keys") {
@@ -352,6 +402,9 @@ private fun LayoutScreen() {
     val popup = rememberManaged(k.popupOnKeyPress)
     val numRow = rememberManaged(k.toolbarNumRowOnPassword)
     val skin = rememberManaged(AppPrefs.getInstance().symbols.defaultEmojiSkinTone)
+    val numberRow = rememberBool(app.bumboard.keyboard.Layouts.NUMBER_ROW, false)
+    val emojiKey = rememberBool(app.bumboard.keyboard.Layouts.EMOJI_KEY, false)
+    val oneHanded = rememberString(app.bumboard.keyboard.OneHanded.KEY, "Off")
 
     Group("Size") {
         row { SliderRow(it, "Height (portrait)", height.value, 10..90, format = { v -> "$v%" }) { v -> height.value = v } }
@@ -367,9 +420,22 @@ private fun LayoutScreen() {
                 listOf(SwipeSymbolDirection.Up to "Up", SwipeSymbolDirection.Down to "Down", SwipeSymbolDirection.Disabled to "Off"),
                 swipe.value) { v -> swipe.value = v }
         }
+        row { SwitchRow(it, "Number row", "Always show 1–0 above the letters (in Cantonese they also type tones)", numberRow.value) { v -> numberRow.value = v } }
+        row { SwitchRow(it, "Emoji key", "A separate emoji key next to the comma (otherwise long-press the comma)", emojiKey.value) { v -> emojiKey.value = v } }
         row { SwitchRow(it, "Number row on password fields", null, numRow.value) { v -> numRow.value = v } }
+        row {
+            ChoiceRow(it, "One-handed", null,
+                listOf("Off" to "Off", "Left" to "Left", "Right" to "Right"),
+                oneHanded.value) { v -> oneHanded.value = v; app.bumboard.keyboard.OneHanded.onChange?.invoke() }
+        }
     }
+    val emojiSize = rememberString(app.bumboard.emoji.EmojiSize.KEY, "medium")
     Group("Emoji") {
+        row {
+            ChoiceRow(it, "Emoji size", "Applies the next time the keyboard opens",
+                listOf("small" to "Small", "medium" to "Medium", "large" to "Large"),
+                emojiSize.value) { v -> emojiSize.value = v }
+        }
         row {
             ChoiceRow(it, "Default skin tone", null,
                 listOf(

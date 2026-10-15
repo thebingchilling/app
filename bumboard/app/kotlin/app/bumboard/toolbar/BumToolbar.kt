@@ -131,11 +131,14 @@ object BumToolbar {
             Tool.EnglishLookup -> LanguageControls.toggleEnglishLookup()
             Tool.Script -> LanguageControls.toggleScript()
             Tool.Emoji -> { h.windowManager.attachWindow(PickerWindow.Key.Emoji); return true }
+            Tool.Voice -> { h.windowManager.attachWindow(app.bumboard.voice.VoiceWindow()); return true }
+            Tool.Handwriting -> { h.windowManager.attachWindow(app.bumboard.handwriting.HandwritingWindow()); return true }
             Tool.Clipboard -> { bar.clipboardButton.performClick(); return true }
             Tool.Editing -> { bar.cursorMoveButton.performClick(); return true }
             Tool.Undo -> bar.undoButton.performClick()
             Tool.Redo -> bar.redoButton.performClick()
             Tool.Resize -> { h.windowManager.attachWindow(ResizeWindow()); return true }
+            Tool.OneHanded -> app.bumboard.keyboard.OneHanded.cycle()
             Tool.Theme -> AppUtil.launchMainToThemeList(h.ctx)
             Tool.Settings -> h.ctx.startActivity(
                 Intent(h.ctx, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

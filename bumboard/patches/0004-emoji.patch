@@ -1,0 +1,43 @@
+diff --git a/app/src/main/java/org/fcitx/fcitx5/android/input/picker/PickerPageUi.kt b/app/src/main/java/org/fcitx/fcitx5/android/input/picker/PickerPageUi.kt
+index b1a0f3e6..bda1abb9 100644
+--- a/app/src/main/java/org/fcitx/fcitx5/android/input/picker/PickerPageUi.kt
++++ b/app/src/main/java/org/fcitx/fcitx5/android/input/picker/PickerPageUi.kt
+@@ -68,7 +68,11 @@ class PickerPageUi(
+         Medium(20, 7, 3, 23.7f, false, true),
+ 
+         // emoticon: 4/4/4, no backspace
+-        Low(12, 4, 3, 19f, true, false)
++        Low(12, 4, 3, 19f, true, false),
++
++        // BumBoard: emoji sizes (Settings → Layout & size)
++        EmojiSmall(23, 8, 3, 21f, false, true),
++        EmojiLarge(17, 6, 3, 28f, false, true)
+     }
+ 
+     private val popupOnKeyPress by AppPrefs.getInstance().keyboard.popupOnKeyPress
+diff --git a/app/src/main/java/org/fcitx/fcitx5/android/input/picker/PickerWindowPreset.kt b/app/src/main/java/org/fcitx/fcitx5/android/input/picker/PickerWindowPreset.kt
+index 61067dd9..6fb32909 100644
+--- a/app/src/main/java/org/fcitx/fcitx5/android/input/picker/PickerWindowPreset.kt
++++ b/app/src/main/java/org/fcitx/fcitx5/android/input/picker/PickerWindowPreset.kt
+@@ -20,7 +20,7 @@ fun symbolPicker(): PickerWindow = PickerWindow(
+ fun emojiPicker(): PickerWindow = PickerWindow(
+     key = PickerWindow.Key.Emoji,
+     data = PickerData.Emoji,
+-    density = PickerPageUi.Density.Medium,
++    density = app.bumboard.emoji.EmojiSize.density(), // BumBoard: emoji size setting
+     switchKey = TextPickerSwitchKey(":-)", PickerWindow.Key.Emoticon),
+     popupPreview = false,
+     followKeyBorder = false,
+diff --git a/app/src/main/java/org/fcitx/fcitx5/android/input/popup/EmojiModifier.kt b/app/src/main/java/org/fcitx/fcitx5/android/input/popup/EmojiModifier.kt
+index e6afe813..e6f5b6b1 100644
+--- a/app/src/main/java/org/fcitx/fcitx5/android/input/popup/EmojiModifier.kt
++++ b/app/src/main/java/org/fcitx/fcitx5/android/input/popup/EmojiModifier.kt
+@@ -113,6 +113,8 @@ object EmojiModifier {
+     }
+ 
+     fun produceSkinTones(emoji: String, excludeTone: SkinTone): Array<String>? {
++        // BumBoard: two people get a tone each (5×5, Gboard-style)
++        app.bumboard.emoji.SkinTones.pairs(emoji)?.let { return it }
+         if (!isSupported()) return null
+         val (codePoints, modifiable) = getCodePoints(emoji)
+         if (!isModifiable(modifiable)) return null

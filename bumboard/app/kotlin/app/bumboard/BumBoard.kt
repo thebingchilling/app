@@ -174,6 +174,7 @@ object BumBoard {
     /** Starts following fcitx; safe to call repeatedly (from UI setup). */
     fun attach() {
         if (connection != null) return
+        FirstRun.apply()
         val c = FcitxDaemon.connect("bumboard")
         connection = c
         openDictionary()
