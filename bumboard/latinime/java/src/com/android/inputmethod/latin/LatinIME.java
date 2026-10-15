@@ -868,7 +868,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         }
         mBumChinese.attachViews(
                 (app.bumboard.chinese.CandidateBarView) view.findViewById(R.id.bum_candidate_bar),
-                mSuggestionStripView);
+                mSuggestionStripView, view);
     }
 
     @Override

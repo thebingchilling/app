@@ -35,4 +35,29 @@
     <string name="bum_jyutping">Jyutping</string>
     <string name="bum_yale">Yale</string>
     <string name="bum_chinese_how">Turn on 粵語 Cantonese or 普通話 Mandarin under Languages, then switch to it with the globe or space bar.</string>
+    <string name="bum_under_candidates">Under each candidate</string>
+    <string name="bum_show_readings">Readings and meanings</string>
+    <string name="bum_show_readings_summary">Show how each candidate is read and what it means</string>
+    <string name="bum_cantonese_reading">Cantonese reading</string>
+    <string name="bum_both">Both</string>
+    <string name="bum_other_language">Also show the other language</string>
+    <string name="bum_other_language_summary">Pinyin under Cantonese, Jyutping under Mandarin</string>
+    <string name="bum_show_meaning">English meaning</string>
+    <string name="bum_show_meaning_summary">A short meaning under each candidate</string>
+
+    <!-- Dictionary panel -->
+    <string name="bum_close">Close</string>
+    <string name="bum_type_it">Type it</string>
+    <string name="bum_card_parts">Parts</string>
+    <string name="bum_card_cantonese">Cantonese</string>
+    <string name="bum_card_mandarin">Mandarin</string>
+    <string name="bum_card_character">Character</string>
+    <string name="bum_card_measure_word">Measure word:</string>
+    <string name="bum_card_written">Written:</string>
+    <string name="bum_card_vernacular">Spoken:</string>
+
+    <string name="bum_licences">Licences</string>
+    <string name="bum_licences_summary">Open-source software and dictionary data</string>
+    <string name="bum_licences_software">Software</string>
+    <string name="bum_licences_data">Dictionary data</string>
 </resources>

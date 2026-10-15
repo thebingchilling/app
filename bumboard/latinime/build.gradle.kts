@@ -76,6 +76,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core"))
     implementation(libs.androidx.core)
     implementation(libs.androidx.viewpager)
     implementation(libs.androidx.annotation)

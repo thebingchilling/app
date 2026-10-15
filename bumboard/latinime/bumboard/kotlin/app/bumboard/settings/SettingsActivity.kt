@@ -59,6 +59,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.bumboard.chinese.ChineseInput
+import app.bumboard.chinese.Readings
 import com.android.inputmethod.keyboard.KeyboardTheme
 import com.android.inputmethod.latin.AudioAndHapticFeedbackManager
 import com.android.inputmethod.latin.R
@@ -77,6 +78,7 @@ enum class Page(@StringRes val title: Int) {
     Gesture(R.string.settings_screen_gesture),
     Advanced(R.string.settings_screen_advanced),
     About(R.string.bum_about),
+    Licences(R.string.bum_licences),
 }
 
 /** Whether BumBoard is enabled in the system and whether it is the current keyboard. */
@@ -125,7 +127,8 @@ class SettingsActivity : ComponentActivity() {
 @Composable
 private fun SettingsApp(start: Page, status: MutableState<ImeStatus>) {
     var page by rememberSaveable { mutableStateOf(start) }
-    BackHandler(enabled = page != Page.Home) { page = Page.Home }
+    val back = { page = if (page == Page.Licences) Page.About else Page.Home }
+    BackHandler(enabled = page != Page.Home) { back() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
@@ -135,7 +138,7 @@ private fun SettingsApp(start: Page, status: MutableState<ImeStatus>) {
                 title = { Text(stringResource(page.title)) },
                 navigationIcon = {
                     if (page != Page.Home) {
-                        IconButton(onClick = { page = Page.Home }) {
+                        IconButton(onClick = back) {
                             Icon(painterResource(R.drawable.ic_sym_arrow_back), stringResource(R.string.bum_back))
                         }
                     }
@@ -160,7 +163,8 @@ private fun SettingsApp(start: Page, status: MutableState<ImeStatus>) {
                     Page.Correction -> CorrectionPage()
                     Page.Gesture -> GesturePage()
                     Page.Advanced -> AdvancedPage()
-                    Page.About -> AboutPage()
+                    Page.About -> AboutPage { page = Page.Licences }
+                    Page.Licences -> LicencesPage()
                 }
             }
         }
@@ -350,6 +354,14 @@ private fun ChinesePage() {
     val cantonese = prefs.stringPref(ChineseInput.PREF_CANTONESE_INPUT) {
         prefs.getString(ChineseInput.PREF_CANTONESE_INPUT, null) ?: "jyutping"
     }
+    val showReadings = prefs.boolPref(Readings.PREF_SHOW_READINGS) { Readings.showReadings(prefs) }
+    val romanization = prefs.stringPref(Readings.PREF_ROMANIZATION) {
+        prefs.getString(Readings.PREF_ROMANIZATION, null) ?: "jyutping"
+    }
+    val otherLanguage = prefs.boolPref(Readings.PREF_OTHER_LANGUAGE) {
+        prefs.getBoolean(Readings.PREF_OTHER_LANGUAGE, false)
+    }
+    val meaning = prefs.boolPref(Readings.PREF_MEANING) { prefs.getBoolean(Readings.PREF_MEANING, true) }
     Text(
         stringResource(R.string.bum_chinese_how),
         style = MaterialTheme.typography.bodyMedium,
@@ -378,6 +390,40 @@ private fun ChinesePage() {
                 selected = cantonese.value,
                 onSelect = cantonese::set,
             )
+        }
+    }
+    Group(stringResource(R.string.bum_under_candidates)) {
+        row {
+            SwitchRow(
+                it, stringResource(R.string.bum_show_readings), stringResource(R.string.bum_show_readings_summary),
+                showReadings.value, showReadings::set,
+            )
+        }
+        if (showReadings.value) {
+            row {
+                ChoiceRow(
+                    it, stringResource(R.string.bum_cantonese_reading),
+                    options = listOf(
+                        "jyutping" to stringResource(R.string.bum_jyutping),
+                        "yale" to stringResource(R.string.bum_yale),
+                        "both" to stringResource(R.string.bum_both),
+                    ),
+                    selected = romanization.value,
+                    onSelect = romanization::set,
+                )
+            }
+            row {
+                SwitchRow(
+                    it, stringResource(R.string.bum_other_language), stringResource(R.string.bum_other_language_summary),
+                    otherLanguage.value, otherLanguage::set,
+                )
+            }
+            row {
+                SwitchRow(
+                    it, stringResource(R.string.bum_show_meaning), stringResource(R.string.bum_show_meaning_summary),
+                    meaning.value, meaning::set,
+                )
+            }
         }
     }
 }
@@ -659,7 +705,7 @@ private fun AdvancedPage() {
 // ---------------------------------------------------------------- about
 
 @Composable
-private fun AboutPage() {
+private fun AboutPage(openLicences: () -> Unit) {
     val context = LocalContext.current
     val version = remember {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
@@ -667,6 +713,29 @@ private fun AboutPage() {
     Group {
         row { TextRow(it, stringResource(R.string.english_ime_name), stringResource(R.string.bum_version, version)) }
         row { TextRow(it, stringResource(R.string.bum_about_base_title), stringResource(R.string.bum_about_base_body)) }
+        row {
+            NavRow(it, stringResource(R.string.bum_licences), stringResource(R.string.bum_licences_summary),
+                R.drawable.ic_sym_license, openLicences)
+        }
     }
     Spacer(Modifier.height(8.dp))
+}
+
+@Composable
+private fun LicencesPage() {
+    val context = LocalContext.current
+    val software = remember {
+        context.resources.openRawResource(R.raw.bum_software_licenses).bufferedReader().use { it.readText() }
+    }
+    val data = remember {
+        runCatching {
+            context.assets.open("bumboard/data-licenses.txt").bufferedReader().use { it.readText() }
+        }.getOrDefault("")
+    }
+    Group {
+        row { TextRow(it, stringResource(R.string.bum_licences_software), software) }
+        if (data.isNotEmpty()) {
+            row { TextRow(it, stringResource(R.string.bum_licences_data), data) }
+        }
+    }
 }

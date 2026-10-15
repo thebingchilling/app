@@ -2,12 +2,19 @@ package app.bumboard.chinese
 
 import android.content.SharedPreferences
 import android.inputmethodservice.InputMethodService
+import android.util.TypedValue
 import android.view.View
+import android.widget.FrameLayout
 import android.view.inputmethod.InputMethodSubtype
+import app.bumboard.core.Annotation
+import app.bumboard.core.CantoneseRomanization
+import app.bumboard.core.InputMode
+import app.bumboard.rime.Candidate
 import app.bumboard.rime.Composition
 import app.bumboard.rime.Rime
 import app.bumboard.rime.RimeService
 import com.android.inputmethod.event.Event
+import com.android.inputmethod.latin.R
 import com.android.inputmethod.latin.common.Constants
 
 /**
@@ -20,6 +27,9 @@ class ChineseInput(private val ime: InputMethodService, private val prefs: Share
     private var engine: String? = null
     private var bar: CandidateBarView? = null
     private var strip: View? = null
+    private var panel: DictionaryPanel? = null
+    private var keyboardFrame: View? = null
+    private var shown: Composition? = null
 
     /** True while Rime holds a composition, so LatinIME must leave the composing text alone. */
     var isComposing = false
@@ -28,11 +38,33 @@ class ChineseInput(private val ime: InputMethodService, private val prefs: Share
     val isActive: Boolean
         get() = engine != null
 
-    fun attachViews(bar: CandidateBarView?, strip: View?) {
+    fun attachViews(bar: CandidateBarView?, strip: View?, inputView: View) {
         this.bar = bar
         this.strip = strip
+        panel = (inputView as? FrameLayout)?.let { DictionaryPanel(it) }
+        keyboardFrame = inputView.findViewById(R.id.main_keyboard_frame)
         bar?.onPick = { index -> pick(index) }
+        bar?.onLongPick = { index -> showDictionary(index) }
+        bar?.annotate = { candidate -> annotate(candidate) }
         show(null)
+    }
+
+    /** Long-press on a candidate: its full dictionary entry over the keys. */
+    private fun showDictionary(index: Int) {
+        val candidate = shown?.candidates?.getOrNull(index) ?: return
+        val annotator = Readings.annotator ?: return
+        val mode = if (engine == "yue") InputMode.Cantonese else InputMode.Mandarin
+        val resolved = annotator.resolve(candidate.text, candidate.comment, mode) ?: return
+        if (resolved.headwords.isEmpty() && resolved.reading == null) return
+        val height = keyboardFrame?.height?.takeIf { it > 0 } ?: return
+        panel?.show(candidate.text, resolved, Readings.displayPrefs(prefs), height) { pick(index) }
+    }
+
+    private fun annotate(candidate: Candidate): Annotation? {
+        if (!Readings.showReadings(prefs)) return null
+        val annotator = Readings.annotator ?: return null
+        val mode = if (engine == "yue") InputMode.Cantonese else InputMode.Mandarin
+        return annotator.annotate(candidate.text, candidate.comment, mode, Readings.displayPrefs(prefs))
     }
 
     fun onSubtypeChanged(subtype: InputMethodSubtype?) {
@@ -40,12 +72,17 @@ class ChineseInput(private val ime: InputMethodService, private val prefs: Share
         if (newEngine == engine) return
         reset()
         engine = newEngine
-        if (newEngine != null) RimeService.start(ime) { selectSchema() }
+        if (newEngine != null) {
+            RimeService.start(ime) { selectSchema() }
+            Readings.open(ime)
+        }
+        show(null)
     }
 
     /** Re-reads schema and Traditional/Simplified settings, e.g. after the settings changed. */
     fun onSettingsChanged() {
         if (isActive && RimeService.ready) selectSchema()
+        show(null)
     }
 
     private fun selectSchema() {
@@ -106,6 +143,7 @@ class ChineseInput(private val ime: InputMethodService, private val prefs: Share
 
     /** Drops any composition, e.g. when the text field changes. */
     fun reset() {
+        panel?.dismiss()
         if (session != 0L) Rime.clearComposition(session)
         if (isComposing) ime.currentInputConnection?.finishComposingText()
         isComposing = false
@@ -138,16 +176,33 @@ class ChineseInput(private val ime: InputMethodService, private val prefs: Share
         show(composition)
     }
 
+    /** In Chinese the bar replaces the strip all the time, at a steady height. */
     private fun show(composition: Composition?) {
+        shown = composition
+        if (composition == null) panel?.dismiss()
         val bar = bar ?: return
-        if (composition == null) {
+        if (!isActive) {
             bar.visibility = View.GONE
             strip?.visibility = View.VISIBLE
-        } else {
-            bar.setCandidates(composition.candidates)
-            strip?.visibility = View.GONE
-            bar.visibility = View.VISIBLE
+            return
         }
+        bar.setBarHeight(barHeight())
+        bar.setCandidates(composition?.candidates.orEmpty())
+        strip?.visibility = View.GONE
+        bar.visibility = View.VISIBLE
+    }
+
+    private fun barHeight(): Int {
+        val res = ime.resources
+        val base = res.getDimensionPixelSize(R.dimen.config_suggestions_strip_height)
+        if (!Readings.showReadings(prefs)) return base
+        val display = Readings.displayPrefs(prefs)
+        var lines = 1
+        if (display.cantonese == CantoneseRomanization.Both && engine == "yue") lines++
+        if (display.showOtherLanguage) lines++
+        fun sp(value: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, res.displayMetrics)
+        val extra = lines * sp(14f) + (if (display.showMeaning) sp(13f) else 0f)
+        return base + extra.toInt()
     }
 
     companion object {
