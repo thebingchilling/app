@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">Quartz</string>
-    <string name="shortcut_selfie">Selfie</string>
-    <string name="shortcut_video">Video</string>
-    <string name="tile_label">Quartz camera</string>
-</resources>
