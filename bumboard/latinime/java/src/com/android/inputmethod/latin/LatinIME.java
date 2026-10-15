@@ -598,6 +598,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
 
     @Override
     public void onCreate() {
+        app.bumboard.CrashLog.install(this);
         Settings.init(this);
         DebugFlags.init(PreferenceManager.getDefaultSharedPreferences(this));
         RichInputMethodManager.init(this);
@@ -1357,6 +1358,16 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     }
 
     private void updateSoftInputWindowLayoutParameters() {
+        // BUMBOARD: this reaches into the framework's IME window, whose layout changes between
+        // Android versions; never let it crash the keyboard.
+        try {
+            updateSoftInputWindowLayoutParametersInternal();
+        } catch (final RuntimeException e) {
+            Log.w(TAG, "Could not update the input window layout", e);
+        }
+    }
+
+    private void updateSoftInputWindowLayoutParametersInternal() {
         // Override layout parameters to expand {@link SoftInputWindow} to the entire screen.
         // See {@link InputMethodService#setinputView(View)} and
         // {@link SoftInputWindow#updateWidthHeight(WindowManager.LayoutParams)}.

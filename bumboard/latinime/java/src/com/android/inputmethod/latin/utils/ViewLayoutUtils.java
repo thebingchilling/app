@@ -64,6 +64,11 @@ public final class ViewLayoutUtils {
     }
 
     public static void updateLayoutHeightOf(final View view, final int layoutHeight) {
+        // BUMBOARD: the framework's IME window layout differs between Android versions;
+        // a missing view must not crash the keyboard.
+        if (view == null) {
+            return;
+        }
         final ViewGroup.LayoutParams params = view.getLayoutParams();
         if (params != null && params.height != layoutHeight) {
             params.height = layoutHeight;
@@ -72,6 +77,9 @@ public final class ViewLayoutUtils {
     }
 
     public static void updateLayoutGravityOf(final View view, final int layoutGravity) {
+        if (view == null) {
+            return;
+        }
         final ViewGroup.LayoutParams lp = view.getLayoutParams();
         if (lp instanceof LinearLayout.LayoutParams) {
             final LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)lp;
@@ -85,9 +93,8 @@ public final class ViewLayoutUtils {
                 params.gravity = layoutGravity;
                 view.setLayoutParams(params);
             }
-        } else {
-            throw new IllegalArgumentException("Layout parameter doesn't have gravity: "
-                    + lp.getClass().getName());
         }
+        // BUMBOARD: other layout params (newer framework layouts) are left alone instead of
+        // throwing IllegalArgumentException, which crashed the keyboard on Android 16.
     }
 }

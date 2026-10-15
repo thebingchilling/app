@@ -2,6 +2,8 @@
 
 package app.bumboard.settings
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -43,6 +45,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -57,7 +60,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import app.bumboard.CrashLog
 import app.bumboard.chinese.ChineseInput
 import app.bumboard.chinese.Readings
 import com.android.inputmethod.keyboard.KeyboardTheme
@@ -90,6 +95,7 @@ class SettingsActivity : ComponentActivity() {
     private val status = mutableStateOf(ImeStatus(enabled = false, current = false))
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        CrashLog.install(this)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         AudioAndHapticFeedbackManager.init(this)
@@ -184,6 +190,14 @@ private fun prefs(): SharedPreferences {
 private fun HomePage(status: ImeStatus, open: (Page) -> Unit) {
     val context = LocalContext.current
     val appName = stringResource(R.string.english_ime_name)
+
+    var crash by remember { mutableStateOf(CrashLog.read(context)) }
+    crash?.let { log ->
+        CrashCard(log) {
+            CrashLog.clear(context)
+            crash = null
+        }
+    }
 
     if (status.enabled && status.current) {
         Card {
@@ -286,6 +300,44 @@ private fun HomePage(status: ImeStatus, open: (Page) -> Unit) {
                 it, stringResource(R.string.bum_about),
                 stringResource(R.string.bum_about_summary), R.drawable.ic_sym_info,
             ) { open(Page.About) }
+        }
+    }
+}
+
+/** The last crash's report, so it can be copied or shared without adb. */
+@Composable
+private fun CrashCard(log: String, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    Surface(
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.bum_crash_title), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.bum_crash_body), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                log.lineSequence().take(12).joinToString("\n"),
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = {
+                    context.startActivity(
+                        Intent.createChooser(
+                            Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, log),
+                            null,
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                }) { Text(stringResource(R.string.bum_crash_share)) }
+                FilledTonalButton(onClick = {
+                    context.getSystemService(ClipboardManager::class.java)
+                        .setPrimaryClip(ClipData.newPlainText("BumBoard crash", log))
+                }) { Text(stringResource(R.string.bum_crash_copy)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.bum_crash_dismiss)) }
+            }
         }
     }
 }

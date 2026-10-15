@@ -102,9 +102,7 @@ public class RichInputMethodManager {
 
         // Initialize additional subtypes.
         SubtypeLocaleUtils.init(context);
-        final InputMethodSubtype[] additionalSubtypes = getAdditionalSubtypes();
-        mImmWrapper.mImm.setAdditionalInputMethodSubtypes(
-                getInputMethodIdOfThisIme(), additionalSubtypes);
+        setAdditionalInputMethodSubtypes(getAdditionalSubtypes());
 
         // Initialize the current input method subtype and the shortcut IME.
         refreshSubtypeCaches();
@@ -475,6 +473,15 @@ public class RichInputMethodManager {
     }
 
     public void setAdditionalInputMethodSubtypes(final InputMethodSubtype[] subtypes) {
+        // BUMBOARD: newer Android versions restrict this call; custom input styles are optional.
+        try {
+            setAdditionalInputMethodSubtypesInternal(subtypes);
+        } catch (final RuntimeException e) {
+            Log.w(TAG, "setAdditionalInputMethodSubtypes failed", e);
+        }
+    }
+
+    private void setAdditionalInputMethodSubtypesInternal(final InputMethodSubtype[] subtypes) {
         mImmWrapper.mImm.setAdditionalInputMethodSubtypes(
                 getInputMethodIdOfThisIme(), subtypes);
         // Clear the cache so that we go read the {@link InputMethodInfo} of this IME and list of

@@ -60,4 +60,11 @@
     <string name="bum_licences_summary">Open-source software and dictionary data</string>
     <string name="bum_licences_software">Software</string>
     <string name="bum_licences_data">Dictionary data</string>
+
+    <!-- Crash report -->
+    <string name="bum_crash_title">BumBoard crashed</string>
+    <string name="bum_crash_body">Share or copy this report so the problem can be fixed. It stays on your phone unless you send it.</string>
+    <string name="bum_crash_share">Share</string>
+    <string name="bum_crash_copy">Copy</string>
+    <string name="bum_crash_dismiss">Dismiss</string>
 </resources>
