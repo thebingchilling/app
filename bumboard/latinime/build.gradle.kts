@@ -42,7 +42,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "java/proguard.flags")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "java/proguard.flags")
         }
     }
 
