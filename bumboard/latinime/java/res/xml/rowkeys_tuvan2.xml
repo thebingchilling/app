@@ -19,7 +19,7 @@
 -->
 
 <merge
-    xmlns:latin="http://schemas.android.com/apk/res/com.android.inputmethod.latin"
+    xmlns:latin="http://schemas.android.com/apk/res-auto"
 >
     <!-- U+04E9: "ө" CYRILLIC SMALL LETTER BARRED O (CYRILLIC SMALL LETTER EF - "ф" - moved to longpress) -->
     <Key
