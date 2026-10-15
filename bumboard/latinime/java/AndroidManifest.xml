@@ -15,12 +15,9 @@
 -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-     coreApp="true"
-     package="com.android.inputmethod.latin"
-     android:versionCode="30">
-
-    <uses-sdk android:minSdkVersion="21"
-         android:targetSdkVersion="30"/>
+     coreApp="true">
+    <!-- BUMBOARD: package, versions and SDK levels come from build.gradle.kts.
+         Network, contacts, accounts, sync and storage permissions are dropped. -->
 
     <uses-permission android:name="android.permission.READ_USER_DICTIONARY"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
