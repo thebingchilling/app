@@ -95,3 +95,43 @@ jobs:
           name: bumboard-test-reports
           path: bumboard/upstream/fcitx5-android/**/build/reports/
           if-no-files-found: ignore
+
+  # Installs the debug APK on an emulator, types a little and keeps screenshots + logcat.
+  smoke:
+    needs: android
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: bumboard-0.1.0-dev.${{ github.run_number }}
+          path: apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Find the APK
+        run: |
+          find apk -name '*.apk'
+          echo "APK=$(find apk -path '*app/build/outputs/apk/debug/*.apk' | head -1)" >> "$GITHUB_ENV"
+
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bumboard/scripts/smoke-test.sh "$APK" smoke
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bumboard-smoke-${{ github.run_number }}
+          path: smoke/
+          if-no-files-found: ignore

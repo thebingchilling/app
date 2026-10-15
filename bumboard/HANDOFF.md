@@ -86,11 +86,16 @@ priority over `main`), so restyling/icon swaps need no patches.
   in `data/snapshots/`. Run `build_data.py` and `test/run.sh`.
 - **Rime schemas**: edit `data/rime/*.yaml`, add a case to `test/cases.txt`.
 
-## Verified (2026-10-14)
+## Verified
 
-- `build_data.py` builds everything; Rime cases 29/29 on host librime.
-- `core` tests 18/18 on the JVM, including against the real readings.db.
-- Android build: see the latest run of `.github/workflows/build-bumboard.yml`.
+- `build_data.py` builds everything; Rime cases 29/29 on host librime (local and CI).
+- `core` tests 18/18 on the JVM, including against the real readings.db (local and CI).
+- CI run 1: native build (fcitx5 + Rime in the app) and assets OK; Kotlin failed on a nested
+  comment. Run 2: all Kotlin compiled; failed on Compose needing compileSdk 37 (fixed).
+- Nothing has been run on a device or emulator yet.
+
+CI notes: a push cancels the running build (concurrency group), so batch changes. The first
+native build takes ~5 minutes on the runner.
 
 ## Next
 
