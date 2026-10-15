@@ -28,7 +28,8 @@ public class DictionaryPackConstants {
      * The root domain for the dictionary pack, upon which authorities and actions will append
      * their own distinctive strings.
      */
-    private static final String DICTIONARY_DOMAIN = "app.bumboard.dictionarypack" // BUMBOARD;
+    // BUMBOARD: own domain so the authority and broadcasts never clash with stock LatinIME.
+    private static final String DICTIONARY_DOMAIN = "app.bumboard.dictionarypack";
 
     /**
      * Authority for the ContentProvider protocol.
