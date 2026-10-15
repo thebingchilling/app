@@ -870,6 +870,8 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         mBumChinese.attachViews(
                 (app.bumboard.chinese.CandidateBarView) view.findViewById(R.id.bum_candidate_bar),
                 mSuggestionStripView, view);
+        // BUMBOARD: keep the keys above the navigation bar (edge to edge from Android 15).
+        app.bumboard.KeyboardInsets.apply(view);
     }
 
     @Override
@@ -1281,10 +1283,20 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
             mInsetsUpdater.setInsets(outInsets);
             return;
         }
-        final int suggestionsHeight = (!mKeyboardSwitcher.isShowingEmojiPalettes()
+        final boolean showingEmoji = mKeyboardSwitcher.isShowingEmojiPalettes();
+        final int suggestionsHeight = (!showingEmoji
                 && mSuggestionStripView.getVisibility() == View.VISIBLE)
                 ? mSuggestionStripView.getHeight() : 0;
-        final int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - suggestionsHeight;
+        // BUMBOARD: the Chinese candidate bar replaces the strip, and the keyboard frame has
+        // padding for the navigation bar (the emoji palette's own height already includes it).
+        final View bumCandidateBar = mInputView.findViewById(R.id.bum_candidate_bar);
+        final int bumBarHeight = (!showingEmoji && bumCandidateBar != null
+                && bumCandidateBar.getVisibility() == View.VISIBLE)
+                ? bumCandidateBar.getHeight() : 0;
+        final int bumBottomPadding = showingEmoji
+                ? 0 : app.bumboard.KeyboardInsets.bottomPadding(mInputView);
+        final int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - suggestionsHeight
+                - bumBarHeight - bumBottomPadding;
         mSuggestionStripView.setMoreSuggestionsHeight(visibleTopY);
         // Need to set expanded touchable region only if a keyboard view is being shown.
         if (visibleKeyboardView.isShown()) {
