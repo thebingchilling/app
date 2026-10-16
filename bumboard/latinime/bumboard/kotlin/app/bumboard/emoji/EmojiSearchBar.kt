@@ -36,7 +36,7 @@ class EmojiSearchBar @JvmOverloads constructor(
     var isActive = false
         private set
 
-    private val colors = M3Colors.of(context)
+    private val palette = M3Colors.of(context)
     @Suppress("DEPRECATION")
     private val store = EmojiStore(PreferenceManager.getDefaultSharedPreferences(context))
     private val query = StringBuilder()
@@ -52,11 +52,11 @@ class EmojiSearchBar @JvmOverloads constructor(
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         visibility = GONE
-        setBackgroundColor(colors.surface)
+        setBackgroundColor(palette.surface)
         setPadding(dp(4), dp(4), dp(8), dp(4))
         addView(ImageView(context).apply {
             setImageResource(R.drawable.ic_sym_arrow_back)
-            imageTintList = ColorStateList.valueOf(colors.onSurface)
+            imageTintList = ColorStateList.valueOf(palette.onSurface)
             scaleType = ImageView.ScaleType.CENTER
             contentDescription = context.getString(R.string.bum_back)
             setOnClickListener { close() }
@@ -68,7 +68,7 @@ class EmojiSearchBar @JvmOverloads constructor(
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(14), 0, dp(14), 0)
             background = GradientDrawable().apply {
-                setColor(colors.surfaceContainerHigh)
+                setColor(palette.surfaceContainerHigh)
                 cornerRadius = dp(20).toFloat()
             }
         }
@@ -120,7 +120,7 @@ class EmojiSearchBar @JvmOverloads constructor(
 
     private fun refresh() {
         queryView.text = query.ifEmpty { context.getString(R.string.bum_emoji_search) }
-        queryView.setTextColor(if (query.isEmpty()) colors.onSurfaceVariant else colors.onSurface)
+        queryView.setTextColor(if (query.isEmpty()) palette.onSurfaceVariant else palette.onSurface)
         val found = if (query.isBlank()) store.recents() else EmojiData.search(query.toString()).map { store.shown(it) }
         shown = found
         results.removeAllViews()
@@ -137,7 +137,7 @@ class EmojiSearchBar @JvmOverloads constructor(
         if (found.isEmpty() && query.isNotBlank()) {
             results.addView(TextView(context).apply {
                 text = context.getString(R.string.bum_emoji_none)
-                setTextColor(colors.onSurfaceVariant)
+                setTextColor(palette.onSurfaceVariant)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(8), 0, 0, 0)

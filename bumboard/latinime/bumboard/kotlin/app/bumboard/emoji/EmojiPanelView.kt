@@ -46,7 +46,7 @@ class EmojiPanelView @JvmOverloads constructor(
     @Suppress("DEPRECATION")
     private val store = EmojiStore(PreferenceManager.getDefaultSharedPreferences(context))
     private val tonePicker = TonePicker(context)
-    private val colors = M3Colors.of(context)
+    private val palette = M3Colors.of(context)
     private val adapter = Adapter()
     private val layoutManager = GridLayoutManager(context, 8)
     private val grid = RecyclerView(context)
@@ -63,7 +63,7 @@ class EmojiPanelView @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
-        setBackgroundColor(colors.surface)
+        setBackgroundColor(palette.surface)
         addView(searchBox(), LayoutParams(LayoutParams.MATCH_PARENT, dp(48)))
         grid.layoutManager = layoutManager
         grid.adapter = adapter
@@ -178,8 +178,8 @@ class EmojiPanelView @JvmOverloads constructor(
     private fun selectTab(section: Int) {
         tabViews.forEachIndexed { i, tab ->
             val selected = i == section
-            tab.imageTintList = ColorStateList.valueOf(if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant)
-            tab.background = if (selected) pill(colors.secondaryContainer, 18) else null
+            tab.imageTintList = ColorStateList.valueOf(if (selected) palette.onSecondaryContainer else palette.onSurfaceVariant)
+            tab.background = if (selected) pill(palette.secondaryContainer, 18) else null
         }
     }
 
@@ -194,14 +194,14 @@ class EmojiPanelView @JvmOverloads constructor(
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         setPadding(dp(16), 0, dp(16), 0)
-        background = pill(colors.surfaceContainerHigh, 24)
+        background = pill(palette.surfaceContainerHigh, 24)
         addView(ImageView(context).apply {
             setImageResource(R.drawable.ic_sym_search)
-            imageTintList = ColorStateList.valueOf(colors.onSurfaceVariant)
+            imageTintList = ColorStateList.valueOf(palette.onSurfaceVariant)
         })
         addView(TextView(context).apply {
             text = context.getString(R.string.bum_emoji_search)
-            setTextColor(colors.onSurfaceVariant)
+            setTextColor(palette.onSurfaceVariant)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setPadding(dp(12), 0, 0, 0)
         })
@@ -221,11 +221,11 @@ class EmojiPanelView @JvmOverloads constructor(
         setPadding(dp(4), 0, dp(4), 0)
         addView(TextView(context).apply {
             text = context.getString(R.string.bum_emoji_abc)
-            setTextColor(colors.onSurface)
+            setTextColor(palette.onSurface)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             gravity = Gravity.CENTER
-            background = pill(colors.surfaceContainerHigh, 18)
+            background = pill(palette.surfaceContainerHigh, 18)
             setOnClickListener { sendCode(Constants.CODE_ALPHA_FROM_EMOJI) }
         }, LayoutParams(dp(56), dp(36)))
         addView(HorizontalScrollView(context).apply {
@@ -234,7 +234,7 @@ class EmojiPanelView @JvmOverloads constructor(
         }, LayoutParams(0, LayoutParams.MATCH_PARENT, 1f).apply { marginStart = dp(4); marginEnd = dp(4) })
         addView(ImageView(context).apply {
             setImageResource(R.drawable.ic_sym_backspace)
-            imageTintList = ColorStateList.valueOf(colors.onSurface)
+            imageTintList = ColorStateList.valueOf(palette.onSurface)
             scaleType = ImageView.ScaleType.CENTER
             contentDescription = context.getString(R.string.bum_emoji_delete)
             setOnTouchListener { _, event -> onDeleteTouch(event); true }
@@ -284,7 +284,7 @@ class EmojiPanelView @JvmOverloads constructor(
             val view = TextView(context).apply {
                 gravity = if (viewType == 0) Gravity.CENTER_VERTICAL else Gravity.CENTER
                 if (viewType == 0) {
-                    setTextColor(colors.onSurfaceVariant)
+                    setTextColor(palette.onSurfaceVariant)
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
                     typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                     setPadding(dp(14), dp(10), dp(14), dp(4))
