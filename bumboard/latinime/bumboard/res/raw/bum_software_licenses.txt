@@ -14,6 +14,7 @@ BumBoard software — open-source components and licences
   * Prebuilt native libraries from fcitx5-android/prebuilt — built from the projects above.
   * AndroidX and Jetpack Compose, including Material 3 — Apache License 2.0. (c) Google LLC.
   * Material Symbols — Apache License 2.0. (c) Google LLC.
+  * Noto Color Emoji — SIL Open Font License 1.1. (c) Google LLC.
   * Kotlin standard library — Apache License 2.0. (c) JetBrains s.r.o.
 
 Full licence texts:
@@ -21,3 +22,4 @@ Full licence texts:
   BSD 3-Clause — https://opensource.org/license/bsd-3-clause
   BSD 2-Clause — https://opensource.org/license/bsd-2-clause
   MIT — https://opensource.org/license/mit
+  SIL Open Font License 1.1 — https://openfontlicense.org

@@ -69,4 +69,20 @@
     <string name="bum_crash_share">Share</string>
     <string name="bum_crash_copy">Copy</string>
     <string name="bum_crash_dismiss">Dismiss</string>
+
+    <!-- Emoji -->
+    <string name="bum_emoji_search">Search emoji</string>
+    <string name="bum_emoji_none">No emoji found</string>
+    <string name="bum_emoji_abc">ABC</string>
+    <string name="bum_emoji_delete">Delete</string>
+    <string name="bum_emoji_recents">Recent</string>
+    <string name="bum_emoji_smileys">Smileys and emotion</string>
+    <string name="bum_emoji_people">People</string>
+    <string name="bum_emoji_animals">Animals and nature</string>
+    <string name="bum_emoji_food">Food and drink</string>
+    <string name="bum_emoji_travel">Travel and places</string>
+    <string name="bum_emoji_activities">Activities</string>
+    <string name="bum_emoji_objects">Objects</string>
+    <string name="bum_emoji_symbols">Symbols</string>
+    <string name="bum_emoji_flags">Flags</string>
 </resources>

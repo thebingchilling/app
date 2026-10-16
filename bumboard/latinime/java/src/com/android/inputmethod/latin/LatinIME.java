@@ -159,6 +159,8 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     private View mInputView;
     // BUMBOARD: Chinese input through Rime.
     private app.bumboard.chinese.ChineseInput mBumChinese;
+    // BUMBOARD: emoji search above the letter keys.
+    private app.bumboard.emoji.EmojiSearchBar mBumEmojiSearch;
     private InsetsUpdater mInsetsUpdater;
     private SuggestionStripView mSuggestionStripView;
 
@@ -872,6 +874,46 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
                 mSuggestionStripView, view);
         // BUMBOARD: keep the keys above the navigation bar (edge to edge from Android 15).
         app.bumboard.KeyboardInsets.apply(view);
+        setUpBumEmoji(view);
+    }
+
+    // BUMBOARD: the emoji panel's search box opens search over the letter keys.
+    private void setUpBumEmoji(final View view) {
+        mBumEmojiSearch = (app.bumboard.emoji.EmojiSearchBar) view.findViewById(R.id.bum_emoji_search);
+        final app.bumboard.emoji.EmojiPanelView panel =
+                (app.bumboard.emoji.EmojiPanelView) view.findViewById(R.id.emoji_palettes_view);
+        if (mBumEmojiSearch == null || panel == null) {
+            return;
+        }
+        final View candidateBar = view.findViewById(R.id.bum_candidate_bar);
+        panel.setOnSearch(() -> {
+            mBumChinese.reset();
+            if (mSuggestionStripView != null) mSuggestionStripView.setVisibility(View.GONE);
+            if (candidateBar != null) candidateBar.setVisibility(View.GONE);
+            mBumEmojiSearch.start();
+            sendBumKey(Constants.CODE_ALPHA_FROM_EMOJI);
+            return kotlin.Unit.INSTANCE;
+        });
+        mBumEmojiSearch.setOnType(emoji -> {
+            onTextInput(emoji);
+            return kotlin.Unit.INSTANCE;
+        });
+        mBumEmojiSearch.setOnClose(() -> {
+            endBumEmojiSearch();
+            sendBumKey(Constants.CODE_EMOJI);
+            return kotlin.Unit.INSTANCE;
+        });
+    }
+
+    private void endBumEmojiSearch() {
+        if (mBumEmojiSearch != null) mBumEmojiSearch.stop();
+        if (mSuggestionStripView != null) mSuggestionStripView.setVisibility(View.VISIBLE);
+        // puts the Chinese candidate bar back in place of the strip when Chinese is active
+        mBumChinese.onSettingsChanged();
+    }
+
+    private void sendBumKey(final int code) {
+        onCodeInput(code, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false);
     }
 
     @Override
@@ -1135,6 +1177,9 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
 
     void onFinishInputViewInternal(final boolean finishingInput) {
         super.onFinishInputView(finishingInput);
+        if (mBumEmojiSearch != null && mBumEmojiSearch.isActive()) {
+            endBumEmojiSearch();
+        }
         mBumChinese.reset();
         cleanupInternalStateForFinishInput();
     }
@@ -1290,9 +1335,12 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         // BUMBOARD: the Chinese candidate bar replaces the strip, and the keyboard frame has
         // padding for the navigation bar (the emoji palette's own height already includes it).
         final View bumCandidateBar = mInputView.findViewById(R.id.bum_candidate_bar);
-        final int bumBarHeight = (!showingEmoji && bumCandidateBar != null
-                && bumCandidateBar.getVisibility() == View.VISIBLE)
-                ? bumCandidateBar.getHeight() : 0;
+        final View bumEmojiSearch = mInputView.findViewById(R.id.bum_emoji_search);
+        final int bumBarHeight = (showingEmoji ? 0
+                : (bumCandidateBar != null && bumCandidateBar.getVisibility() == View.VISIBLE
+                        ? bumCandidateBar.getHeight() : 0)
+                + (bumEmojiSearch != null && bumEmojiSearch.getVisibility() == View.VISIBLE
+                        ? bumEmojiSearch.getHeight() : 0));
         final int bumBottomPadding = showingEmoji
                 ? 0 : app.bumboard.KeyboardInsets.bottomPadding(mInputView);
         final int visibleTopY = inputHeight - visibleKeyboardView.getHeight() - suggestionsHeight
@@ -1542,6 +1590,15 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     // This method is public for testability of LatinIME, but also in the future it should
     // completely replace #onCodeInput.
     public void onEvent(@Nonnull final Event event) {
+        // BUMBOARD: emoji search takes typed keys while it is open.
+        if (mBumEmojiSearch != null && mBumEmojiSearch.isActive()) {
+            if (mBumEmojiSearch.onEvent(event)) {
+                return;
+            }
+            if (!mBumEmojiSearch.isActive()) {
+                endBumEmojiSearch();
+            }
+        }
         // BUMBOARD: Chinese subtypes send keys to Rime first.
         if (mBumChinese.onEvent(event)) {
             mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(),

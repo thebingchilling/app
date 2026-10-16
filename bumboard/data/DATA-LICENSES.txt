@@ -33,3 +33,11 @@ Rime dictionaries (assets/rime):
   * Schemas and default.yaml — written for BumBoard.
 
 Character conversion uses OpenCC data (Apache License 2.0).
+
+Emoji (assets/bumboard/emoji.json, NotoColorEmoji.ttf):
+
+  * Emoji list, order and names — Unicode Emoji 18.0 (emoji-test.txt), Unicode License v3.
+  * Search keywords — Unicode CLDR 48 annotations (English, Cantonese, Chinese),
+    Unicode License v3, (c) 1991-2026 Unicode, Inc.
+  * Noto Color Emoji font (Unicode 18.0 release) — SIL Open Font License 1.1,
+    (c) Google LLC. https://github.com/googlefonts/noto-emoji

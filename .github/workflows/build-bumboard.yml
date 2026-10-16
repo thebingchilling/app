@@ -36,10 +36,13 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: bumboard/data/.cache
-          key: bumboard-sources-${{ hashFiles('bumboard/data/sources.json') }}
+          key: bumboard-sources-${{ hashFiles('bumboard/data/sources.json', 'bumboard/data/emoji_sources.json') }}
 
       - name: Build dictionary data
         run: python3 data/build_data.py --opencc prebuilt/opencc/data
+
+      - name: Build emoji data
+        run: python3 data/build_emoji.py
 
       - name: Rime schema tests (host librime)
         run: data/test/run.sh

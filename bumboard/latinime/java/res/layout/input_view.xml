@@ -26,7 +26,11 @@
     <include
         android:id="@+id/main_keyboard_frame"
         layout="@layout/main_keyboard_frame" />
-    <include
+    <!-- BUMBOARD: BumBoard's emoji panel replaces LatinIME's EmojiPalettesView. -->
+    <app.bumboard.emoji.EmojiPanelView
         android:id="@+id/emoji_palettes_view"
-        layout="@layout/emoji_palettes_view" />
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:visibility="gone" />
 </com.android.inputmethod.latin.InputView>

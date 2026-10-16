@@ -1,12 +1,10 @@
 package app.bumboard.chinese
 
 import android.content.Context
-import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
-import android.os.Build
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
@@ -26,6 +24,7 @@ import app.bumboard.core.Lang
 import app.bumboard.core.Resolved
 import app.bumboard.core.Romanization
 import app.bumboard.core.Sense
+import app.bumboard.ui.M3Colors
 import com.android.inputmethod.latin.R
 
 /**
@@ -45,7 +44,7 @@ class DictionaryPopup(private val ctx: Context) {
     /** Shows [resolved] for [text] just below [anchor], at most [maxHeight] tall. */
     fun show(anchor: View, text: String, resolved: Resolved, prefs: DisplayPrefs, maxHeight: Int, onType: () -> Unit) {
         dismiss()
-        val c = Colors.of(ctx)
+        val c = M3Colors.of(ctx)
         val body = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(14), dp(18), dp(4))
@@ -92,7 +91,7 @@ class DictionaryPopup(private val ctx: Context) {
         }
     }
 
-    private fun button(label: String, c: Colors, filled: Boolean, onClick: () -> Unit) = TextView(ctx).apply {
+    private fun button(label: String, c: M3Colors, filled: Boolean, onClick: () -> Unit) = TextView(ctx).apply {
         text = label
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
         typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
@@ -110,40 +109,8 @@ class DictionaryPopup(private val ctx: Context) {
 
     private fun dp(v: Int) = (ctx.resources.displayMetrics.density * v).toInt()
 
-    /** The Material 3 colour roles the panel uses. */
-    private data class Colors(
-        val surface: Int, val onSurface: Int, val onSurfaceVariant: Int,
-        val primary: Int, val onPrimary: Int, val outline: Int,
-    ) {
-        companion object {
-            fun of(ctx: Context): Colors {
-                val dark = (ctx.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-                    Configuration.UI_MODE_NIGHT_YES
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    fun c(id: Int) = ctx.getColor(id)
-                    return if (dark) Colors(
-                        c(android.R.color.system_neutral1_900), c(android.R.color.system_neutral1_100),
-                        c(android.R.color.system_neutral2_200), c(android.R.color.system_accent1_200),
-                        c(android.R.color.system_accent1_800), c(android.R.color.system_neutral2_400),
-                    ) else Colors(
-                        c(android.R.color.system_neutral1_10), c(android.R.color.system_neutral1_900),
-                        c(android.R.color.system_neutral2_700), c(android.R.color.system_accent1_600),
-                        c(android.R.color.system_accent1_0), c(android.R.color.system_neutral2_500),
-                    )
-                }
-                return if (dark) Colors(
-                    0xFF0E1513.toInt(), 0xFFDEE4E1.toInt(), 0xFFBEC9C5.toInt(),
-                    0xFF82D5C3.toInt(), 0xFF00382F.toInt(), 0xFF899390.toInt(),
-                ) else Colors(
-                    0xFFF5FBF8.toInt(), 0xFF171D1B.toInt(), 0xFF3F4946.toInt(),
-                    0xFF006A5D.toInt(), 0xFFFFFFFF.toInt(), 0xFF6F7976.toInt(),
-                )
-            }
-        }
-    }
-
     /** Fills the scrolling body with the entry. */
-    private class Content(val ctx: Context, val c: Colors, val prefs: DisplayPrefs, val body: LinearLayout) {
+    private class Content(val ctx: Context, val c: M3Colors, val prefs: DisplayPrefs, val body: LinearLayout) {
 
         fun fill(text: String, r: Resolved) {
             val main = r.headwords.firstOrNull()
