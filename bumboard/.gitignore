@@ -1,9 +1,0 @@
-.gradle/
-build/
-.cxx/
-local.properties
-*.iml
-.idea/
-prebuilt/
-data/out/
-data/.cache/
