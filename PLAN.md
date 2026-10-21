@@ -1,6 +1,6 @@
 # Chinese Learning Keyboard: Project Plan
 
-An Android keyboard for learners of Chinese, built with Jetpack Compose and Material 3 and based on OpenBoard.
+An Android keyboard for learners of Chinese, built with Jetpack Compose and Material 3. It is based on AOSP LatinIME (Apache-2.0), the same foundation OpenBoard uses, and the app is closed source.
 
 **Long-term scope**
 
@@ -17,29 +17,81 @@ An Android keyboard for learners of Chinese, built with Jetpack Compose and Mate
 
 ---
 
-## 0. Decisions to make before writing code
+## 0. Foundation decisions (decided)
 
-### 0.1 OpenBoard's GPL-3.0 license and a paid unlock
+### 0.1 Base: AOSP LatinIME, not OpenBoard
 
-OpenBoard is GPL-3.0, so the whole app must be GPL-3.0 too. Selling a Pro unlock is legal under the GPL, with two consequences:
+OpenBoard (and its fork HeliBoard) is GPL-3.0. Building on it would force the whole app to be open source, including the Pro unlock code, and would let anyone legally republish the app. That rules it out.
 
-- The full source must be published, including the code that does the unlocking.
-- Anyone can build their own copy with Pro already unlocked. Forks (for example on F-Droid) will probably appear.
+OpenBoard is itself a fork of **AOSP LatinIME**, Google's open-source keyboard, which is **Apache-2.0**. The GPL covers only OpenBoard's own changes. Most of what makes OpenBoard good comes from LatinIME:
 
-Many GPL apps still earn money this way, because most users buy from the Play Store.
+- input logic (`InputLogic`, `RichInputConnection`): autocorrect, recapitalisation, cursor tracking;
+- the native C++ dictionary and suggestion engine (`libjni_latinime`);
+- the keyboard layout system, key detection and touch geometry;
+- layouts and translations for dozens of languages, and the dictionary tools.
 
-### 0.2 Which base to fork
+**Decision:** import LatinIME directly from AOSP, never from the OpenBoard or HeliBoard repositories. Then rebuild OpenBoard's own additions from a behaviour spec (see 0.2).
 
-OpenBoard is largely unmaintained, and it is Java with a View-based UI. Two alternatives:
+**Apache-2.0 obligations:** keep the LICENSE and NOTICE files and the original copyright headers in imported files, mark which files were modified, and list LatinIME on the in-app attribution screen. Publishing our code is **not** required.
 
-- **HeliBoard** is the actively maintained fork of OpenBoard (still GPL-3.0). If the OpenBoard codebase is the choice, fork HeliBoard instead, because it carries years of fixes.
-- **FlorisBoard** is Kotlin with Jetpack Compose under Apache-2.0. It matches the target stack more closely, and Apache-2.0 does not force the Pro code to be published.
+**LatinIME gaps:**
 
-If we stay with OpenBoard or HeliBoard, plan to replace the whole UI layer. The parts to keep are mainly the Latin input logic and the native C++ English dictionary engine (`libjni_latinime`).
+- **Gesture (swipe) typing:** Google's gesture library was never open-sourced (OpenBoard lacks it too). Build or license one later.
+- **Bundled `.dict` files:** check each one's license before shipping it. Building English word lists from openly licensed frequency data is the safe route.
 
-### 0.3 Data licenses
+### 0.2 Rebuilding OpenBoard's additions without legal issues
 
-Data licenses are a bigger legal risk than code licenses. See [section 4](#4-data-sources-and-licenses) and [section 7](#7-emoji-and-fonts).
+Copyright protects code, not ideas, features or behaviour. OpenBoard's own additions are rebuilt by writing original code from a **behaviour spec**. Those additions include Material You theming, the number row, space-bar cursor swipe, delete swipe, one-handed mode and the no-internet design.
+
+Rules:
+
+1. **Spec from behaviour, not source.** Write `docs/openboard-behaviour-spec.md` from using the app and reading its README, changelogs and issue tracker. Implement from that spec.
+2. **No copying or translating.** Converting OpenBoard's Java to Kotlin line by line is still copying, so don't.
+3. **No OpenBoard resources.** Don't take its layout XML, its own translations or its icons. The AOSP equivalents are fine.
+4. **Keep git history,** which records independent development.
+5. **Where it comes from AOSP,** take it from AOSP (Apache-2.0), even if OpenBoard has the same file.
+
+### 0.3 Closed source and private repositories
+
+- **The app is closed source.** The `app` repository (and `chat`) is **private**.
+- GitHub "public with no license" was rejected. It is legally "all rights reserved", but copying is trivial, and pursuing copies in other countries is impractical.
+- Source-available licenses (FSL, BSL, PolyForm) were rejected too. They don't stop cloners outside the reach of enforcement.
+
+**Public footprint** (a separate public repository, for example `<app-name>-community`):
+
+- issue tracker and feedback;
+- privacy policy, changelog, attribution / third-party licenses list;
+- the **compiled dictionary data**, which must be shared anyway under CC-CEDICT and CC-Canto share-alike terms;
+- optionally `tools/dict-pipeline`, which helps the learner community and gives competitors little.
+
+**Trust without source code:**
+
+- no INTERNET permission in the keyboard (anyone can verify it in the APK);
+- a plain-language data safety statement;
+- optionally, a third-party security audit later.
+
+**Protection against competitors** is mainly not about hidden code:
+
+- a **registered trademark** on the app name and logo, the most effective tool against confusingly similar clones on Google Play;
+- the Cantonese → Standard Chinese **model and its training data** stay private;
+- data quality, polish and shipping speed.
+
+### 0.4 Dependency license policy
+
+Because the app is closed source, every dependency must allow closed-source distribution.
+
+| Allowed | Conditions |
+|---|---|
+| Apache-2.0, MIT, BSD, ISC, Unicode License, zlib | Keep notices; list on the attribution screen |
+| SIL OFL 1.1 (fonts) | Bundle only with the app, never sold standalone; rename subsets of fonts with a Reserved Font Name |
+| CC BY / CC BY-SA **data** | Attribution; derived data files are published under the same license. Code is unaffected. |
+| Proprietary but free SDKs (e.g. ML Kit, Play Billing) | Follow their terms |
+| **LGPL** | **Data tables only** (e.g. libchewing / libhangul tables). Never link LGPL code, because LGPL's relinking requirement is impractical on Android. Zhuyin and Hangul logic are written in-house. |
+| **GPL / AGPL** | **Never**, in code or build-time code copied into the app |
+| CC BY-ND | Only if shipped completely unmodified (e.g. no font subsetting) |
+| CC BY-NC, "free for personal use" | **Never** (the app is commercial) |
+
+Data licenses remain a bigger legal risk than code licenses. See [section 4](#4-data-sources-and-licenses) and [section 7](#7-emoji-and-fonts).
 
 ---
 
@@ -50,7 +102,7 @@ Data licenses are a bigger legal risk than code licenses. See [section 4](#4-dat
 :ime                 InputMethodService, InputConnection handling, event pipeline
 :keyboard-ui         Compose keyboard surface, layouts, candidate bar, themes
 :engine-api          Interfaces: InputEngine, Candidate, Composition, Reading
-:engine-latin        OpenBoard native dictionary + suggestion logic (English)
+:engine-latin        AOSP LatinIME native dictionary + suggestion logic (English)
 :engine-chinese      Pinyin, Zhuyin, Jyutping, Yale engines + shared lattice decoder
 :engine-korean       (later) Hangul composition + hanja
 :engine-japanese     (later) kana-kanji conversion
@@ -184,7 +236,7 @@ All ML runs on the device. Each feature ships as an **on-demand dynamic feature 
 
 ### 5.1 Handwriting
 
-- **Quickest option: Google ML Kit Digital Ink Recognition.** It is free, runs on-device, and supports Chinese, Japanese and Korean. However, it is a proprietary closed library, which conflicts with the GPL in principle and rules out F-Droid.
+- **Quickest option: Google ML Kit Digital Ink Recognition.** It is free, runs on-device, and supports Chinese, Japanese and Korean. It is a proprietary library, which is fine now that the app is closed source.
 - **Open option:** Zinnia (BSD) with open stroke models, or a custom small CNN/transformer exported to ONNX or TFLite.
 - **Avoid CASIA-HWDB** for training a commercial model. It is licensed for research only.
 - **UI:** a handwriting pad replaces the key area and feeds the same candidate bar, so handwritten characters also get readings and glosses. This is very useful for learners who can't pronounce a character.
@@ -355,13 +407,27 @@ Guidelines:
 - **English→Chinese search could stay free,** since it's the feature people will show to others. The ML features cost the most to build, so charge for those.
 - **Fonts belong in the Pro bundle, not a standalone purchase** (OFL rule, section 7.4).
 
+### Piracy and protection
+
+Closed source stops people legally republishing the app. It does not stop piracy: Android apps can be decompiled, and tools exist that patch billing checks. The aim is to make cracking tedious, not impossible, and to spend most effort on value for paying users.
+
+- **R8 obfuscation and shrinking** in release builds.
+- **No single `isPro()` check.** The entitlement is checked in several places and inside feature modules, so one patch doesn't unlock everything.
+- **Play Integrity API** to detect modified apps and installs from outside Google Play.
+- **Server-side purchase verification (optional, strongest).** Pro models (handwriting, voice, translation) would only be downloadable from our server after verification.
+  - Trade-off: this needs network access, which conflicts with the "no INTERNET permission" selling point.
+  - Compromise: network access lives only in the settings / download component, never in the typing path, and is declared clearly.
+  - **Open decision.**
+- **Trademark enforcement** through Google Play's IP complaint process for clones.
+- **Accept some piracy.** People who pirate keyboards rarely would have paid.
+
 ---
 
 ## 9. Roadmap
 
 | Phase | Scope |
 |---|---|
-| **0. Foundation** | Fork (HeliBoard recommended), get it building, set up CI, and convert key classes to Kotlin. Host a Compose candidate bar inside the existing keyboard to prove the lifecycle setup and check latency. Create the settings app skeleton (Compose, Material 3), the module structure, and a starter `LICENSES/data.md`. |
+| **0. Foundation** | **Step 1:** import AOSP LatinIME (Apache-2.0) into a Gradle project, building with the Android SDK and NDK and keeping all Apache headers and NOTICE files. Get the stock keyboard typing on a device. **Step 2:** write `docs/openboard-behaviour-spec.md` and rebuild OpenBoard's additions from it (section 0.2). **Step 3:** set up CI, R8, and the module structure; convert key classes to Kotlin. **Step 4:** host a Compose candidate bar inside the keyboard to prove the lifecycle setup and check latency. **Step 5:** settings app skeleton (Compose, Material 3), `LICENSES/` (code + data) and the attribution screen. |
 | **1. Mandarin MVP** | Dictionary pipeline v1 (CC-CEDICT + frequencies). Pinyin engine with lattice, abbreviations and user dictionary. Candidate bar with pinyin and gloss. Dictionary card on long-press. Trad/Simp with OpenCC. |
 | **2. Cantonese** | Merge Jyutping data into the pipeline. Jyutping engine and Yale conversion. Dual-reading display and fuzzy matching options. |
 | **3. Breadth** | Zhuyin layout and transliteration front end. English → Chinese search. Emoji panel with CLDR multilingual search. Bundled fonts. Study list and learning mode. |
@@ -383,3 +449,5 @@ Guidelines:
 5. **Quality of Cantonese data and models.** Budget time for native speakers to evaluate it.
 6. **Play policy for keyboards.** Clear privacy disclosures are required, and having no network access makes this much easier. Keep user imports local to avoid user-generated content obligations.
 7. **Untrusted user files.** Use only Android's built-in font loading, with size and type limits and a fallback font.
+8. **License contamination.** A single GPL file, or code copied from OpenBoard, would undermine closed source. Follow the dependency policy (0.4), import from AOSP only, and check licenses on every new dependency.
+9. **Piracy.** Make cracking tedious with obfuscation, scattered entitlement checks and Play Integrity, then accept the rest (section 8).
