@@ -1,6 +1,6 @@
 # Chinese Learning Keyboard: Project Plan
 
-An Android keyboard for learners of Chinese, built with Jetpack Compose and Material 3. It is based on AOSP LatinIME (Apache-2.0), the same foundation OpenBoard uses, and the app is closed source.
+An Android keyboard for learners of Chinese, built with Jetpack Compose and Material 3. It is a closed-source fork of FlorisBoard (Apache-2.0), with AOSP LatinIME's English engine and librime for Chinese. It should be good enough to be a user's **default, everyday keyboard**, not only a learning tool.
 
 **Long-term scope**
 
@@ -19,37 +19,39 @@ An Android keyboard for learners of Chinese, built with Jetpack Compose and Mate
 
 ## 0. Foundation decisions (decided)
 
-### 0.1 Base: AOSP LatinIME, not OpenBoard
+### 0.1 Base: FlorisBoard fork + LatinIME engine + librime
 
-OpenBoard (and its fork HeliBoard) is GPL-3.0. Building on it would force the whole app to be open source, including the Pro unlock code, and would let anyone legally republish the app. That rules it out.
+OpenBoard and HeliBoard are GPL-3.0, so they are ruled out (the app is closed source). Bare AOSP LatinIME was evaluated next: it is minimal, but it lacks a lot and crashes on Android 16. The chosen base combines three permissively licensed projects, each the best open option for its part:
 
-OpenBoard is itself a fork of **AOSP LatinIME**, Google's open-source keyboard, which is **Apache-2.0**. The GPL covers only OpenBoard's own changes. Most of what makes OpenBoard good comes from LatinIME:
+| Part | Project | License | Role |
+|---|---|---|---|
+| **Keyboard shell** | **FlorisBoard** | Apache-2.0 | Input method service, Compose keyboard rendering, layouts, themes, emoji, clipboard, gestures. Kotlin + Jetpack Compose, works on current Android. |
+| **English suggestions** | **AOSP LatinIME native engine** (`libjni_latinime` + dictionary format) | Apache-2.0 | Suggestions, autocorrect, personal dictionary. FlorisBoard's current releases have no word suggestions or spell checking. Only the C++ engine and its dictionary format are used, not LatinIME's UI. |
+| **Chinese engine** | **librime** (Rime) | BSD-3 | Pinyin, jyutping, zhuyin, fuzzy matching, user word learning, multi-syllable lattice, OpenCC conversion, mixed English. Our own Android front end (Trime is GPL and fcitx5-android is LGPL, so both are off-limits). |
 
-- input logic (`InputLogic`, `RichInputConnection`): autocorrect, recapitalisation, cursor tracking;
-- the native C++ dictionary and suggestion engine (`libjni_latinime`);
-- the keyboard layout system, key detection and touch geometry;
-- layouts and translations for dozens of languages, and the dictionary tools.
+**Rejected alternatives:** AnySoftKeyboard (Apache-2.0, but heavy legacy View-based code), Simple Keyboard by rkkr (Apache-2.0, minimal but no suggestions and little activity), FUTO Keyboard (non-commercial license).
 
-**Decision:** import LatinIME directly from AOSP, never from the OpenBoard or HeliBoard repositories. Then rebuild OpenBoard's own additions from a behaviour spec (see 0.2).
+**Apache-2.0 obligations (FlorisBoard, LatinIME):** keep the LICENSE and NOTICE files and the original copyright headers, mark modified files, and list both on the in-app attribution screen. Publishing our code is **not** required. FlorisBoard's **name and logo are not covered by the license**, so the fork is fully rebranded.
 
-**Apache-2.0 obligations:** keep the LICENSE and NOTICE files and the original copyright headers in imported files, mark which files were modified, and list LatinIME on the in-app attribution screen. Publishing our code is **not** required.
+**Fork policy: fork once and diverge.** We strip and change too much to keep merging upstream. Specific upstream fixes are pulled in by hand when needed.
 
-**LatinIME gaps:**
+**Before relying on FlorisBoard:** check every bundled asset (dictionaries, emoji data, icons, fonts) for Apache-compatible licenses, and verify Android 16 behaviour on its current main branch (it is still labelled beta).
 
-- **Gesture (swipe) typing:** Google's gesture library was never open-sourced (OpenBoard lacks it too). Build or license one later.
-- **Bundled `.dict` files:** check each one's license before shipping it. Building English word lists from openly licensed frequency data is the safe route.
+**LatinIME gaps:** Google's gesture library was never open-sourced, so swipe typing comes from FlorisBoard's own (basic) implementation, tuned later. Check each LatinIME `.dict` file's license; building English word lists from openly licensed frequency data is the safe route.
 
-### 0.2 Rebuilding OpenBoard's additions without legal issues
+### 0.2 Step 1: refine the fork before adding anything
 
-Copyright protects code, not ideas, features or behaviour. OpenBoard's own additions are rebuilt by writing original code from a **behaviour spec**. Those additions include Material You theming, the number row, space-bar cursor swipe, delete swipe, one-handed mode and the no-internet design.
+The first step is **not** adding features. It is making the forked keyboard look, feel and behave exactly as intended:
 
-Rules:
+1. **Fork and rebrand:** new app name, package ID (`applicationId`), icon, and strings. Remove FlorisBoard branding, its add-ons store links and update channels.
+2. **Strip:** remove features and settings that don't fit the bare, minimal direction.
+3. **Fix and polish:** layout, key sizing and spacing, key feedback (haptics, sound, popups), theming with Material 3 / Material You, candidate bar look, settings app structure, and anything broken on Android 16.
+4. **Measure:** input latency, cold start time, memory, crash-free behaviour, before and after changes.
+5. **Record decisions** in `docs/keyboard-behaviour-spec.md` (how every key, gesture and setting should behave). This becomes the reference for later work.
 
-1. **Spec from behaviour, not source.** Write `docs/openboard-behaviour-spec.md` from using the app and reading its README, changelogs and issue tracker. Implement from that spec.
-2. **No copying or translating.** Converting OpenBoard's Java to Kotlin line by line is still copying, so don't.
-3. **No OpenBoard resources.** Don't take its layout XML, its own translations or its icons. The AOSP equivalents are fine.
-4. **Keep git history,** which records independent development.
-5. **Where it comes from AOSP,** take it from AOSP (Apache-2.0), even if OpenBoard has the same file.
+Only after this step do new engines and features go in (LatinIME engine, librime, learning layer).
+
+**OpenBoard-like behaviour:** where we want a behaviour OpenBoard has (for example space-bar cursor swipe or delete swipe), it is written into the behaviour spec and implemented from scratch. Never copy or translate code, layout XML, translations or icons from OpenBoard or HeliBoard (GPL).
 
 ### 0.3 Closed source and private repositories
 
@@ -97,13 +99,15 @@ Data licenses remain a bigger legal risk than code licenses. See [section 4](#4-
 
 ## 1. Architecture (Gradle multi-module)
 
+This is the **target** structure. The fork starts from FlorisBoard's own module layout, and we move towards this structure gradually after step 1 (section 0.2), rather than restructuring on day one.
+
 ```
 :app                 Settings/onboarding/store UI (Compose, Material 3), entry point
 :ime                 InputMethodService, InputConnection handling, event pipeline
 :keyboard-ui         Compose keyboard surface, layouts, candidate bar, themes
 :engine-api          Interfaces: InputEngine, Candidate, Composition, Reading
-:engine-latin        AOSP LatinIME native dictionary + suggestion logic (English)
-:engine-chinese      Pinyin, Zhuyin, Jyutping, Yale engines + shared lattice decoder
+:engine-latin        AOSP LatinIME native engine via JNI: suggestions, autocorrect, personal dictionary
+:engine-chinese      librime front end (JNI) + Rime schemas: Pinyin, Zhuyin, Jyutping, Yale, mixed English
 :engine-korean       (later) Hangul composition + hanja
 :engine-japanese     (later) kana-kanji conversion
 :dict                Dictionary storage and query layer (readings, glosses, frequency)
@@ -145,8 +149,10 @@ Every language engine returns the same `Candidate` type. That way one candidate 
 
 ## 2. Compose and Material 3 inside a keyboard
 
+FlorisBoard already hosts Compose inside its input method service and renders the keyboard in Compose. The points below are what to check, profile and tighten during step 1, not things to build from zero.
+
 - **Hosting Compose in the input method service.** Return a `ComposeView` from `onCreateInputView()`. An IME window has no Activity, so set `ViewTreeLifecycleOwner`, `ViewModelStoreOwner` and `SavedStateRegistryOwner` on the window's decor view by hand. Without them, Compose crashes.
-- **Key rendering.** Draw all keys on one `Canvas` with a single `pointerInput` handler for multi-touch, key repeat and swipe gestures. Do not use one composable per key: recomposing about 40 key composables on every shift or layout change is where Compose keyboards get laggy. The candidate bar, toolbar, emoji panel, dictionary popup and settings can all be ordinary composables.
+- **Key rendering.** Profile FlorisBoard's key rendering first. If it is a bottleneck, move to drawing all keys on one `Canvas` with a single `pointerInput` handler for multi-touch, key repeat and swipe gestures. Do not use one composable per key: recomposing about 40 key composables on every shift or layout change is where Compose keyboards get laggy. The candidate bar, toolbar, emoji panel, dictionary popup and settings can all be ordinary composables.
 - **Avoiding recomposition on every keystroke.** Keep engine state in a `StateFlow` and use stable or immutable data classes. Wrap the candidate list in `derivedStateOf` and show it in a `LazyRow` with keys.
 - **Theming.**
   - Material You key colours come from `dynamicColorScheme()`.
@@ -162,9 +168,15 @@ Every language engine returns the same `Candidate` type. That way one candidate 
 
 ## 3. Chinese input engine design
 
-### 3.1 Shared decoder
+### 3.1 Engine: librime
 
-Every phonetic scheme reduces to the same steps: segment the input into syllables, build a lattice, then rank dictionary matches by frequency, context and user history.
+Every phonetic scheme reduces to the same steps: segment the input into syllables, build a lattice, then rank dictionary matches by frequency, context and user history. **librime already does all of this**, so we do not write our own decoder. Our work is:
+
+- an Android front end: JNI bridge, feeding Rime's composition and candidates into the candidate bar;
+- Rime **schemas** (one per input scheme) and **dictionaries** generated by our pipeline (section 4);
+- the learning layer on top: readings, glosses, dictionary card (section 3.3).
+
+What Rime gives us, configured through schemas:
 
 - **Segmentation.** Ambiguous strings are split by building a syllable lattice (`xian` could be xian or xi'an). Initial-only abbreviations are supported (`nh` → 你好), and tones are optional.
 - **Ranking.** Combine word frequency, a small bigram model for next-word prediction, and a learned user dictionary.
@@ -175,12 +187,13 @@ Every phonetic scheme reduces to the same steps: segment the input into syllable
 | Scheme | Notes |
 |---|---|
 | **Hanyu Pinyin** | Main Mandarin engine. Accepts `v` or `ü`, tones as digits 1–5, or no tones. |
-| **Zhuyin / Bopomofo** | Each Zhuyin syllable maps one-to-one to a pinyin syllable. Its own key layout (standard Dachen) on top of the pinyin lattice through a transliteration front end. No separate dictionary needed. |
+| **Zhuyin / Bopomofo** | Each Zhuyin syllable maps one-to-one to a pinyin syllable. Its own key layout (standard Dachen), with a Rime schema that maps Zhuyin onto the same dictionary as pinyin. No separate dictionary needed. |
 | **Jyutping** | Main Cantonese engine. Accepts tones 1–6 or no tones. |
 | **Yale (Cantonese)** | Converted from Jyutping by rule, for both display and input. Display can use diacritics plus *h*; input uses digits or no tones. |
 
 ### 3.3 Candidate bar display (the learning part)
 
+- **Learning mode toggle.** Daily users won't want readings and glosses on every candidate. A one-tap **Learning mode** toggle on the toolbar switches between a clean, Gboard-style candidate bar (off) and the full learning display below (on). The settings choose what Learning mode shows.
 - **Readings.** A small ruby line above each candidate shows its reading(s). The user picks which: pinyin, jyutping, Yale or Zhuyin. They can also show **Mandarin and Cantonese readings together**, which is a key selling point.
 - **Gloss.** A short English gloss sits under each candidate, truncated to fit.
 - **Tone colours.** Optional colouring by tone, like Pleco.
@@ -195,10 +208,17 @@ Many strings are valid in both languages (`an`, `men`, `hen`, `pin`), so English
 
 The lookup uses a SQLite FTS5 index over the English glosses. Results are ranked by headword frequency and by whether the match is the entry's first sense, so typing "water" shows 水 before 水泥.
 
-### 3.5 Traditional / Simplified
+### 3.5 Mixed English and Chinese
+
+Mixing languages mid-sentence is normal, especially in Hong Kong ("我今日好 busy"). Two mechanisms:
+
+- **Mixed candidates:** Rime schemas can mix English words into Chinese candidates, so typing `busy` in pinyin or jyutping mode also offers "busy". The same mechanism helps the English → Chinese lookup.
+- **Fast switching:** long-press or swipe on the space bar, or a globe key, to switch between the English layout (LatinIME engine) and Chinese layouts (Rime).
+
+### 3.6 Traditional / Simplified
 
 - Both forms are stored for each entry (CC-CEDICT already has them), and the keyboard outputs whichever the user chooses.
-- Conversion that needs context goes through **OpenCC** (Apache-2.0). This covers phrase-level conversion and regional vocabulary, for example 软件 → 軟體 in Taiwan or 軟件 in Hong Kong. Profiles: `s2hk`, `s2tw`, `s2twp`, `t2s`.
+- Conversion that needs context goes through **OpenCC** (Apache-2.0), which librime integrates directly. This covers phrase-level conversion and regional vocabulary, for example 软件 → 軟體 in Taiwan or 軟件 in Hong Kong. Profiles: `s2hk`, `s2tw`, `s2twp`, `t2s`.
 - Settings: output script (Simplified / Traditional-HK / Traditional-TW), plus a separate script setting for candidate display.
 
 ---
@@ -209,11 +229,15 @@ The lookup uses a SQLite FTS5 index over the English glosses. Results are ranked
 |---|---|---|
 | Mandarin readings + English glosses | **CC-CEDICT** | CC BY-SA 4.0. The compiled dictionary file must also be CC BY-SA and credited. The app code is unaffected. |
 | Cantonese readings for CEDICT words | **CC-Canto** / CC-CEDICT Cantonese readings | CC BY-SA |
-| Cantonese words + frequencies | **rime-cantonese** | CC BY 4.0. Good word frequencies for ranking. |
+| Cantonese words + frequencies | **rime-cantonese** | Believed CC BY 4.0, but its license file could not be loaded during research. **Confirm before use.** Good word frequencies for ranking. |
+| Ready-made Rime schemas (starting point) | `rime-luna-pinyin`, `rime-bopomofo` | LGPL-3.0 (verified). Allowed as **data only** (policy 0.4); replaced over time by schemas and dictionaries from our pipeline. |
 | Per-character readings | **Unihan** (kMandarin, kCantonese, kHanyuPinyin) | Unicode License (permissive) |
 | Cantonese colloquial glosses | words.hk | **Check the license.** It has historically restricted commercial use. Don't assume it can ship in a paid app. |
 | Mandarin frequencies | SUBTLEX-CH, Jun Da | Check each one's terms |
 | Trad/Simp conversion | **OpenCC** | Apache-2.0 |
+| Keyboard shell | **FlorisBoard** | Apache-2.0 (verified). Audit bundled assets separately. |
+| English engine | **AOSP LatinIME** native engine | Apache-2.0 |
+| Chinese engine | **librime** + build deps (Boost, LevelDB, yaml-cpp, marisa, glog) | BSD-3 (verified); deps BSL-1.0 / BSD / MIT |
 | Emoji names and keywords | **Unicode CLDR annotations**, `emoji-test.txt` | Unicode License v3 (permissive) |
 | Stroke order (optional) | Make Me a Hanzi | Arphic / LGPL mix; check before use |
 | Japanese (later) | **Mozc** (engine), **JMdict** (glosses) | BSD-3; CC BY-SA |
@@ -223,7 +247,7 @@ The lookup uses a SQLite FTS5 index over the English glosses. Results are ranked
 
 1. Raw sources go into `tools/dict-pipeline`.
 2. The pipeline normalises readings, merges entries, attaches frequencies, and derives Yale and Zhuyin.
-3. The output is a trie (for example marisa-trie or an FST) for reading lookup, plus SQLite for entries and the full-text index.
+3. The output is **Rime dictionaries** (`*.dict.yaml`, compiled by librime) for input, plus **SQLite** for entries, glosses and the English full-text index used by the learning layer. Both are keyed by the same entry IDs.
 4. The result ships as a versioned asset, roughly 15–40 MB for Chinese.
 
 Every source must be recorded in `LICENSES/data.md` and credited on an in-app attribution screen.
@@ -390,6 +414,7 @@ Users can be allowed to add their own files, and the risk is low *if imports sta
 
 | Free | Pro |
 |---|---|
+| **Everything in the daily-driver bar (section 9)** | |
 | Pinyin, Zhuyin, Jyutping | Handwriting |
 | Trad/Simp output | Voice input |
 | One reading + short gloss on candidates | Cantonese → Standard Chinese translation |
@@ -403,7 +428,7 @@ Users can be allowed to add their own files, and the risk is low *if imports sta
 
 Guidelines:
 
-- **Core typing is never paywalled.** A keyboard people can't type with gets uninstalled.
+- **Core typing is never paywalled.** The free tier must be a complete everyday keyboard; if it feels limited, people won't keep it as their default and will never see Pro.
 - **English→Chinese search could stay free,** since it's the feature people will show to others. The ML features cost the most to build, so charge for those.
 - **Fonts belong in the Pro bundle, not a standalone purchase** (OFL rule, section 7.4).
 
@@ -423,31 +448,83 @@ Closed source stops people legally republishing the app. It does not stop piracy
 
 ---
 
-## 9. Roadmap
+## 9. Daily-driver quality bar
+
+The keyboard should be good enough to be a user's default. These are what get a keyboard uninstalled when missing, and all of them are **free**:
+
+| Area | Requirements |
+|---|---|
+| **Reliability** | No crashes (an input method crash leaves the user without a keyboard). Opt-in local crash log the user can export, no internet needed. |
+| **Speed** | Low input latency, fast cold start, haptics that feel right. |
+| **English** | Good suggestions, autocorrect that one backspace undoes, personal dictionary (LatinIME engine). |
+| **Lock screen** | Works before first unlock after a reboot (Direct Boot, `directBootAware`). |
+| **Privacy** | Never learns from password fields or incognito mode; option to clear learned words. |
+| **Autofill** | Password-manager and autofill suggestions inline in the suggestion strip (Android 11+). |
+| **Editing** | Clipboard history, space-bar cursor control, swipe to delete, undo. |
+| **Swipe typing** | FlorisBoard's version is basic; tune it, or replace the decoder later. |
+| **Mixed languages** | Mixed English/Chinese candidates and fast language switching (section 3.5). |
+| **Accessibility** | TalkBack support, large text, high-contrast themes. |
+| **Layout** | One-handed and floating modes, adjustable height, landscape, split layout for tablets and foldables. |
+| **System spell checker** | Optional: underline misspellings in other apps, reusing the LatinIME engine. |
+
+---
+
+## 10. Development workflow and viewing live changes
+
+Development happens in two places:
+
+- **Cloud sessions (Claude Code on the web / app):** edits code, builds, runs unit and screenshot tests, and pushes to a branch. The cloud container cannot run an Android emulator (no hardware virtualisation) and cannot reach the developer's phone or computer.
+- **The developer's computer:** Android Studio, a phone or emulator, and live viewing of changes.
+
+### Recommended loop: Claude Code on your own computer
+
+Run Claude Code in a terminal or the Claude Desktop app **on the same computer as Android Studio**, in the local clone. Edits land directly in the project Android Studio has open, so:
+
+- **Run** (or Apply Changes) installs the keyboard on a USB/Wi-Fi-connected phone or emulator in seconds.
+- **Compose Live Edit** updates many Compose UI changes on the running device without reinstalling (best for the settings app; the keyboard window may need Apply Changes or a reinstall).
+- **Compose Previews** show keyboard pieces (keys, candidate bar, themes) inside Android Studio without a device.
+- `claude remote-control` (or the Desktop app) lets the same local session be driven from the Claude app on a phone.
+
+### Alternative loop: cloud session + local pull
+
+1. The cloud session pushes to `claude/...` branches.
+2. Locally: `git pull`, then Run from Android Studio.
+3. Optional: a **GitHub Actions** workflow builds a debug APK on every push and attaches it as an artifact, to install on a phone without Android Studio.
+
+### Screenshot tests
+
+Screenshot tests (Roborazzi or Paparazzi) render keyboard and settings composables to PNG on the JVM, with no emulator. Cloud sessions use them to show visual changes and catch regressions; they also run in CI.
+
+---
+
+## 11. Roadmap
 
 | Phase | Scope |
 |---|---|
-| **0. Foundation** | **Step 1:** import AOSP LatinIME (Apache-2.0) into a Gradle project, building with the Android SDK and NDK and keeping all Apache headers and NOTICE files. Get the stock keyboard typing on a device. **Step 2:** write `docs/openboard-behaviour-spec.md` and rebuild OpenBoard's additions from it (section 0.2). **Step 3:** set up CI, R8, and the module structure; convert key classes to Kotlin. **Step 4:** host a Compose candidate bar inside the keyboard to prove the lifecycle setup and check latency. **Step 5:** settings app skeleton (Compose, Material 3), `LICENSES/` (code + data) and the attribution screen. |
-| **1. Mandarin MVP** | Dictionary pipeline v1 (CC-CEDICT + frequencies). Pinyin engine with lattice, abbreviations and user dictionary. Candidate bar with pinyin and gloss. Dictionary card on long-press. Trad/Simp with OpenCC. |
-| **2. Cantonese** | Merge Jyutping data into the pipeline. Jyutping engine and Yale conversion. Dual-reading display and fuzzy matching options. |
-| **3. Breadth** | Zhuyin layout and transliteration front end. English → Chinese search. Emoji panel with CLDR multilingual search. Bundled fonts. Study list and learning mode. |
-| **4. Monetisation + beta** | Billing, Pro gating and onboarding. Extra emoji styles, font catalogue and font import. Play Console closed testing, data safety form, privacy policy. |
+| **0. Fork and refine (step 1)** | Fork FlorisBoard into this repo. Build it, confirm it works on Android 16. Rebrand (name, package ID, icon, strings). Strip unwanted features and settings. Fix and polish layout, key feel, theming and the settings app, with **no new features** (section 0.2). Write `docs/keyboard-behaviour-spec.md`. Set up CI (debug APK artifact), R8, screenshot tests, and `LICENSES/` with the attribution screen. Audit FlorisBoard's bundled assets. |
+| **1. English foundation** | Connect the LatinIME native engine: suggestions, autocorrect with backspace-undo, personal dictionary. |
+| **2. Chinese engine** | Build librime for Android (NDK). JNI front end into the candidate bar. Pinyin schema first, then jyutping, Yale and zhuyin. Mixed English candidates, fast language switching. Trad/Simp through OpenCC. |
+| **3. Learning layer** | Dictionary pipeline (CC-CEDICT, CC-Canto, frequencies) producing Rime dictionaries + SQLite. Readings and glosses on candidates, dual readings, Learning mode toggle, dictionary card, English → Chinese search, study list. |
+| **4. Daily-driver polish + beta** | Work through the daily-driver bar (section 9). Emoji panel with CLDR multilingual search, bundled fonts. Billing, Pro gating, onboarding. Play Console closed testing, data safety form, privacy policy. |
 | **5. Handwriting** | Dynamic feature module. |
 | **6. Voice** | sherpa-onnx + SenseVoice. |
-| **7. Cantonese → Standard Written Chinese** | Rule-based first, then the model. Sticker packs fit here too. |
+| **7. Cantonese → Standard Written Chinese** | Rule-based first, then the model. Extra emoji styles, font catalogue, font import and sticker packs fit around here. |
 | **8. Korean** | The easiest addition. Algorithmic Hangul composition, 2-set layout, optional hanja candidates with readings and glosses. |
 | **9. Japanese** | The hardest. Kana-kanji conversion needs a real converter; embedding Mozc is the realistic route, but it is large. Romaji and flick layouts, JMdict glosses. |
 
 ---
 
-## 10. Main risks
+## 12. Main risks
 
-1. **Typing latency with Compose.** Measure from day one. The single-Canvas key surface is the main way to reduce it.
+1. **Typing latency with Compose.** Measure from day one, starting with FlorisBoard as forked. A single-Canvas key surface is the fallback if rendering is the bottleneck.
 2. **Data, font and emoji licensing.** Track every asset in `LICENSES/data.md` and credit each one in the app. Never ship proprietary emoji or fonts.
 3. **App size.** Compress dictionaries, subset fonts, and deliver models, fonts and emoji sets on demand.
 4. **IME process memory.** Load models lazily and unload them aggressively.
 5. **Quality of Cantonese data and models.** Budget time for native speakers to evaluate it.
 6. **Play policy for keyboards.** Clear privacy disclosures are required, and having no network access makes this much easier. Keep user imports local to avoid user-generated content obligations.
 7. **Untrusted user files.** Use only Android's built-in font loading, with size and type limits and a fallback font.
-8. **License contamination.** A single GPL file, or code copied from OpenBoard, would undermine closed source. Follow the dependency policy (0.4), import from AOSP only, and check licenses on every new dependency.
+8. **License contamination.** A single GPL file, or code copied from OpenBoard, HeliBoard or Trime, would undermine closed source. Follow the dependency policy (0.4) and check licenses on every new dependency and asset.
 9. **Piracy.** Make cracking tedious with obfuscation, scattered entitlement checks and Play Integrity, then accept the rest (section 8).
+10. **FlorisBoard is still beta.** Its internals may fight our changes. Step 1 doubles as an evaluation: if the fork can't be brought to the desired quality in reasonable time, revisit the base before adding engines.
+11. **Diverging from upstream.** We fork once and diverge, so upstream fixes don't arrive automatically. Watch upstream for security and Android-compatibility fixes and port them by hand.
+12. **librime build complexity.** Building it for Android pulls in Boost and other C++ dependencies. Expect a few days of build work; Trime and fcitx5-android show it is achievable (reference their build approach only, not their code).
